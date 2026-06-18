@@ -1,0 +1,98 @@
+{
+  "flow": "outlook-m365-email",
+  "run_id": "accept-20260615T004745Z-1",
+  "dry_run": false,
+  "success": false,
+  "steps": [
+    {
+      "step_id": "focus-outlook",
+      "success": true,
+      "duration_ms": 589,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-nwqe1y1y.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-0h75s2zd.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T004745Z-1/focus-outlook"
+      }
+    },
+    {
+      "step_id": "new-email",
+      "success": true,
+      "duration_ms": 9383,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-rqv7sb09.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-t82hxpag.png",
+      "details": {
+        "kind": "click",
+        "params": {
+          "query": "New",
+          "anchor": "center",
+          "click_kind": "click"
+        },
+        "query": "New",
+        "click_kind": "click",
+        "anchor": "center",
+        "artifact_dir": "runs/accept-20260615T004745Z-1/new-email"
+      }
+    },
+    {
+      "step_id": "verify-compose-open",
+      "success": true,
+      "duration_ms": 9099,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-vd_7h2m2.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-_l7ujqdx.png",
+      "details": {
+        "kind": "verify",
+        "params": {
+          "specs": [
+            "text-appeared:\"To\""
+          ]
+        },
+        "verification": {
+          "verifier": "verify:text",
+          "message": "text \"To\" appeared"
+        },
+        "artifact_dir": "runs/accept-20260615T004745Z-1/verify-compose-open"
+      }
+    },
+    {
+      "step_id": "open-word-online",
+      "success": true,
+      "duration_ms": 613,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-49nqf5i_.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-q3c1kybu.png",
+      "details": {
+        "kind": "navigate",
+        "params": {
+          "url": "https://www.office.com/launch/word"
+        },
+        "url": "https://www.office.com/launch/word",
+        "artifact_dir": "runs/accept-20260615T004745Z-1/open-word-online"
+      }
+    },
+    {
+      "step_id": "verify-word-surface",
+      "success": false,
+      "duration_ms": 6449,
+      "error": "text \"Word\" not appeared",
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-atn8qt_y.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-alv4fgn1.png",
+      "details": {
+        "kind": "verify",
+        "params": {
+          "specs": [
+            "text-appeared:\"Word\""
+          ]
+        },
+        "artifact_dir": "runs/accept-20260615T004745Z-1/verify-word-surface"
+      }
+    }
+  ]
+}

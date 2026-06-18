@@ -1,0 +1,85 @@
+name: outlook-m365-email
+variables:
+  m365_word_url: "https://www.office.com/launch/word"
+  recipient: "test@example.com"
+  subject: "Open Frame MVP run {{run_id}}"
+  body: "Automated message from Open Frame."
+  document_title: "Weekly summary {{run_id}}"
+  attachment_path: "{{run_dir}}/summary-{{run_id}}.txt"
+steps:
+  - id: focus-outlook
+    kind: app
+    name: "Microsoft Outlook"
+
+  - id: new-email
+    kind: key
+    combo:
+      - command
+      - n
+
+  - id: wait-compose-open
+    kind: wait
+    ms: 1200
+
+  - id: open-word-online
+    kind: navigate
+    url: "{{m365_word_url}}"
+
+  - id: wait-word-load
+    kind: wait
+    ms: 2000
+
+  - id: verify-word-surface
+    kind: verify
+    specs:
+      - 'text-appeared:"Microsoft"'
+
+  - id: create-doc-title
+    kind: type
+    text: "{{document_title}}"
+
+  - id: return-outlook
+    kind: app
+    name: "Microsoft Outlook"
+
+  - id: fill-recipient
+    kind: fill
+    query: "To"
+    text: "{{recipient}}"
+    clear: true
+
+  - id: focus-subject-via-tab
+    kind: key
+    key: tab
+
+  - id: type-subject
+    kind: type
+    text: "{{subject}}"
+
+  - id: focus-body-via-tab
+    kind: key
+    key: tab
+
+  - id: type-body
+    kind: type
+    text: "{{body}}"
+
+  - id: attach-summary
+    kind: attach
+    path: "{{attachment_path}}"
+    submit_key: enter
+
+  - id: send-email
+    kind: key
+    combo:
+      - command
+      - return
+
+  - id: wait-send-settle
+    kind: wait
+    ms: 2000
+
+  - id: verify-sent
+    kind: verify
+    specs:
+      - 'text-gone:"{{recipient}}"'

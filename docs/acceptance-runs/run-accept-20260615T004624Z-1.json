@@ -1,0 +1,80 @@
+{
+  "flow": "outlook-m365-email",
+  "run_id": "accept-20260615T004624Z-1",
+  "dry_run": false,
+  "success": false,
+  "steps": [
+    {
+      "step_id": "focus-outlook",
+      "success": true,
+      "duration_ms": 597,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-kh1rlncd.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-95xt1zdp.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T004624Z-1/focus-outlook"
+      }
+    },
+    {
+      "step_id": "new-email",
+      "success": true,
+      "duration_ms": 14551,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-9sajtozb.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-k414chmr.png",
+      "details": {
+        "kind": "click",
+        "params": {
+          "query": "New",
+          "anchor": "center",
+          "click_kind": "click"
+        },
+        "query": "New",
+        "click_kind": "click",
+        "anchor": "center",
+        "artifact_dir": "runs/accept-20260615T004624Z-1/new-email"
+      }
+    },
+    {
+      "step_id": "verify-compose-open",
+      "success": true,
+      "duration_ms": 9148,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ip8t_a59.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-rc6g7olp.png",
+      "details": {
+        "kind": "verify",
+        "params": {
+          "specs": [
+            "text-appeared:\"To\""
+          ]
+        },
+        "verification": {
+          "verifier": "verify:text",
+          "message": "text \"To\" appeared"
+        },
+        "artifact_dir": "runs/accept-20260615T004624Z-1/verify-compose-open"
+      }
+    },
+    {
+      "step_id": "focus-browser",
+      "success": false,
+      "duration_ms": 557,
+      "error": "Could not focus app 'Google Chrome': 36:44: execution error: Can\u2019t get application \"Google Chrome\". (-1728)",
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-e49mwa2q.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-1ujj673i.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Google Chrome"
+        },
+        "artifact_dir": "runs/accept-20260615T004624Z-1/focus-browser"
+      }
+    }
+  ]
+}

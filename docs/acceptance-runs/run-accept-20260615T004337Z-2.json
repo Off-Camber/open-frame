@@ -1,0 +1,41 @@
+{
+  "flow": "outlook-m365-email",
+  "run_id": "accept-20260615T004337Z-2",
+  "dry_run": false,
+  "success": false,
+  "steps": [
+    {
+      "step_id": "focus-outlook",
+      "success": true,
+      "duration_ms": 555,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-e_ufdcj5.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-dfy1j4o_.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T004337Z-2/focus-outlook"
+      }
+    },
+    {
+      "step_id": "new-email",
+      "success": false,
+      "duration_ms": 807,
+      "error": "tesseract is not installed or it's not in your PATH. See README file for more information.",
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-5jl6jzr0.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-y_07qez0.png",
+      "details": {
+        "kind": "click",
+        "params": {
+          "query": "New Email",
+          "anchor": "center",
+          "click_kind": "click"
+        },
+        "artifact_dir": "runs/accept-20260615T004337Z-2/new-email"
+      }
+    }
+  ]
+}

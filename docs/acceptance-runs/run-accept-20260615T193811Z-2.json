@@ -1,0 +1,307 @@
+{
+  "flow": "outlook-m365-email",
+  "run_id": "accept-20260615T193811Z-2",
+  "dry_run": false,
+  "success": true,
+  "steps": [
+    {
+      "step_id": "focus-outlook",
+      "success": true,
+      "duration_ms": 559,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-wtztsli4.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-y_fzhrrz.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/focus-outlook"
+      }
+    },
+    {
+      "step_id": "new-email",
+      "success": true,
+      "duration_ms": 786,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-wbheksrz.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-un4pg3cn.png",
+      "details": {
+        "kind": "key",
+        "params": {
+          "combo": [
+            "command",
+            "n"
+          ]
+        },
+        "combo": [
+          "command",
+          "n"
+        ],
+        "artifact_dir": "runs/accept-20260615T193811Z-2/new-email"
+      }
+    },
+    {
+      "step_id": "wait-compose-open",
+      "success": true,
+      "duration_ms": 1776,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-vy9ldd9u.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-p6rf4skl.png",
+      "details": {
+        "kind": "wait",
+        "params": {
+          "ms": 1200
+        },
+        "wait_ms": 1200,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/wait-compose-open"
+      }
+    },
+    {
+      "step_id": "open-word-online",
+      "success": true,
+      "duration_ms": 649,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-r25_xkfo.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-af2peknw.png",
+      "details": {
+        "kind": "navigate",
+        "params": {
+          "url": "https://www.office.com/launch/word"
+        },
+        "url": "https://www.office.com/launch/word",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/open-word-online"
+      }
+    },
+    {
+      "step_id": "wait-word-load",
+      "success": true,
+      "duration_ms": 2755,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-japbcc3n.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-aax21crj.png",
+      "details": {
+        "kind": "wait",
+        "params": {
+          "ms": 2000
+        },
+        "wait_ms": 2000,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/wait-word-load"
+      }
+    },
+    {
+      "step_id": "verify-word-surface",
+      "success": true,
+      "duration_ms": 10514,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-gof8ncys.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-xpt1ecbg.png",
+      "details": {
+        "kind": "verify",
+        "params": {
+          "specs": [
+            "text-appeared:\"Microsoft\""
+          ]
+        },
+        "verification": {
+          "verifier": "verify:text",
+          "message": "text \"Microsoft\" appeared"
+        },
+        "artifact_dir": "runs/accept-20260615T193811Z-2/verify-word-surface"
+      }
+    },
+    {
+      "step_id": "create-doc-title",
+      "success": true,
+      "duration_ms": 1529,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-cvh_5ct3.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-d86vxi48.png",
+      "details": {
+        "kind": "type",
+        "params": {
+          "text": "Weekly summary {{run_id}}"
+        },
+        "text_length": 25,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/create-doc-title"
+      }
+    },
+    {
+      "step_id": "return-outlook",
+      "success": true,
+      "duration_ms": 578,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-8_5o6d9e.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-6elyn0gz.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/return-outlook"
+      }
+    },
+    {
+      "step_id": "fill-recipient",
+      "success": true,
+      "duration_ms": 8866,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-spg6j9ek.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-jn81bky6.png",
+      "details": {
+        "kind": "fill",
+        "params": {
+          "query": "To",
+          "text": "test@example.com",
+          "clear": true
+        },
+        "query": "To",
+        "text_length": 16,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/fill-recipient"
+      }
+    },
+    {
+      "step_id": "focus-subject-via-tab",
+      "success": true,
+      "duration_ms": 633,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-kdf5jmnv.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-s5_gvoq4.png",
+      "details": {
+        "kind": "key",
+        "params": {
+          "key": "tab"
+        },
+        "key": "tab",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/focus-subject-via-tab"
+      }
+    },
+    {
+      "step_id": "type-subject",
+      "success": true,
+      "duration_ms": 1651,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-kxxi9hmd.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ow75_qgl.png",
+      "details": {
+        "kind": "type",
+        "params": {
+          "text": "Open Frame MVP run {{run_id}}"
+        },
+        "text_length": 29,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/type-subject"
+      }
+    },
+    {
+      "step_id": "focus-body-via-tab",
+      "success": true,
+      "duration_ms": 666,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-au_fh_1e.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-iq408y2c.png",
+      "details": {
+        "kind": "key",
+        "params": {
+          "key": "tab"
+        },
+        "key": "tab",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/focus-body-via-tab"
+      }
+    },
+    {
+      "step_id": "type-body",
+      "success": true,
+      "duration_ms": 1518,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-w5jdh8pa.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-73ydb4jj.png",
+      "details": {
+        "kind": "type",
+        "params": {
+          "text": "Automated message from Open Frame."
+        },
+        "text_length": 34,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/type-body"
+      }
+    },
+    {
+      "step_id": "attach-summary",
+      "success": true,
+      "duration_ms": 1700,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-wdmoxtbe.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-7n2jf00w.png",
+      "details": {
+        "kind": "attach",
+        "params": {
+          "path": "{{run_dir}}/summary-{{run_id}}.txt",
+          "submit_key": "enter"
+        },
+        "path": "{{run_dir}}/summary-{{run_id}}.txt",
+        "submit_key": "enter",
+        "artifact_dir": "runs/accept-20260615T193811Z-2/attach-summary"
+      }
+    },
+    {
+      "step_id": "send-email",
+      "success": true,
+      "duration_ms": 703,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-gpbzsngx.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-hhsi9b32.png",
+      "details": {
+        "kind": "key",
+        "params": {
+          "combo": [
+            "command",
+            "return"
+          ]
+        },
+        "combo": [
+          "command",
+          "return"
+        ],
+        "artifact_dir": "runs/accept-20260615T193811Z-2/send-email"
+      }
+    },
+    {
+      "step_id": "wait-send-settle",
+      "success": true,
+      "duration_ms": 2521,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-8fav9xur.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-189a6og8.png",
+      "details": {
+        "kind": "wait",
+        "params": {
+          "ms": 2000
+        },
+        "wait_ms": 2000,
+        "artifact_dir": "runs/accept-20260615T193811Z-2/wait-send-settle"
+      }
+    },
+    {
+      "step_id": "verify-sent",
+      "success": true,
+      "duration_ms": 7953,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-_4vvud9f.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-sv9cook2.png",
+      "details": {
+        "kind": "verify",
+        "params": {
+          "specs": [
+            "text-gone:\"test@example.com\""
+          ]
+        },
+        "verification": {
+          "verifier": "verify:text",
+          "message": "text \"test@example.com\" gone"
+        },
+        "artifact_dir": "runs/accept-20260615T193811Z-2/verify-sent"
+      }
+    }
+  ]
+}

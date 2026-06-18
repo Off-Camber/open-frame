@@ -1,0 +1,41 @@
+{
+  "flow": "outlook-m365-email",
+  "run_id": "accept-20260615T191744Z-3",
+  "dry_run": false,
+  "success": false,
+  "steps": [
+    {
+      "step_id": "focus-outlook",
+      "success": true,
+      "duration_ms": 573,
+      "error": null,
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-av03getw.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ccbjsqj0.png",
+      "details": {
+        "kind": "app",
+        "params": {
+          "name": "Microsoft Outlook"
+        },
+        "app": "Microsoft Outlook",
+        "artifact_dir": "runs/accept-20260615T191744Z-3/focus-outlook"
+      }
+    },
+    {
+      "step_id": "new-email",
+      "success": false,
+      "duration_ms": 7906,
+      "error": "Step 'new-email' could not find target for query 'New'.",
+      "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-rq3cw9z4.png",
+      "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ht4evgyd.png",
+      "details": {
+        "kind": "click",
+        "params": {
+          "query": "New",
+          "anchor": "center",
+          "click_kind": "click"
+        },
+        "artifact_dir": "runs/accept-20260615T191744Z-3/new-email"
+      }
+    }
+  ]
+}

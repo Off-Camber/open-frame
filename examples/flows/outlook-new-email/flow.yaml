@@ -1,0 +1,22 @@
+name: outlook-new-email-smoke
+variables:
+  compose_button: "New Email"
+steps:
+  - id: focus-outlook
+    kind: app
+    name: "Microsoft Outlook"
+
+  - id: open-compose
+    kind: click
+    query: "{{compose_button}}"
+    anchor: center
+    click_kind: click
+
+  - id: verify-compose-surface
+    kind: verify
+    specs:
+      - 'text-appeared:"To"'
+
+  - id: wait-briefly
+    kind: wait
+    ms: 300
