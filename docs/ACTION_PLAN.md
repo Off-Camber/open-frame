@@ -133,7 +133,7 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 | # | Task | Size | Status |
 |---|------|------|--------|
 | 6.1 | Python API: `Session`, `session.find()`, `session.click()`, `session.run(steps)` | M | ☑ |
-| 6.2 | Publish to PyPI as `off-camber-open-frame` | S | ☐ |
+| 6.2 | Publish to PyPI as `off-camber-open-frame` | S | ☑ |
 | 6.3 | `docs/API.md` — core types and examples | M | ☑ |
 | 6.4 | `docs/CONTRIBUTING.md` — dev setup, test capture permissions on macOS | S | ☑ |
 | 6.5 | Recognizer plugin example in `examples/custom_recognizer/` | M | ☑ |
