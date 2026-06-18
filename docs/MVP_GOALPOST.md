@@ -154,7 +154,7 @@ Enterprise RPA often deploys on **Windows**; that is a **post-MVP** goal, not a 
 - **Credential vaults** and secrets management
 - **Session refresh** when tokens expire mid-run
 
-RPA buyers typically solve this with **service accounts**, **excluded MFA policies**, **persistent VMs**, or **separate identity products** — same as UiPath-style deployments. Open Frame documents **prep**; it does not replace IdP.
+RPA buyers typically solve this with **service accounts**, **excluded MFA policies**, **persistent VMs**, or **separate identity products**. Open Frame documents **prep**; it does not replace IdP.
 
 ### MVP and later
 

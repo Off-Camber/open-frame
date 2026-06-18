@@ -25,7 +25,7 @@ A **composable platform** others can clone, extend, and embed — not a full ent
 | Pluggable recognizers (a11y, OCR, template, vision) | MFA / SSO / login automation |
 | Actions with evidence (screenshots, logs) | Credential vaults, identity providers |
 | Flow runner + verification | Full visual workflow designer |
-| CLI + library SDK | Parity with every UiPath Studio feature |
+| CLI + library SDK | Full parity with enterprise suites on day one |
 
 ## Audience
 
@@ -79,5 +79,5 @@ Incremental proof on the way to the goalpost:
 
 - Competing with n8n, Temporal, or MSP stacks on orchestration
 - Shipping a hosted SaaS
-- Claiming parity with UiPath Studio on day one
+- Claiming full parity with mature enterprise suites on day one
 - **Automating MFA, SSO, or login** — flows assume an authenticated desktop; see [DECISIONS.md](DECISIONS.md)

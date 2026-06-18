@@ -4,7 +4,7 @@ Open-source recognition and action for anything on a display.
 
 **Open Frame** is a platform for seeing what's on screen, locating targets, interacting with them, and verifying the result — without brittle selectors or vendor lock-in. Built under the [Off-Camber](https://github.com/Off-Camber) identity.
 
-> Not affiliated with UiPath, OpenFrame (Flamingo), or other third-party automation vendors.
+> Open Frame is an independent project and is not affiliated with or endorsed by any third-party automation vendor.
 
 ## Status
 

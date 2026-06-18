@@ -21,9 +21,9 @@ Format: **Date · Decision · Rationale**
 | Decision | Rationale |
 |----------|-----------|
 | **Display-first**, not UI-tree-first | Apps, games, legacy, PDFs, RDP — anything on screen. |
-| **Core loop:** capture → recognize → act → verify | Same primitive UiPath depends on; keep core thin. |
+| **Core loop:** capture → recognize → act → verify | Same primitive enterprise RPA tools depend on; keep core thin. |
 | **MVP goalpost** | Declarative flow: Outlook → M365 web → create doc → email; repeatable. See [MVP_GOALPOST.md](MVP_GOALPOST.md). |
-| **MVP auth scope** | **Sessions must exist before run starts.** Human completes login/MFA/SSO once; bot runs on an authenticated desktop. Same practical model as UiPath unattended bots. |
+| **MVP auth scope** | **Sessions must exist before run starts.** Human completes login/MFA/SSO once; bot runs on an authenticated desktop. Same practical model used across unattended RPA deployments. |
 | **MFA / SSO automation** | **Permanent descope** — not Open Frame’s job; document prep steps instead. |
 | **Platform strategy** | **MVP on macOS only**; Windows port after MVP (v1). Same YAML flows; OS-specific capture/a11y/act backends later. |
 | **Not building** full RPA suite / orchestration in v0 | Flow runner + recognition layer; scheduling/credentials later. |
@@ -54,11 +54,11 @@ _None — all planned decisions locked for MVP scope. Revisit if scope changes._
 
 | Idea | Why |
 |------|-----|
-| Product name "A Better Path" | UiPath adjacency |
+| Product name "A Better Path" | Too close to an existing vendor's naming |
 | Product name "Open Frame" as standalone company | OK as repo; risky as global product trademark |
 | npm package `openframe` unscoped | Taken (digital art frame project) |
 | Start with vision/VLM recognizer | Too slow/flaky for v0; prove loop with OCR/a11y first |
-| MFA / SSO / identity login automation | Industry RPA (incl. UiPath) assumes pre-authenticated sessions or separate identity tooling; out of scope for Open Frame |
+| MFA / SSO / identity login automation | Industry RPA usually assumes pre-authenticated sessions or separate identity tooling; out of scope for Open Frame |
 | Credential vault / Azure AD login flows | Same — orchestration/identity layer, not screen recognition |
 | MIT License | Chose Apache 2.0 for clearer patent language and enterprise adoption |
 | EasyOCR as default OCR | Heavy PyTorch deps and slower; Tesseract sufficient with a11y-first chain; optional fallback later if needed |
