@@ -6,6 +6,14 @@ Open-source recognition and action for anything on a display.
 
 > Open Frame is an independent project and is not affiliated with or endorsed by any third-party automation vendor.
 
+Open Frame is the deterministic desktop execution layer behind AI agents, not the agent itself.
+
+### How this differs from assistant UX tools
+
+- Open Frame executes deterministic capture/recognize/act/verify primitives.
+- External LLM agents handle planning and decide which tool call to make next.
+- The engine returns compact structured outputs plus artifact paths to reduce context-window pressure.
+
 ## Status
 
 Active development. `v0.1.0` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).

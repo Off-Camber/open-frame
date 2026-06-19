@@ -4,6 +4,8 @@
 
 **Open Frame** is the open-source engine for recognizing and interacting with anything visible on a display.
 
+Open Frame is the deterministic desktop execution layer behind AI agents, not the agent itself.
+
 ## The problem
 
 Proprietary RPA platforms charge heavily for a capability that boils down to:
@@ -18,6 +20,12 @@ That layer is often locked behind per-bot licensing, opaque recognizers, and sel
 ## What we're building
 
 A **composable platform** others can clone, extend, and embed — not a full enterprise RPA suite on day one.
+
+### Product boundary: engine vs assistant UX
+
+- Open Frame is an execution engine with deterministic primitives and run artifacts.
+- External assistants/agents provide planning, interpretation, and high-level user conversation.
+- Open Frame's job is to keep execution reliable, compact, and auditable regardless of which model is upstream.
 
 | In scope (core) | Out of scope |
 |-----------------|--------------|
