@@ -76,10 +76,15 @@ Incremental proof on the way to the goalpost:
 - **Windows** capture/a11y/act backends — same YAML flows as macOS MVP
 - Reference flow validated on Windows for enterprise RPA deployments
 
+### v0.2 — agent integration layer
+
+- MCP adapter integration surface for deterministic tool calls
+- Compact structured tool responses + artifact-first debugging
+- Phase 7 vision remains gated until interface metrics pass
+
 ### v2 — ecosystem
 
 - Vision/VLM recognizer — **Ollama default + cloud opt-in** (Phase 7, post-MVP); not primary for determinism
-- MCP adapter integration surface — primary focus in `v0.2.0`; broader ecosystem tooling follows
 - Linux capture; contributor recognizers
 - Off-Camber blog / materials for RPA buyers evaluating open source
 

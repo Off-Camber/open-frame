@@ -205,7 +205,7 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 |---|------|------|--------|
 | 10.1 | One-pager PDF/markdown: vs proprietary RPA recognition layer | S | ☐ |
 | 10.2 | Integration example: call from Python agent / n8n / Temporal activity | M | ☐ |
-| 10.3 | ~~MCP server~~ **Deferred** — document in roadmap; implement after v1 when SDK stable | — | — |
+| 10.3 | Full multi-tenant MCP server productization (beyond local adapter) | M | ☐ |
 | 10.4 | Blog post on Off-Camber site; link from `projects.json` | S | ☐ |
 | 10.5 | Linux capture spike (document blockers if any) | L | ☐ |
 
@@ -230,7 +230,7 @@ MVP is **macOS-only**; Windows backends follow after v0.1.0 ([DECISIONS.md](DECI
 | Question | Options | Decide by |
 |----------|---------|-----------|
 | ~~Vision provider (Phase 7)~~ | **Locked:** Ollama + cloud opt-in | — |
-| ~~MCP server (Phase 10)~~ | **Locked:** deferred past MVP/v1 | — |
+| ~~MCP integration direction~~ | **Locked:** MCP-first interface in v0.2; broader server productization later | — |
 
 Track decisions in [DECISIONS.md](DECISIONS.md).
 

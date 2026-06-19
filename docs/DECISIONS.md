@@ -68,7 +68,7 @@ _None — all planned decisions locked for MVP scope. Revisit if scope changes._
 | Legacy Outlook for Mac (MVP) | New Outlook chosen; one UI target for repeatable flows |
 | Word desktop / local .docx shortcut (MVP) | Word Online chosen; matches M365 web goalpost |
 | Vision: local-only or cloud-only | Both: Ollama default + cloud API opt-in (Phase 7, post-MVP) |
-| MCP server in MVP | Deferred for MVP only; integration resumed in `v0.2.0` checkpoint |
+| Full multi-tenant MCP server productization in MVP/v0.2 | Deferred; v0.2 ships MCP adapter integration surface first |
 
 ---
 
