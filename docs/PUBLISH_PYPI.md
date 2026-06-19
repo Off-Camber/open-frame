@@ -47,4 +47,5 @@ open-frame --help
 ## Notes
 
 - Do not overwrite published versions; bump `project.version` for each release.
+- Workflow reruns for an already-published version may return "file already exists"; the publish workflow is configured with `skip-existing: true` so reruns stay green.
 - Keep `README.md` and metadata classifiers current so the PyPI page stays accurate.
