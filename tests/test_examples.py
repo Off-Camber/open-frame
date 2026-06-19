@@ -46,3 +46,15 @@ def test_full_mvp_flow_file_has_end_to_end_steps() -> None:
     assert "attach-summary" in text
     assert "send-email" in text
     assert "verify-sent" in text
+
+
+def test_mcp_pilot_example_references_compact_envelope() -> None:
+    base = Path(__file__).resolve().parent.parent / "examples" / "mcp-pilot"
+    readme_text = (base / "README.md").read_text(encoding="utf-8")
+    pilot_text = (base / "pilot.py").read_text(encoding="utf-8")
+
+    assert "open-frame mcp list-tools --json" in readme_text
+    assert "open-frame mcp call run_flow" in readme_text
+    assert "REQUIRED_KEYS" in pilot_text
+    assert '"tool"' in pilot_text
+    assert '"artifacts"' in pilot_text

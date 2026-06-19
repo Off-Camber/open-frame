@@ -64,6 +64,10 @@ open-frame run flow.yaml --dry-run --json
 open-frame run examples/flows/outlook-new-email/flow.yaml --dry-run --json
 open-frame run examples/flows/outlook-browser-outlook/flow.yaml --dry-run --json
 open-frame run examples/flows/outlook-m365-email/flow.yaml --dry-run --json
+
+# MCP pilot
+open-frame mcp list-tools --json
+python examples/mcp-pilot/pilot.py
 ```
 
 ## Planned next commands
