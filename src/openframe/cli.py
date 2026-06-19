@@ -11,6 +11,7 @@ from pathlib import Path
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, list_displays, list_windows, region, screen, window
 from openframe.flow import load_flow
+from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer, draw_debug_overlay
 from openframe.runner import FlowRunner
 from openframe.types import Frame
@@ -72,6 +73,19 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--run-id", type=str, help="Run id for artifacts (defaults to timestamp)")
     run_parser.add_argument("--dry-run", action="store_true", help="Run without sending input actions")
     run_parser.add_argument("--json", action="store_true", help="Output JSON")
+
+    mcp_parser = subparsers.add_parser("mcp", help="MCP-compatible tool surface")
+    mcp_subparsers = mcp_parser.add_subparsers(dest="mcp_command", required=True)
+    mcp_list_parser = mcp_subparsers.add_parser("list-tools", help="List available MCP tools")
+    mcp_list_parser.add_argument("--json", action="store_true", help="Output JSON")
+    mcp_call_parser = mcp_subparsers.add_parser("call", help="Call one MCP tool")
+    mcp_call_parser.add_argument("tool", type=str, help="Tool name")
+    mcp_call_parser.add_argument(
+        "--args-json",
+        type=str,
+        default="{}",
+        help="JSON object for tool arguments",
+    )
 
     return parser
 
@@ -257,6 +271,31 @@ def main() -> int:
         status = "failed" if failed else "succeeded"
         print(f'flow "{flow.name}" {status} ({len(session.results)} steps)')
         return 1 if failed else 0
+
+    if args.command == "mcp":
+        if args.mcp_command == "list-tools":
+            tools = list_mcp_tools()
+            if args.json:
+                print(json.dumps({"tools": tools}, indent=2))
+                return 0
+            for item in tools:
+                print(f'{item["name"]}\t{item["description"]}')
+            return 0
+
+        if args.mcp_command == "call":
+            try:
+                payload = json.loads(args.args_json)
+            except json.JSONDecodeError as error:
+                parser.error(f"Invalid --args-json value: {error}")
+            if not isinstance(payload, dict):
+                parser.error("--args-json must parse to a JSON object.")
+
+            result = call_mcp_tool(args.tool, payload)
+            print(json.dumps(result, indent=2))
+            return 0 if result.get("ok") else 1
+
+        parser.error("Unknown mcp command")
+        return 2
 
     parser.error("Unknown command")
     return 2

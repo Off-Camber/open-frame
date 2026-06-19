@@ -318,3 +318,46 @@ def test_run_command_json_success(monkeypatch: pytest.MonkeyPatch, capsys: pytes
     payload = json.loads(captured.out)
     assert payload["flow"] == "demo"
     assert payload["success"] is True
+
+
+def test_mcp_list_tools_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(
+        "openframe.cli.list_mcp_tools",
+        lambda: [{"name": "capture", "description": "Capture screen/window/region into a frame"}],
+    )
+    monkeypatch.setattr("sys.argv", ["open-frame", "mcp", "list-tools", "--json"])
+
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["tools"][0]["name"] == "capture"
+
+
+def test_mcp_call_returns_nonzero_for_tool_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        "openframe.cli.call_mcp_tool",
+        lambda tool, args: {
+            "ok": False,
+            "tool": tool,
+            "run_id": None,
+            "data": {"args": args},
+            "error": {"code": "validation_error", "message": "bad args"},
+            "artifacts": {},
+        },
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["open-frame", "mcp", "call", "find", "--args-json", '{"query":"Submit"}'],
+    )
+
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    payload = json.loads(captured.out)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "validation_error"
