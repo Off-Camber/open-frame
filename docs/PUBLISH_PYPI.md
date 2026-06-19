@@ -27,7 +27,7 @@ python -m twine check dist/*
 
 Preferred path:
 
-1. Create and publish a GitHub Release for the tag (for example `v0.1.0`).
+1. Create and publish a GitHub Release for the target tag (for example `v0.1.1`).
 2. The `Publish to PyPI` workflow runs automatically and uploads artifacts.
 
 Manual path:

@@ -79,7 +79,7 @@ Incremental proof on the way to the goalpost:
 ### v2 — ecosystem
 
 - Vision/VLM recognizer — **Ollama default + cloud opt-in** (Phase 7, post-MVP); not primary for determinism
-- MCP server — **deferred** past MVP/v1
+- MCP adapter integration surface — primary focus in `v0.2.0`; broader ecosystem tooling follows
 - Linux capture; contributor recognizers
 - Off-Camber blog / materials for RPA buyers evaluating open source
 

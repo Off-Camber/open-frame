@@ -40,7 +40,7 @@ Format: **Date · Decision · Rationale**
 | **Flow format:** YAML | Declarative, readable for RPA authors; matches MVP goalpost examples; no code execution in flow files. |
 | **MVP apps:** **New Outlook for Mac** + **Word Online** (browser) | Single documented UI target; matches goalpost (M365 web), not Legacy Outlook or Word desktop shortcut. |
 | **Vision provider (post-MVP):** **Both** — local (Ollama) default + cloud API opt-in | Self-hosted story first; cloud behind explicit flag for hard targets. Not required for MVP. |
-| **MCP server:** **Deferred** past MVP / v1 | YAML + CLI + SDK first; MCP when core APIs are stable. |
+| **MCP integration strategy:** MCP-first for `v0.2.0` | Open Frame is positioned as deterministic engine infrastructure for external agents; MCP is the primary integration surface after MVP stabilization. |
 
 ---
 
@@ -68,7 +68,7 @@ _None — all planned decisions locked for MVP scope. Revisit if scope changes._
 | Legacy Outlook for Mac (MVP) | New Outlook chosen; one UI target for repeatable flows |
 | Word desktop / local .docx shortcut (MVP) | Word Online chosen; matches M365 web goalpost |
 | Vision: local-only or cloud-only | Both: Ollama default + cloud API opt-in (Phase 7, post-MVP) |
-| MCP server in MVP / v1 | Deferred; Phase 10 ecosystem item after stable SDK |
+| MCP server in MVP | Deferred for MVP only; integration resumed in `v0.2.0` checkpoint |
 
 ---
 
@@ -94,11 +94,13 @@ _None — all planned decisions locked for MVP scope. Revisit if scope changes._
 
 ### 2026-06-14 — MCP deferred past MVP
 
-**Decision:** **No MCP server** for MVP or v1. Revisit in Phase 10 (or later) after YAML runner + SDK are stable.
+**Decision:** **No MCP server for MVP.** Revisit after YAML runner + SDK are stable.
 
-**Rationale:** MVP proves declarative flows; MCP is a second front-end (AI agents) with extra security and API surface. Defer until core is proven.
+**Rationale:** MVP proves declarative flows first; defer agent-facing interface until core is proven.
 
-**Alternatives considered:** MCP in Phase 10 — deferred; minimal stub — still deferred for v1.
+**Alternatives considered:** MCP in MVP — rejected; minimal stub during MVP — rejected.
+
+**Status:** Superseded by 2026-06-18 `v0.2.0` checkpoint (MCP-first interface strategy after MVP).
 
 ---
 

@@ -16,7 +16,7 @@ Open Frame is the deterministic desktop execution layer behind AI agents, not th
 
 ## Status
 
-Active development. `v0.1.0` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
+Active development. `v0.1.1` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 
 **MVP goalpost:** a declarative flow that automates **Outlook → Microsoft 365 → create document → email**, repeatably across desktop apps. See [docs/MVP_GOALPOST.md](docs/MVP_GOALPOST.md).
 

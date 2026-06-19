@@ -20,7 +20,7 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 | 0.4 | Create package skeleton `src/openframe/` + `pyproject.toml` | S | ☑ |
 | 0.5 | Add CI: lint + test on push (GitHub Actions) | S | ☑ |
 | 0.6 | Define core types in `types.py` (`Frame`, `Target`, `Action`, `StepResult`) | S | ☑ |
-| 0.7 | Create GitHub repo `off-camber/open-frame`; push | S | ☐ |
+| 0.7 | Create GitHub repo `off-camber/open-frame`; push | S | ☑ |
 
 **Exit criteria:** `pip install -e .` works; CI green; types importable.
 
