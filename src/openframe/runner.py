@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from time import perf_counter
+from time import monotonic, perf_counter, sleep
 from typing import Any
 import webbrowser
 
@@ -12,7 +12,7 @@ from openframe.capture import screen
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
 from openframe.session import Session
-from openframe.types import StepResult
+from openframe.types import StepResult, Target
 from openframe.verify import (
     ScreenshotDiffVerifier,
     TargetGoneVerifier,
@@ -101,7 +101,15 @@ class FlowRunner:
             query = str(step.params.get("query", "")).strip()
             if not query:
                 raise ValueError(f"Step '{step.id}' click requires 'query'.")
-            targets = locator.find(screen(), query, strategy="first")
+            timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
+            poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            targets = _find_targets_with_retry(
+                locator=locator,
+                query=query,
+                strategy="first",
+                timeout_ms=timeout_ms,
+                poll_ms=poll_ms,
+            )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find target for query '{query}'.")
 
@@ -112,16 +120,30 @@ class FlowRunner:
             if click_kind not in {"click", "double", "right"}:
                 raise ValueError(f"Step '{step.id}' has invalid click_kind '{click_kind}'.")
             actuator.click_target(targets[0], anchor=anchor, kind=click_kind)
-            return {"query": query, "click_kind": click_kind, "anchor": anchor}
+            return {
+                "query": query,
+                "click_kind": click_kind,
+                "anchor": anchor,
+                "timeout_ms": timeout_ms,
+                "poll_ms": poll_ms,
+            }
 
         if kind == "find":
             query = str(step.params.get("query", "")).strip()
             if not query:
                 raise ValueError(f"Step '{step.id}' find requires 'query'.")
-            targets = locator.find(screen(), query, strategy="all")
+            timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
+            poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            targets = _find_targets_with_retry(
+                locator=locator,
+                query=query,
+                strategy="all",
+                timeout_ms=timeout_ms,
+                poll_ms=poll_ms,
+            )
             if not targets:
                 raise ValueError(f"Step '{step.id}' did not find query '{query}'.")
-            return {"query": query, "matches": len(targets)}
+            return {"query": query, "matches": len(targets), "timeout_ms": timeout_ms, "poll_ms": poll_ms}
 
         if kind == "capture":
             out_path = step.params.get("out")
@@ -166,14 +188,22 @@ class FlowRunner:
             text = str(step.params.get("text", ""))
             if not query:
                 raise ValueError(f"Step '{step.id}' fill requires 'query'.")
-            targets = locator.find(screen(), query, strategy="first")
+            timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
+            poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            targets = _find_targets_with_retry(
+                locator=locator,
+                query=query,
+                strategy="first",
+                timeout_ms=timeout_ms,
+                poll_ms=poll_ms,
+            )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find fill target '{query}'.")
             actuator.click_target(targets[0], anchor="center", kind="click")
             if bool(step.params.get("clear", False)):
                 actuator.key_combo("command", "a")
             actuator.type_text(text)
-            return {"query": query, "text_length": len(text)}
+            return {"query": query, "text_length": len(text), "timeout_ms": timeout_ms, "poll_ms": poll_ms}
 
         if kind == "attach":
             path = str(step.params.get("path", "")).strip()
@@ -203,25 +233,88 @@ class FlowRunner:
             else:
                 raise ValueError(f"Step '{step.id}' verify requires 'spec' or 'specs'.")
 
-            result = _run_verify_specs(verify_specs=verify_specs, locator=locator, frame=screen())
+            timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
+            poll_ms = _coerce_poll_ms(step=step, default_ms=250)
+            result = _run_verify_specs(
+                verify_specs=verify_specs,
+                locator=locator,
+                timeout_ms=timeout_ms,
+                poll_ms=poll_ms,
+            )
             if not result.success:
                 raise ValueError(result.message)
-            return {"verification": {"verifier": result.verifier, "message": result.message}}
+            return {
+                "verification": {"verifier": result.verifier, "message": result.message},
+                "timeout_ms": timeout_ms,
+                "poll_ms": poll_ms,
+            }
 
         raise ValueError(f"Unsupported flow step kind '{kind}' in step '{step.id}'.")
 
 
-def _run_verify_specs(*, verify_specs: list[str], locator: Locator, frame) -> VerifyResult:
-    last: VerifyResult | None = None
-    for raw_spec in verify_specs:
-        verifier = _parse_verifier_spec(raw_spec=raw_spec, locator=locator)
-        result = verifier.verify(before=frame, after=frame)
-        last = result
-        if not result.success:
-            return result
-    if last is None:
+def _run_verify_specs(
+    *,
+    verify_specs: list[str],
+    locator: Locator,
+    timeout_ms: int,
+    poll_ms: int,
+) -> VerifyResult:
+    verifiers = [_parse_verifier_spec(raw_spec=raw_spec, locator=locator) for raw_spec in verify_specs]
+    if not verifiers:
         raise ValueError("At least one verify spec is required.")
-    return last
+
+    deadline = monotonic() + (timeout_ms / 1000.0)
+    last: VerifyResult | None = None
+
+    while True:
+        frame = screen()
+        all_success = True
+        for verifier in verifiers:
+            result = verifier.verify(before=frame, after=frame)
+            last = result
+            if not result.success:
+                all_success = False
+                break
+
+        if all_success:
+            return last
+
+        if monotonic() >= deadline:
+            return last
+
+        sleep(poll_ms / 1000.0)
+
+
+def _find_targets_with_retry(
+    *,
+    locator: Locator,
+    query: str,
+    strategy: str,
+    timeout_ms: int,
+    poll_ms: int,
+) -> list[Target]:
+    deadline = monotonic() + (timeout_ms / 1000.0)
+    while True:
+        targets = locator.find(screen(), query, strategy=strategy)
+        if targets:
+            return targets
+        if monotonic() >= deadline:
+            return []
+        sleep(poll_ms / 1000.0)
+
+
+def _coerce_timeout_ms(*, step: FlowStep, default_ms: int) -> int:
+    value = int(step.params.get("timeout_ms", default_ms))
+    if value < 0:
+        raise ValueError(f"Step '{step.id}' timeout_ms must be >= 0.")
+    return value
+
+
+def _coerce_poll_ms(*, step: FlowStep, default_ms: int) -> int:
+    value = int(step.params.get("poll_ms", default_ms))
+    if value <= 0:
+        raise ValueError(f"Step '{step.id}' poll_ms must be > 0.")
+    return value
 
 
 def _parse_verifier_spec(*, raw_spec: str, locator: Locator):

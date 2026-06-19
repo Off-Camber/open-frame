@@ -27,16 +27,18 @@ open-frame run flow.yaml --dry-run --json
 ## Supported step kinds (current)
 
 - `app` (`name`)
-- `click` (`query`, optional `anchor`, `click_kind`)
+- `click` (`query`, optional `anchor`, `click_kind`, `timeout_ms`, `poll_ms`)
 - `type` (`text`, optional `interval`)
 - `key` (`key` or `combo`)
-- `fill` (`query`, `text`, optional `clear`)
+- `fill` (`query`, `text`, optional `clear`, `timeout_ms`, `poll_ms`)
 - `attach` (`path`, optional `submit_key`)
 - `navigate` (`url`)
 - `wait` (`ms`)
-- `verify` (`spec` or `specs`)
-- `find` (`query`)
+- `verify` (`spec` or `specs`, optional `timeout_ms`, `poll_ms`)
+- `find` (`query`, optional `timeout_ms`, `poll_ms`)
 - `capture` (optional `out`)
+
+`timeout_ms` and `poll_ms` let query/verify steps retry briefly for dynamic UI updates before failing.
 
 ## Variable substitution
 
