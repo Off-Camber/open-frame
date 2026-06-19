@@ -8,7 +8,7 @@ Open-source recognition and action for anything on a display.
 
 ## Status
 
-Planning and early scaffolding.
+Active development. `v0.1.0` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 
 **MVP goalpost:** a declarative flow that automates **Outlook → Microsoft 365 → create document → email**, repeatably across desktop apps. See [docs/MVP_GOALPOST.md](docs/MVP_GOALPOST.md).
 
@@ -31,6 +31,7 @@ Planning and early scaffolding.
 | [API](docs/API.md) | Programmatic `Session` SDK usage and extension points |
 | [Contributing](docs/CONTRIBUTING.md) | Development workflow and macOS permission setup |
 | [Publish to PyPI](docs/PUBLISH_PYPI.md) | Trusted publishing setup and release checklist |
+| [v0.1.1 backlog](docs/V0_1_1_BACKLOG.md) | Short-term stabilization priorities after first release |
 
 ## Quick start (capture)
 

@@ -13,3 +13,4 @@ Implementation docs:
 - **[API](API.md)** — programmatic `Session` API and extension points
 - **[Contributing](CONTRIBUTING.md)** — local setup, tests, and macOS permissions
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
+- **[v0.1.1 backlog](V0_1_1_BACKLOG.md)** — immediate post-release stabilization plan
