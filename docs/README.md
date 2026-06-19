@@ -14,3 +14,4 @@ Implementation docs:
 - **[Contributing](CONTRIBUTING.md)** — local setup, tests, and macOS permissions
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
 - **[v0.1.1 backlog](V0_1_1_BACKLOG.md)** — immediate post-release stabilization plan
+- **[v0.2.0 checkpoint](V0_2_0_CHECKPOINT.md)** — interface-first product direction and release gates

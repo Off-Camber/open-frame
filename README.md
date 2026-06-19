@@ -32,6 +32,7 @@ Active development. `v0.1.0` is live on PyPI as [`off-camber-open-frame`](https:
 | [Contributing](docs/CONTRIBUTING.md) | Development workflow and macOS permission setup |
 | [Publish to PyPI](docs/PUBLISH_PYPI.md) | Trusted publishing setup and release checklist |
 | [v0.1.1 backlog](docs/V0_1_1_BACKLOG.md) | Short-term stabilization priorities after first release |
+| [v0.2.0 checkpoint](docs/V0_2_0_CHECKPOINT.md) | Interface-first product direction (MCP before vision) |
 
 ## Quick start (capture)
 

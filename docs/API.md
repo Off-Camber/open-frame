@@ -96,3 +96,42 @@ print(session.find("demo button"))
 ```
 
 See `examples/custom_recognizer/` for a complete example.
+
+## Agent integration guidance (v0.2 direction)
+
+Open Frame is designed to be called by an agent via MCP with compact structured responses.
+
+### MCP MVP tools
+
+- `capture`
+- `find`
+- `click`
+- `type`
+- `key`
+- `run_flow`
+- `get_run_artifacts`
+
+### Response shape
+
+Use a stable JSON envelope for all tool responses:
+
+```json
+{
+  "ok": true,
+  "tool": "find",
+  "run_id": "20260618T220000Z",
+  "data": {},
+  "error": null,
+  "artifacts": {
+    "step_dir": "runs/20260618T220000Z/find-button"
+  }
+}
+```
+
+When `ok` is `false`, keep `error.code` and `error.message` deterministic and include artifact paths.
+
+### Context minimization rules
+
+- Return IDs, bounds, and file paths instead of long natural-language explanations.
+- Keep screenshots and large payloads in artifacts, not inline tool output.
+- Let the agent keep reasoning state while Open Frame stays focused on deterministic execution.

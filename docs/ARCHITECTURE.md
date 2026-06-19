@@ -44,7 +44,7 @@ Every automation step follows the same loop:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  CLI / SDK / (future: REST; MCP deferred post-v1)           │
+│  CLI / SDK / MCP adapter (v0.2 primary integration surface) │
 ├─────────────────────────────────────────────────────────────┤
 │  Session & workflow  —  sequences of steps, artifacts       │
 ├─────────────────────────────────────────────────────────────┤
@@ -59,6 +59,29 @@ Every automation step follows the same loop:
 │  Capture             —  screen, window, region, cursor      │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## LLM ↔ MCP ↔ Engine boundary (v0.2 direction)
+
+Open Frame should keep reasoning outside the engine and execution inside the engine:
+
+- **LLM/agent layer:** decides intent, decomposes tasks, chooses next tool call.
+- **MCP adapter layer:** translates tool calls to deterministic engine calls and returns compact JSON.
+- **Open Frame engine:** capture/recognize/act/verify execution plus artifact emission.
+
+```mermaid
+flowchart LR
+  agent["LLMAgent"] -->|"tool call"| mcp["MCPAdapter"]
+  mcp -->|"invoke deterministic action"| engine["OpenFrameEngine"]
+  engine -->|"structured result + artifact paths"| mcp
+  mcp -->|"compact JSON response"| agent
+```
+
+### Context-window minimization rules
+
+- Return fields and paths, not verbose prose.
+- Avoid embedding screenshots/binaries in tool responses.
+- Put rich debugging detail in run artifacts (`runs/<run_id>/...`), not in the chat/tool payload.
+- Use stable error codes/messages so agents can branch without extra explanatory tokens.
 
 ## Key types (conceptual)
 

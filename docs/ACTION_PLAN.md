@@ -2,7 +2,7 @@
 
 Phased checklist for building Open Frame. Estimate effort as **S** (days), **M** (1–2 weeks), **L** (multi-week). Adjust as you learn.
 
-**Current phase:** 5 — Flow runner + MVP
+**Current phase:** v0.2 checkpoint — MCP interface before vision
 
 **MVP goalpost:** [MVP_GOALPOST.md](MVP_GOALPOST.md) — Outlook → M365 → create doc → email, repeatable via a flow file.
 
@@ -142,7 +142,25 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 
 ---
 
+## v0.2 checkpoint — Interface-first integration
+
+**Goal:** Keep Open Frame as a deterministic execution engine and expose it to LLMs through a compact MCP-facing interface.
+
+| # | Task | Size | Status |
+|---|------|------|--------|
+| C.1 | Publish checkpoint brief in [V0_2_0_CHECKPOINT.md](V0_2_0_CHECKPOINT.md) | S | ☑ |
+| C.2 | Document LLM ↔ MCP ↔ engine boundary in [ARCHITECTURE.md](ARCHITECTURE.md) | S | ☑ |
+| C.3 | Define MCP MVP tools + JSON response contract in docs | M | ☑ |
+| C.4 | Define `v0.2.0` release gates focused on context reduction + reliability | S | ☑ |
+| C.5 | Defer full Phase 7 implementation until checkpoint gates pass | S | ☑ |
+
+**Exit criteria:** A clear `v0.2.0` interface plan exists and Phase 7 remains gated behind interface stabilization.
+
+---
+
 ## Phase 7 — Vision recognizer
+
+**Status:** deferred until `v0.2.0` interface checkpoint gates are met.
 
 **Goal:** Natural-language / semantic find ("the settings gear icon").
 
@@ -200,7 +218,7 @@ Weeks 1–2   Phase 0–1 (foundation + capture)
 Weeks 3–4   Phase 2–3 (recognize + act)
 Week 5      Phase 4 (verify + run artifacts)
 Weeks 6–8   Phase 5 smoke → handoff → full MVP flow
-Week 9+     Phase 6 (SDK) · Phase 9 Windows port (post-MVP / v1)
+Week 9+     Phase 6 + v0.2 checkpoint (MCP/interface), then Phase 7+
 ```
 
 MVP is **macOS-only**; Windows backends follow after v0.1.0 ([DECISIONS.md](DECISIONS.md)).
@@ -223,4 +241,4 @@ Track decisions in [DECISIONS.md](DECISIONS.md).
 - Check boxes as tasks complete (`☐` → `☑` or `[x]` in git)
 - Split large tasks into GitHub issues linked from here
 - Update **Current phase** at the top when exiting criteria met
-- Don't start Phase 7 until Phase 5 demo works — resist vision-first temptation
+- Don't start full Phase 7 implementation until v0.2 interface checkpoint gates pass
