@@ -214,6 +214,40 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 
 ---
 
+## Phase 11 — Window-level state awareness
+
+Motivation: some screen states cannot be distinguished by OCR text alone. For
+example, an open Outlook compose window vs. the main screen with a message
+selected both show "To:", so a `text-gone:"To"` guard is unreliable (validated
+live, 2026-06). Reliable state guards and recovery need to know *which window
+and role is frontmost*, not just what text is visible. See
+[FLOW_SETUP.md](FLOW_SETUP.md) "State guards vs. recovery".
+
+**Whole-screen OCR scope hazard (validated live, 2026-06):** OCR clicks match
+text *anywhere on the display*, including the IDE/chat window that is driving
+the run. A `click "Subject"` step matched the word "Subject" in the controlling
+chat transcript, stole focus to that window, and routed subsequent keystrokes
+there instead of the target app. Generic-label OCR clicks ("Subject", "Send",
+"To", "Attach") are unsafe whenever another window shows the same word. The
+durable fix is window-scoped recognition so OCR only considers the target app's
+window; until then, prefer keyboard navigation for field focus (keystrokes go
+to the frontmost app and cannot leak to other windows).
+
+| # | Task | Size | Status |
+|---|------|------|--------|
+| 11.1 | Expose frontmost window title/role via macOS accessibility (extend `_frontmost_app_name`) | M | ☐ |
+| 11.2 | Add `window-title-contains` / `window-role` verify specs | M | ☐ |
+| 11.3 | Optional `window` field on guard steps to assert frontmost window before acting | S | ☐ |
+| 11.4 | Document guard-signal selection: prefer window-aware checks over fragile OCR tokens | S | ☐ |
+| 11.5 | Windows parity for window-state queries (after Phase 9) | M | ☐ |
+| 11.6 | Constrain OCR/find/click to the target app window bounds (avoid matching the controlling IDE/chat or other windows) | M | ☐ |
+
+**Note:** This is engine-side state *reporting*, not branching/recovery.
+Choosing a different action based on the reported state remains an agent-mode
+responsibility (keeps flows linear; preserves the engine/agent boundary).
+
+---
+
 ## Suggested order of work
 
 ```

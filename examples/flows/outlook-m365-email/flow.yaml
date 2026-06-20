@@ -2,11 +2,17 @@ name: outlook-m365-email
 variables:
   m365_word_url: "https://www.office.com/launch/word"
   recipient: "test@example.com"
+  sent_items_label: "Sent"
   subject: "Open Frame MVP run {{run_id}}"
   body: "Automated message from Open Frame."
   document_title: "Weekly summary {{run_id}}"
   attachment_path: "{{run_dir}}/summary-{{run_id}}.txt"
 steps:
+  # The app step fails if Outlook is not frontmost (a reliable precondition).
+  # A "compose already open?" guard is intentionally not attempted: no single
+  # OCR token distinguishes compose from the main screen (the reading pane
+  # always shows "To:"). That state detection belongs to agent mode.
+  # See docs/FLOW_SETUP.md "State guards vs. recovery".
   - id: focus-outlook
     kind: app
     name: "Microsoft Outlook"
@@ -17,9 +23,12 @@ steps:
       - command
       - n
 
-  - id: wait-compose-open
-    kind: wait
-    ms: 1200
+  - id: verify-compose-open
+    kind: verify
+    timeout_ms: 4000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"To"'
 
   - id: open-word-online
     kind: navigate
@@ -31,8 +40,39 @@ steps:
 
   - id: verify-word-surface
     kind: verify
+    timeout_ms: 15000
+    poll_ms: 300
     specs:
-      - 'text-appeared:"Microsoft"'
+      - 'text-appeared:"Welcome"'
+
+  - id: open-blank-document
+    kind: click
+    query: "Create"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 7000
+    poll_ms: 300
+
+  - id: wait-document-open
+    kind: wait
+    ms: 2000
+
+  - id: verify-document-surface
+    kind: verify
+    timeout_ms: 25000
+    poll_ms: 500
+    specs:
+      - 'text-appeared:"Layout"'
+
+  - id: wait-editor-settle
+    kind: wait
+    ms: 3500
+
+  - id: focus-document-body
+    kind: click_point
+    x_ratio: 0.5
+    y_ratio: 0.55
 
   - id: create-doc-title
     kind: type
@@ -42,13 +82,16 @@ steps:
     kind: app
     name: "Microsoft Outlook"
 
-  - id: fill-recipient
-    kind: fill
-    query: "To"
+  # Field navigation is keyboard-only on purpose. An OCR click on a field label
+  # ("Subject", etc.) is unsafe: OCR scans the whole screen and can match that
+  # word in another window (e.g. the IDE/chat driving the run), stealing focus.
+  # Keyboard events always go to the frontmost app (Outlook), so Tab commits the
+  # typed recipient and advances field-by-field without leaving the window.
+  - id: type-recipient
+    kind: type
     text: "{{recipient}}"
-    clear: true
 
-  - id: focus-subject-via-tab
+  - id: advance-to-subject
     kind: key
     key: tab
 
@@ -56,7 +99,7 @@ steps:
     kind: type
     text: "{{subject}}"
 
-  - id: focus-body-via-tab
+  - id: advance-to-body
     kind: key
     key: tab
 
@@ -70,16 +113,33 @@ steps:
     submit_key: enter
 
   - id: send-email
-    kind: key
-    combo:
-      - command
-      - return
+    kind: click
+    query: "Send"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 5000
+    poll_ms: 300
 
   - id: wait-send-settle
     kind: wait
-    ms: 2000
+    ms: 3500
+
+  - id: open-sent-items
+    kind: click
+    query: "{{sent_items_label}}"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 5000
+    poll_ms: 300
 
   - id: verify-sent
     kind: verify
+    timeout_ms: 7000
+    poll_ms: 250
+    match_bounds:
+      left_of_query: "From"
+      margin: 40
     specs:
-      - 'text-gone:"{{recipient}}"'
+      - 'text-appeared:"Open Frame MVP run"'

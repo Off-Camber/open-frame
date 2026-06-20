@@ -28,6 +28,37 @@ def test_click_target_dry_run_returns_point_without_backend() -> None:
     assert point == (60, 40)
 
 
+def test_point_for_target_converts_retina_pixels_to_logical_points() -> None:
+    actuator = Actuator(dry_run=True)
+    target = _target()
+
+    # Pixel-space center is (60, 40); at 2x Retina the logical click point halves.
+    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0) == (30, 20)
+    assert actuator.point_for_target(target, anchor="top-left", scale_factor=2.0) == (5, 10)
+
+
+def test_click_target_applies_scale_factor_to_click_point(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict] = []
+
+    class StubPyAuto:
+        def click(self, *args, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setitem(sys.modules, "pyautogui", StubPyAuto())
+    actuator = Actuator(dry_run=False)
+    point = actuator.click_target(_target(), anchor="center", scale_factor=2.0)
+
+    assert point == (30, 20)
+    assert calls[0]["x"] == 30
+    assert calls[0]["y"] == 20
+
+
+def test_point_for_target_rejects_non_positive_scale_factor() -> None:
+    actuator = Actuator(dry_run=True)
+    with pytest.raises(ValueError):
+        actuator.point_for_target(_target(), scale_factor=0.0)
+
+
 def test_click_point_uses_pyautogui(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[str, tuple, dict]] = []
 

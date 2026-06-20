@@ -1,0 +1,29 @@
+name: calibration-token
+variables:
+  marker: "OFMARKZXQ"
+  token: "{{marker}} {{run_id}}"
+steps:
+  - id: focus-textedit
+    kind: app
+    name: "TextEdit"
+
+  - id: new-document
+    kind: key
+    combo:
+      - command
+      - n
+
+  - id: wait-focus
+    kind: wait
+    ms: 900
+
+  - id: type-token
+    kind: type
+    text: "{{token}}"
+
+  - id: verify-token-visible
+    kind: verify
+    timeout_ms: 5000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"{{marker}}"'

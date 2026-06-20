@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import re
 from time import monotonic, perf_counter, sleep
 from typing import Any
@@ -14,10 +15,12 @@ from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognize
 from openframe.session import Session
 from openframe.types import StepResult, Target
 from openframe.verify import (
+    MatchBounds,
     ScreenshotDiffVerifier,
     TargetGoneVerifier,
     TextPresenceVerifier,
     VerifyResult,
+    parse_match_bounds,
     write_step_artifacts,
 )
 
@@ -97,21 +100,43 @@ class FlowRunner:
             actuator.wait_ms(milliseconds)
             return {"wait_ms": milliseconds}
 
+        if kind == "write_file":
+            raw_path = str(step.params.get("path", "")).strip()
+            if not raw_path:
+                raise ValueError(f"Step '{step.id}' write_file requires 'path'.")
+            content = step.params.get("text", step.params.get("content", ""))
+            content = "" if content is None else str(content)
+            target_path = Path(raw_path).expanduser()
+            if not self.dry_run:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_text(content, encoding="utf-8")
+            return {
+                "path": str(target_path),
+                "bytes_written": len(content.encode("utf-8")),
+            }
+
         if kind == "click":
             query = str(step.params.get("query", "")).strip()
             if not query:
                 raise ValueError(f"Step '{step.id}' click requires 'query'.")
+            expect_one = _coerce_bool(step.params.get("expect_one", False))
+            selector = str(step.params.get("selector", "first")).strip()
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
-            targets = _find_targets_with_retry(
+            targets, scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
-                strategy="first",
+                strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find target for query '{query}'.")
+            if expect_one and len(targets) != 1:
+                raise ValueError(
+                    f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
+                )
+            selected_target = _select_target(targets=targets, selector=selector)
 
             anchor = str(step.params.get("anchor", "center"))
             click_kind = str(step.params.get("click_kind", "click"))
@@ -119,13 +144,45 @@ class FlowRunner:
                 raise ValueError(f"Step '{step.id}' has invalid anchor '{anchor}'.")
             if click_kind not in {"click", "double", "right"}:
                 raise ValueError(f"Step '{step.id}' has invalid click_kind '{click_kind}'.")
-            actuator.click_target(targets[0], anchor=anchor, kind=click_kind)
+            actuator.click_target(
+                selected_target, anchor=anchor, kind=click_kind, scale_factor=scale_factor
+            )
             return {
                 "query": query,
                 "click_kind": click_kind,
                 "anchor": anchor,
+                "expect_one": expect_one,
+                "selector": selector,
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
+            }
+
+        if kind == "click_point":
+            frame = screen()
+            scale_factor = frame.scale_factor
+            logical_width = frame.width / scale_factor
+            logical_height = frame.height / scale_factor
+
+            if "x_ratio" in step.params and "y_ratio" in step.params:
+                x = round(float(step.params["x_ratio"]) * logical_width)
+                y = round(float(step.params["y_ratio"]) * logical_height)
+            elif "x" in step.params and "y" in step.params:
+                x = int(step.params["x"])
+                y = int(step.params["y"])
+            else:
+                raise ValueError(
+                    f"Step '{step.id}' click_point requires x_ratio/y_ratio or x/y."
+                )
+
+            click_kind = str(step.params.get("click_kind", "click"))
+            if click_kind not in {"click", "double", "right"}:
+                raise ValueError(f"Step '{step.id}' has invalid click_kind '{click_kind}'.")
+            actuator.click_point(x, y, kind=click_kind)
+            return {
+                "x": x,
+                "y": y,
+                "scale_factor": scale_factor,
+                "click_kind": click_kind,
             }
 
         if kind == "find":
@@ -134,7 +191,7 @@ class FlowRunner:
                 raise ValueError(f"Step '{step.id}' find requires 'query'.")
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
-            targets = _find_targets_with_retry(
+            targets, _scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
                 strategy="all",
@@ -188,22 +245,38 @@ class FlowRunner:
             text = str(step.params.get("text", ""))
             if not query:
                 raise ValueError(f"Step '{step.id}' fill requires 'query'.")
+            expect_one = _coerce_bool(step.params.get("expect_one", False))
+            selector = str(step.params.get("selector", "first")).strip()
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
-            targets = _find_targets_with_retry(
+            targets, scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
-                strategy="first",
+                strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find fill target '{query}'.")
-            actuator.click_target(targets[0], anchor="center", kind="click")
+            if expect_one and len(targets) != 1:
+                raise ValueError(
+                    f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
+                )
+            selected_target = _select_target(targets=targets, selector=selector)
+            actuator.click_target(
+                selected_target, anchor="center", kind="click", scale_factor=scale_factor
+            )
             if bool(step.params.get("clear", False)):
                 actuator.key_combo("command", "a")
             actuator.type_text(text)
-            return {"query": query, "text_length": len(text), "timeout_ms": timeout_ms, "poll_ms": poll_ms}
+            return {
+                "query": query,
+                "text_length": len(text),
+                "expect_one": expect_one,
+                "selector": selector,
+                "timeout_ms": timeout_ms,
+                "poll_ms": poll_ms,
+            }
 
         if kind == "attach":
             path = str(step.params.get("path", "")).strip()
@@ -235,11 +308,13 @@ class FlowRunner:
 
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=250)
+            match_bounds = parse_match_bounds(step.params.get("match_bounds"))
             result = _run_verify_specs(
                 verify_specs=verify_specs,
                 locator=locator,
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
+                match_bounds=match_bounds,
             )
             if not result.success:
                 raise ValueError(result.message)
@@ -247,6 +322,7 @@ class FlowRunner:
                 "verification": {"verifier": result.verifier, "message": result.message},
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
+                "match_bounds": step.params.get("match_bounds"),
             }
 
         raise ValueError(f"Unsupported flow step kind '{kind}' in step '{step.id}'.")
@@ -258,8 +334,12 @@ def _run_verify_specs(
     locator: Locator,
     timeout_ms: int,
     poll_ms: int,
+    match_bounds: MatchBounds | None = None,
 ) -> VerifyResult:
-    verifiers = [_parse_verifier_spec(raw_spec=raw_spec, locator=locator) for raw_spec in verify_specs]
+    verifiers = [
+        _parse_verifier_spec(raw_spec=raw_spec, locator=locator, match_bounds=match_bounds)
+        for raw_spec in verify_specs
+    ]
     if not verifiers:
         raise ValueError("At least one verify spec is required.")
 
@@ -292,14 +372,20 @@ def _find_targets_with_retry(
     strategy: str,
     timeout_ms: int,
     poll_ms: int,
-) -> list[Target]:
+) -> tuple[list[Target], float]:
+    """Find targets, returning them with the scale factor of the source frame.
+
+    The scale factor is needed to convert recognizer pixel coordinates into
+    logical click space at actuation time.
+    """
     deadline = monotonic() + (timeout_ms / 1000.0)
     while True:
-        targets = locator.find(screen(), query, strategy=strategy)
+        frame = screen()
+        targets = locator.find(frame, query, strategy=strategy)
         if targets:
-            return targets
+            return targets, frame.scale_factor
         if monotonic() >= deadline:
-            return []
+            return [], frame.scale_factor
         sleep(poll_ms / 1000.0)
 
 
@@ -317,16 +403,50 @@ def _coerce_poll_ms(*, step: FlowStep, default_ms: int) -> int:
     return value
 
 
-def _parse_verifier_spec(*, raw_spec: str, locator: Locator):
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return bool(value)
+
+
+def _select_target(*, targets: list[Target], selector: str) -> Target:
+    if not targets:
+        raise ValueError("No targets available for selection.")
+
+    normalized = selector.strip().lower()
+    if normalized in {"", "first"}:
+        return targets[0]
+    if normalized == "top_most":
+        return sorted(targets, key=lambda item: (item.y, item.x))[0]
+    if normalized == "left_most":
+        return sorted(targets, key=lambda item: (item.x, item.y))[0]
+    if normalized == "highest_confidence":
+        return sorted(targets, key=lambda item: item.confidence, reverse=True)[0]
+    if normalized == "right_most":
+        return sorted(targets, key=lambda item: (item.x, item.y), reverse=True)[0]
+    raise ValueError(f"Invalid selector '{selector}'.")
+
+
+def _parse_verifier_spec(*, raw_spec: str, locator: Locator, match_bounds: MatchBounds | None = None):
     if ":" not in raw_spec:
         raise ValueError(f"Invalid verify spec: {raw_spec}")
     key, value = raw_spec.split(":", 1)
     value = value.strip().strip('"').strip("'")
 
     if key == "text-gone":
-        return TextPresenceVerifier(locator=locator, text=value, should_exist=False)
+        return TextPresenceVerifier(
+            locator=locator, text=value, should_exist=False, bounds=match_bounds
+        )
     if key == "text-appeared":
-        return TextPresenceVerifier(locator=locator, text=value, should_exist=True)
+        return TextPresenceVerifier(
+            locator=locator, text=value, should_exist=True, bounds=match_bounds
+        )
     if key == "target-gone":
         return TargetGoneVerifier(locator=locator, query=value)
     if key == "diff":
@@ -347,9 +467,30 @@ def _focus_app(name: str) -> None:
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or "unknown error"
         raise RuntimeError(f"Could not focus app '{name}': {stderr}")
+    # Give macOS a short moment to settle focus transitions.
+    sleep(0.15)
+    frontmost = _frontmost_app_name()
+    if frontmost and frontmost != name:
+        raise RuntimeError(f"Could not focus app '{name}': frontmost app is '{frontmost}'.")
+
+
+def _frontmost_app_name() -> str | None:
+    import subprocess
+
+    command = [
+        "osascript",
+        "-e",
+        'tell application "System Events" to get name of first process whose frontmost is true',
+    ]
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    if completed.returncode != 0:
+        return None
+    name = completed.stdout.strip()
+    return name or None
 
 
 _TEMPLATE_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}")
+_MAX_TEMPLATE_PASSES = 5
 
 
 def _resolve_templates(value: Any, context: dict[str, Any]) -> Any:
@@ -360,7 +501,14 @@ def _resolve_templates(value: Any, context: dict[str, Any]) -> Any:
                 return match.group(0)
             return str(context[key])
 
-        return _TEMPLATE_PATTERN.sub(replace, value)
+        resolved = value
+        # Resolve nested placeholders such as {{token}} -> "OF-{{run_id}}" -> "OF-r123".
+        for _ in range(_MAX_TEMPLATE_PASSES):
+            updated = _TEMPLATE_PATTERN.sub(replace, resolved)
+            if updated == resolved:
+                break
+            resolved = updated
+        return resolved
 
     if isinstance(value, list):
         return [_resolve_templates(item, context) for item in value]

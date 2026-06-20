@@ -111,6 +111,7 @@ When `ok` is `false`, read `error.code` and `error.message`, then use `artifacts
 Stable error codes used by MCP tools include:
 
 - `unknown_tool`
+- `ambiguous_target`
 - `validation_error`
 - `capture_error`
 - `action_error`
@@ -118,6 +119,11 @@ Stable error codes used by MCP tools include:
 - `flow_failed`
 - `runtime_error`
 - `internal_error`
+
+`click` also accepts:
+
+- `expect_one: true` for deterministic targeting (multiple matches return `ambiguous_target`)
+- `selector` for deterministic candidate choice when multiple matches are allowed (`first`, `top_most`, `left_most`, `right_most`, `highest_confidence`)
 
 ## Choosing SDK vs MCP
 

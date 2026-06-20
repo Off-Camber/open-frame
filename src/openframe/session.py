@@ -60,10 +60,13 @@ class Session:
         options: dict[str, Any] | None = None,
     ) -> tuple[int, int]:
         """Find a target by query and click it."""
-        targets = self.find(query, frame=frame, strategy="first", options=options)
+        active_frame = frame or screen()
+        targets = self.find(query, frame=active_frame, strategy="first", options=options)
         if not targets:
             raise ValueError(f'No target found for query "{query}".')
-        return self._actuator.click_target(targets[0], anchor=anchor, kind=kind)
+        return self._actuator.click_target(
+            targets[0], anchor=anchor, kind=kind, scale_factor=active_frame.scale_factor
+        )
 
     def run(self, steps: list[dict[str, Any]]) -> list[StepResult]:
         """Execute a list of in-memory steps via the flow runner."""

@@ -32,3 +32,10 @@ Outputs:
 ## Completion rule
 
 Phase 5.9 is complete when three sequential runs of the full MVP flow finish with success and the evidence is captured in `docs/acceptance-runs/`.
+
+## Reliability guardrail for real outcomes
+
+Do not treat run success as proof of business outcome by itself. For outcome-critical flows:
+
+- first run `examples/flows/calibration-token/flow.yaml` successfully on the same machine/session,
+- then verify an outcome-specific signal in the target system (for example: unique subject token appears in `Sent Items`).

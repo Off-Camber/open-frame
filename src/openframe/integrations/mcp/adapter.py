@@ -36,8 +36,16 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "click",
         "description": "Find and click a target by query",
         "required_args": ["query"],
-        "optional_args": ["anchor", "kind", "dry_run", "run_id", "frame_path"],
-        "error_codes": ["not_found", "validation_error", "capture_error", "action_error", "runtime_error", "internal_error"],
+        "optional_args": ["anchor", "kind", "dry_run", "run_id", "frame_path", "expect_one", "selector"],
+        "error_codes": [
+            "not_found",
+            "ambiguous_target",
+            "validation_error",
+            "capture_error",
+            "action_error",
+            "runtime_error",
+            "internal_error",
+        ],
     },
     {
         "name": "type",
@@ -190,16 +198,28 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
     anchor = str(args.get("anchor", "center")).strip()
     click_kind = str(args.get("kind", "click")).strip()
     dry_run = _as_bool(args.get("dry_run", False))
+    expect_one = _as_bool(args.get("expect_one", False))
+    selector = str(args.get("selector", "first")).strip()
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
 
     frame = _resolve_frame(_optional_string(args.get("frame_path")))
     locator = _build_locator()
-    targets = locator.find(frame=frame, query=query, strategy="first")
+    targets = locator.find(frame=frame, query=query, strategy="all")
     if not targets:
         raise MCPToolError(code="not_found", message=f'No target found for query "{query}".', run_id=run_id)
+    if expect_one and len(targets) != 1:
+        raise MCPToolError(
+            code="ambiguous_target",
+            message=f'Expected one target for query "{query}", found {len(targets)}.',
+            run_id=run_id,
+            data={"query": query, "match_count": len(targets)},
+        )
+    selected_target = _select_target(targets=targets, selector=selector)
 
     actuator = Actuator(dry_run=dry_run)
-    point = actuator.click_target(targets[0], anchor=anchor, kind=click_kind)
+    point = actuator.click_target(
+        selected_target, anchor=anchor, kind=click_kind, scale_factor=frame.scale_factor
+    )
     after = frame if dry_run else screen()
     artifact_dir = write_step_artifacts(
         run_id=run_id,
@@ -214,8 +234,10 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         "anchor": anchor,
         "kind": click_kind,
         "dry_run": dry_run,
+        "expect_one": expect_one,
+        "selector": selector,
         "point": {"x": point[0], "y": point[1]},
-        "target": asdict(targets[0]),
+        "target": asdict(selected_target),
     }
     artifacts = {"step_dir": str(artifact_dir)}
     return data, run_id, artifacts
@@ -402,4 +424,22 @@ def _as_bool(value: Any) -> bool:
 
 def _default_run_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _select_target(*, targets: list[Any], selector: str) -> Any:
+    if not targets:
+        raise ValueError("No targets available for selection.")
+
+    normalized = selector.strip().lower()
+    if normalized in {"", "first"}:
+        return targets[0]
+    if normalized == "top_most":
+        return sorted(targets, key=lambda item: (item.y, item.x))[0]
+    if normalized == "left_most":
+        return sorted(targets, key=lambda item: (item.x, item.y))[0]
+    if normalized == "highest_confidence":
+        return sorted(targets, key=lambda item: item.confidence, reverse=True)[0]
+    if normalized == "right_most":
+        return sorted(targets, key=lambda item: (item.x, item.y), reverse=True)[0]
+    raise ValueError(f"Invalid selector '{selector}'.")
 

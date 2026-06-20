@@ -1,0 +1,88 @@
+name: outlook-send-only
+variables:
+  recipient: "test@example.com"
+  sent_items_label: "Sent"
+  subject_marker: "OFSENDZXQ"
+  subject: "{{subject_marker}} {{run_id}}"
+  body: "Open Frame send-only validation {{run_id}}"
+steps:
+  # The app step is itself a reliable precondition guard: it fails if Outlook
+  # is not frontmost after activation. A stronger guard ("is a compose window
+  # already open?") is intentionally NOT attempted here: no single OCR token
+  # distinguishes compose from the main screen, because the reading pane always
+  # shows "To:" for the selected message. Detecting that state needs
+  # window-level awareness and belongs to agent mode.
+  # See docs/FLOW_SETUP.md "State guards vs. recovery".
+  - id: focus-outlook
+    kind: app
+    name: "Microsoft Outlook"
+
+  - id: new-email
+    kind: key
+    combo:
+      - command
+      - n
+
+  - id: verify-compose-open
+    kind: verify
+    timeout_ms: 5000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"To"'
+
+  # Field navigation is keyboard-only on purpose. An OCR click on a field label
+  # ("Subject", etc.) is unsafe: OCR scans the whole screen and can match that
+  # word in another window (e.g. the IDE/chat driving the run), stealing focus.
+  # Keyboard events always go to the frontmost app (Outlook), so Tab commits the
+  # typed recipient and advances field-by-field without leaving the window.
+  - id: type-recipient
+    kind: type
+    text: "{{recipient}}"
+
+  - id: advance-to-subject
+    kind: key
+    key: tab
+
+  - id: type-subject
+    kind: type
+    text: "{{subject}}"
+
+  - id: advance-to-body
+    kind: key
+    key: tab
+
+  - id: type-body
+    kind: type
+    text: "{{body}}"
+
+  - id: send-email
+    kind: click
+    query: "Send"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 7000
+    poll_ms: 300
+
+  - id: wait-send-settle
+    kind: wait
+    ms: 4000
+
+  - id: open-sent-items
+    kind: click
+    query: "{{sent_items_label}}"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 7000
+    poll_ms: 300
+
+  - id: verify-sent
+    kind: verify
+    timeout_ms: 12000
+    poll_ms: 300
+    match_bounds:
+      left_of_query: "From"
+      margin: 40
+    specs:
+      - 'text-appeared:"{{subject_marker}}"'

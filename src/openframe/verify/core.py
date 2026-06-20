@@ -2,14 +2,112 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 import shutil
 from typing import Any
 
 from openframe.recognize import Locator
-from openframe.types import Frame
+from openframe.types import Frame, Target
 from openframe.verify.base import VerifyResult, Verifier
+
+
+@dataclass(slots=True)
+class MatchBounds:
+    """Optional spatial filter for OCR matches within a frame."""
+
+    min_x: int | None = None
+    max_x: int | None = None
+    min_y: int | None = None
+    max_y: int | None = None
+    min_x_ratio: float | None = None
+    max_x_ratio: float | None = None
+    left_of_query: str | None = None
+    margin: int = 20
+
+
+def parse_match_bounds(raw: dict[str, Any] | None) -> MatchBounds | None:
+    """Parse optional match bounds from a verify step params mapping."""
+    if not raw:
+        return None
+    if not isinstance(raw, dict):
+        raise ValueError("match_bounds must be a mapping.")
+
+    margin = int(raw.get("margin", 20))
+    if margin < 0:
+        raise ValueError("match_bounds.margin must be >= 0.")
+
+    return MatchBounds(
+        min_x=_optional_int(raw.get("min_x")),
+        max_x=_optional_int(raw.get("max_x")),
+        min_y=_optional_int(raw.get("min_y")),
+        max_y=_optional_int(raw.get("max_y")),
+        min_x_ratio=_optional_float(raw.get("min_x_ratio")),
+        max_x_ratio=_optional_float(raw.get("max_x_ratio")),
+        left_of_query=_optional_string(raw.get("left_of_query")),
+        margin=margin,
+    )
+
+
+def filter_targets(
+    targets: list[Target],
+    *,
+    frame: Frame,
+    bounds: MatchBounds | None,
+    locator: Locator,
+) -> list[Target]:
+    """Keep only targets that satisfy optional spatial bounds."""
+    if bounds is None:
+        return targets
+
+    filtered = list(targets)
+    if bounds.left_of_query:
+        anchors = locator.find(frame, bounds.left_of_query, strategy="all")
+        if not anchors:
+            return []
+        boundary_x = max(item.x for item in anchors)
+        filtered = [
+            item
+            for item in filtered
+            if (item.x + item.width) <= (boundary_x - bounds.margin)
+        ]
+
+    if bounds.min_x_ratio is not None:
+        min_x = int(frame.width * bounds.min_x_ratio)
+        filtered = [item for item in filtered if item.x >= min_x]
+    if bounds.max_x_ratio is not None:
+        max_x = int(frame.width * bounds.max_x_ratio)
+        filtered = [item for item in filtered if item.x <= max_x]
+
+    if bounds.min_x is not None:
+        filtered = [item for item in filtered if item.x >= bounds.min_x]
+    if bounds.max_x is not None:
+        filtered = [item for item in filtered if (item.x + item.width) <= bounds.max_x]
+    if bounds.min_y is not None:
+        filtered = [item for item in filtered if item.y >= bounds.min_y]
+    if bounds.max_y is not None:
+        filtered = [item for item in filtered if (item.y + item.height) <= bounds.max_y]
+
+    return filtered
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 class ScreenshotDiffVerifier(Verifier):
@@ -41,15 +139,24 @@ class TextPresenceVerifier(Verifier):
 
     name = "verify:text"
 
-    def __init__(self, *, locator: Locator, text: str, should_exist: bool) -> None:
+    def __init__(
+        self,
+        *,
+        locator: Locator,
+        text: str,
+        should_exist: bool,
+        bounds: MatchBounds | None = None,
+    ) -> None:
         self.locator = locator
         self.text = text
         self.should_exist = should_exist
+        self.bounds = bounds
 
     def verify(self, *, before: Frame, after: Frame) -> VerifyResult:
         _ = before
         matches = self.locator.find(after, self.text, strategy="all")
-        found = len(matches) > 0
+        bounded = filter_targets(matches, frame=after, bounds=self.bounds, locator=self.locator)
+        found = len(bounded) > 0
         success = found if self.should_exist else not found
         mode = "appeared" if self.should_exist else "gone"
         message = f'text "{self.text}" {mode}' if success else f'text "{self.text}" not {mode}'
@@ -57,7 +164,13 @@ class TextPresenceVerifier(Verifier):
             verifier=self.name,
             success=success,
             message=message,
-            details={"query": self.text, "found_count": len(matches), "should_exist": self.should_exist},
+            details={
+                "query": self.text,
+                "found_count": len(matches),
+                "bounded_count": len(bounded),
+                "should_exist": self.should_exist,
+                "bounds": _bounds_details(self.bounds),
+            },
         )
 
 
@@ -119,6 +232,21 @@ def _copy_if_present(source: str | None, destination: Path) -> Path | None:
         return None
     shutil.copy2(src, destination)
     return destination
+
+
+def _bounds_details(bounds: MatchBounds | None) -> dict[str, Any] | None:
+    if bounds is None:
+        return None
+    return {
+        "min_x": bounds.min_x,
+        "max_x": bounds.max_x,
+        "min_y": bounds.min_y,
+        "max_y": bounds.max_y,
+        "min_x_ratio": bounds.min_x_ratio,
+        "max_x_ratio": bounds.max_x_ratio,
+        "left_of_query": bounds.left_of_query,
+        "margin": bounds.margin,
+    }
 
 
 def _image_diff_ratio(before_path: str | None, after_path: str | None) -> float:

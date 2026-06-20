@@ -50,10 +50,89 @@ def test_full_mvp_flow_file_has_end_to_end_steps() -> None:
 
     assert "name: outlook-m365-email" in text
     assert "open-word-online" in text
-    assert "fill-recipient" in text
+    assert "verify-compose-open" in text
+    assert "click_point" in text
+    assert text.count("selector: top_most") >= 3
+    assert "open-blank-document" in text
+    assert "type-recipient" in text
+    assert "advance-to-subject" in text
     assert "attach-summary" in text
     assert "send-email" in text
+    assert "open-sent-items" in text
     assert "verify-sent" in text
+    assert "match_bounds:" in text
+    assert 'sent_items_label: "Sent"' in text
+    assert 'text-appeared:"Open Frame MVP run"' in text
+
+
+def test_calibration_flow_has_unique_token_outcome_verify() -> None:
+    flow_path = (
+        Path(__file__).resolve().parent.parent / "examples" / "flows" / "calibration-token" / "flow.yaml"
+    )
+    text = flow_path.read_text(encoding="utf-8")
+
+    assert "name: calibration-token" in text
+    assert 'marker: "OFMARKZXQ"' in text
+    assert 'token: "{{marker}} {{run_id}}"' in text
+    assert 'name: "TextEdit"' in text
+    assert "new-document" in text
+    assert "- command" in text
+    assert "- n" in text
+    assert "type-token" in text
+    assert "verify-token-visible" in text
+    assert 'text-appeared:"{{marker}}"' in text
+
+
+def test_word_create_only_flow_has_document_outcome_check() -> None:
+    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "word-create-only" / "flow.yaml"
+    text = flow_path.read_text(encoding="utf-8")
+
+    assert "name: word-create-only" in text
+    assert 'doc_marker: "OFDOCZXQ"' in text
+    assert "open-blank-document" in text
+    assert "selector: top_most" in text
+    assert "verify-document-surface" in text
+    assert "focus-document-body" in text
+    assert "click_point" in text
+    assert "type-doc-title" in text
+    assert "verify-doc-marker" in text
+    assert 'text-appeared:"{{doc_marker}}"' in text
+
+
+def test_outlook_send_only_flow_has_sent_outcome_check() -> None:
+    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "outlook-send-only" / "flow.yaml"
+    text = flow_path.read_text(encoding="utf-8")
+
+    assert "name: outlook-send-only" in text
+    assert 'subject_marker: "OFSENDZXQ"' in text
+    assert "verify-compose-open" in text
+    assert "type-recipient" in text
+    assert "advance-to-subject" in text
+    assert "type-subject" in text
+    assert text.count("selector: top_most") >= 2
+    assert "match_bounds:" in text
+    assert "left_of_query: \"From\"" in text
+    assert "send-email" in text
+    assert "open-sent-items" in text
+    assert "verify-sent" in text
+    assert 'text-appeared:"{{subject_marker}}"' in text
+
+
+def test_doc_attach_email_flow_shares_one_artifact() -> None:
+    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "doc-attach-email" / "flow.yaml"
+    text = flow_path.read_text(encoding="utf-8")
+
+    assert "name: doc-attach-email" in text
+    # The document is produced deterministically and the SAME path is attached.
+    assert "kind: write_file" in text
+    assert "attachment_path:" in text
+    assert text.count("{{attachment_path}}") >= 2
+    assert "open-attach" in text
+    assert "type-attachment-path" in text
+    assert "verify-attached" in text
+    assert "verify-sent" in text
+    assert "match_bounds:" in text
+    assert 'text-appeared:"{{subject_marker}}"' in text
 
 
 def test_mcp_pilot_example_references_compact_envelope() -> None:

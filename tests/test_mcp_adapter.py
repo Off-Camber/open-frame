@@ -4,6 +4,8 @@ from pathlib import Path
 
 from openframe.integrations.mcp.adapter import call_mcp_tool, list_mcp_tools
 from openframe.types import StepResult
+from openframe.types import Frame
+from openframe.types import Target
 
 
 def test_list_mcp_tools_contains_expected_names() -> None:
@@ -84,4 +86,59 @@ def test_find_without_query_returns_validation_error() -> None:
     assert result["error"]["code"] == "validation_error"
     assert result["error"]["message"] == "query is required."
     assert set(result.keys()) == {"ok", "tool", "run_id", "data", "error", "artifacts"}
+
+
+def test_click_expect_one_returns_ambiguous_target(monkeypatch) -> None:
+    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+
+    class FakeLocator:
+        def find(self, frame, query, strategy):
+            _ = frame, query, strategy
+            return [
+                Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
+                Target(x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"),
+            ]
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+
+    result = call_mcp_tool("click", {"query": "Create", "expect_one": True, "dry_run": True, "run_id": "r1"})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "ambiguous_target"
+    assert result["run_id"] == "r1"
+
+
+def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
+    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    clicked = {}
+
+    class FakeLocator:
+        def find(self, frame, query, strategy):
+            _ = frame, query, strategy
+            return [
+                Target(x=30, y=200, width=20, height=10, confidence=0.9, source="ocr", text="Create"),
+                Target(x=10, y=100, width=20, height=10, confidence=0.8, source="ocr", text="Create"),
+            ]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run):
+            _ = dry_run
+
+        def click_target(self, target, *, anchor, kind, scale_factor=1.0):
+            _ = anchor, kind, scale_factor
+            clicked["x"] = target.x
+            clicked["y"] = target.y
+            return (target.x, target.y)
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.write_step_artifacts",
+        lambda **_kwargs: Path("runs/r1/mcp-click"),
+    )
+
+    result = call_mcp_tool("click", {"query": "Create", "selector": "top_most", "dry_run": True, "run_id": "r1"})
+    assert result["ok"] is True
+    assert clicked == {"x": 10, "y": 100}
 

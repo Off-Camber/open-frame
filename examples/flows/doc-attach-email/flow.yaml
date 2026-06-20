@@ -1,0 +1,150 @@
+name: doc-attach-email
+# Demonstrates genuine flow composition: write a real local document, then
+# attach that SAME file to an email and send it. The shared artifact is
+# {{attachment_path}} (an absolute, ~-anchored path so both write_file and the
+# macOS open panel's "Go to folder" resolve it identically).
+variables:
+  recipient: "test@example.com"
+  sent_items_label: "Sent"
+  subject_marker: "OFATTACHZXQ"
+  subject: "{{subject_marker}} {{run_id}}"
+  body: "Open Frame attachment validation {{run_id}}. The document is attached."
+  attachment_name: "openframe-doc-{{run_id}}.txt"
+  attachment_path: "~/openframe-attachments/{{attachment_name}}"
+  doc_text: "Open Frame generated document {{run_id}}. Written deterministically, then attached."
+steps:
+  # 1) Produce the real local artifact (the "document").
+  - id: write-document
+    kind: write_file
+    path: "{{attachment_path}}"
+    text: "{{doc_text}}"
+
+  # 2) Compose the email.
+  - id: focus-outlook
+    kind: app
+    name: "Microsoft Outlook"
+
+  - id: new-email
+    kind: key
+    combo:
+      - command
+      - n
+
+  - id: verify-compose-open
+    kind: verify
+    timeout_ms: 5000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"To"'
+
+  # Field navigation is keyboard-only on purpose. An OCR click on a field label
+  # ("Subject", etc.) is unsafe: OCR scans the whole screen and can match that
+  # word in another window (e.g. the IDE/chat driving the run), stealing focus.
+  # Keyboard events always go to the frontmost app (Outlook), so Tab commits the
+  # typed recipient and advances field-by-field without leaving the window.
+  - id: type-recipient
+    kind: type
+    text: "{{recipient}}"
+
+  - id: advance-to-subject
+    kind: key
+    key: tab
+
+  - id: type-subject
+    kind: type
+    text: "{{subject}}"
+
+  - id: advance-to-body
+    kind: key
+    key: tab
+
+  - id: type-body
+    kind: type
+    text: "{{body}}"
+
+  # 3) Attach the SAME file via the macOS open panel (Go-to-folder by path).
+  # In this Outlook build, "Attach" opens the macOS open panel directly
+  # (no "Browse This Mac" menu). We then jump to the exact file via Go-to-folder.
+  - id: open-attach
+    kind: click
+    query: "Attach"
+    selector: top_most
+    anchor: center
+    timeout_ms: 6000
+    poll_ms: 300
+
+  - id: wait-open-panel
+    kind: wait
+    ms: 1500
+
+  - id: goto-folder
+    kind: key
+    combo:
+      - command
+      - shift
+      - g
+
+  - id: wait-goto
+    kind: wait
+    ms: 800
+
+  - id: type-attachment-path
+    kind: type
+    text: "{{attachment_path}}"
+
+  - id: confirm-goto
+    kind: key
+    key: enter
+
+  - id: wait-selected
+    kind: wait
+    ms: 900
+
+  # "Choose" is the default button in the open panel; Return activates it.
+  # (OCR can miss the small dark button text, so we use the keyboard default.)
+  - id: confirm-choose
+    kind: key
+    key: return
+
+  - id: wait-attached
+    kind: wait
+    ms: 1500
+
+  # Prove the attachment chip carries the document filename.
+  - id: verify-attached
+    kind: verify
+    timeout_ms: 6000
+    poll_ms: 300
+    specs:
+      - 'text-appeared:"openframe-doc"'
+
+  # 4) Send and verify the unique marker in the Sent list (not the compose pane).
+  - id: send-email
+    kind: click
+    query: "Send"
+    selector: top_most
+    anchor: center
+    timeout_ms: 7000
+    poll_ms: 300
+
+  - id: wait-send-settle
+    kind: wait
+    ms: 4000
+
+  - id: open-sent-items
+    kind: click
+    query: "{{sent_items_label}}"
+    selector: top_most
+    anchor: center
+    timeout_ms: 7000
+    poll_ms: 300
+
+  - id: verify-sent
+    kind: verify
+    timeout_ms: 12000
+    poll_ms: 300
+    match_bounds:
+      left_of_query: "From"
+      margin: 40
+    specs:
+      - 'text-appeared:"{{subject_marker}}"'

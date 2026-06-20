@@ -23,23 +23,48 @@ class Actuator:
     def __init__(self, *, dry_run: bool = False) -> None:
         self.dry_run = dry_run
 
-    def point_for_target(self, target: Target, *, anchor: ClickAnchor = "center") -> tuple[int, int]:
-        """Map target bounds to a click point."""
-        if anchor == "center":
-            return (target.x + target.width // 2, target.y + target.height // 2)
-        if anchor == "top-left":
-            return (target.x, target.y)
-        if anchor == "top-right":
-            return (target.x + target.width, target.y)
-        if anchor == "bottom-left":
-            return (target.x, target.y + target.height)
-        if anchor == "bottom-right":
-            return (target.x + target.width, target.y + target.height)
-        raise ValueError(f"Unsupported click anchor: {anchor}")
+    def point_for_target(
+        self,
+        target: Target,
+        *,
+        anchor: ClickAnchor = "center",
+        scale_factor: float = 1.0,
+    ) -> tuple[int, int]:
+        """Map target bounds to a click point.
 
-    def click_target(self, target: Target, *, anchor: ClickAnchor = "center", kind: ClickKind = "click") -> tuple[int, int]:
-        """Click a target at a mapped point."""
-        x, y = self.point_for_target(target, anchor=anchor)
+        Recognizers report target bounds in captured-image pixels (physical
+        pixels on Retina displays). Mouse actuation works in logical screen
+        points. ``scale_factor`` (display physical/logical ratio, e.g. 2.0 on
+        Retina) converts the mapped point into logical click space.
+        """
+        if scale_factor <= 0:
+            raise ValueError("scale_factor must be greater than zero.")
+
+        if anchor == "center":
+            px, py = (target.x + target.width // 2, target.y + target.height // 2)
+        elif anchor == "top-left":
+            px, py = (target.x, target.y)
+        elif anchor == "top-right":
+            px, py = (target.x + target.width, target.y)
+        elif anchor == "bottom-left":
+            px, py = (target.x, target.y + target.height)
+        elif anchor == "bottom-right":
+            px, py = (target.x + target.width, target.y + target.height)
+        else:
+            raise ValueError(f"Unsupported click anchor: {anchor}")
+
+        return (round(px / scale_factor), round(py / scale_factor))
+
+    def click_target(
+        self,
+        target: Target,
+        *,
+        anchor: ClickAnchor = "center",
+        kind: ClickKind = "click",
+        scale_factor: float = 1.0,
+    ) -> tuple[int, int]:
+        """Click a target at a mapped point in logical click space."""
+        x, y = self.point_for_target(target, anchor=anchor, scale_factor=scale_factor)
         self.click_point(x, y, kind=kind)
         return (x, y)
 

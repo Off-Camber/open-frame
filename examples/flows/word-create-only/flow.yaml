@@ -1,0 +1,61 @@
+name: word-create-only
+variables:
+  word_url: "https://www.office.com/launch/word"
+  doc_marker: "OFDOCZXQ"
+  doc_title: "{{doc_marker}} {{run_id}}"
+steps:
+  - id: open-word-online
+    kind: navigate
+    url: "{{word_url}}"
+
+  - id: wait-word-load
+    kind: wait
+    ms: 2500
+
+  - id: verify-word-surface
+    kind: verify
+    timeout_ms: 15000
+    poll_ms: 300
+    specs:
+      - 'text-appeared:"Welcome"'
+
+  - id: open-blank-document
+    kind: click
+    query: "Create"
+    selector: top_most
+    anchor: center
+    click_kind: click
+    timeout_ms: 10000
+    poll_ms: 300
+
+  - id: wait-document-open
+    kind: wait
+    ms: 4000
+
+  - id: verify-document-surface
+    kind: verify
+    timeout_ms: 25000
+    poll_ms: 500
+    specs:
+      - 'text-appeared:"Layout"'
+
+  - id: wait-editor-settle
+    kind: wait
+    ms: 3500
+
+  - id: focus-document-body
+    kind: click_point
+    x_ratio: 0.5
+    y_ratio: 0.55
+
+  - id: type-doc-title
+    kind: type
+    text: "{{doc_title}}"
+    interval: 0.05
+
+  - id: verify-doc-marker
+    kind: verify
+    timeout_ms: 12000
+    poll_ms: 400
+    specs:
+      - 'text-appeared:"{{doc_marker}}"'

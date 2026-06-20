@@ -185,7 +185,9 @@ def main() -> int:
                 raise ValueError(f'No target found for query "{args.query}".')
 
             actuator = Actuator(dry_run=args.dry_run)
-            point = actuator.click_target(targets[0], anchor=args.anchor, kind=args.kind)
+            point = actuator.click_target(
+                targets[0], anchor=args.anchor, kind=args.kind, scale_factor=frame.scale_factor
+            )
             if args.dry_run and not args.verify:
                 after_frame = frame
             else:
