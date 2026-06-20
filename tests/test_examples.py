@@ -11,8 +11,13 @@ def test_outlook_smoke_flow_file_has_expected_steps() -> None:
 
     assert "name: outlook-new-email-smoke" in text
     assert "kind: app" in text
-    assert "kind: click" in text
+    assert "kind: key" in text
+    assert "combo:" in text
+    assert "- command" in text
+    assert "- n" in text
     assert "kind: verify" in text
+    assert "timeout_ms: 2500" in text
+    assert "poll_ms: 250" in text
     assert "text-appeared:\"To\"" in text
 
 
@@ -28,8 +33,11 @@ def test_handoff_flow_file_has_cross_app_steps() -> None:
 
     assert "name: outlook-browser-outlook-handoff" in text
     assert 'name: "Microsoft Outlook"' in text
-    assert 'name: "{{browser_app}}"' in text
     assert "kind: navigate" in text
+    assert "verify-compose-surface" in text
+    assert "combo:" in text
+    assert "- command" in text
+    assert "- n" in text
     assert "verify-browser-surface" in text
     assert "return-outlook" in text
 

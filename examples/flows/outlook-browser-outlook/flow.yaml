@@ -1,6 +1,5 @@
 name: outlook-browser-outlook-handoff
 variables:
-  browser_app: "Google Chrome"
   browser_url: "https://www.microsoft365.com"
 steps:
   - id: focus-outlook
@@ -8,23 +7,32 @@ steps:
     name: "Microsoft Outlook"
 
   - id: open-compose
-    kind: click
-    query: "New Email"
-    anchor: center
-    click_kind: click
+    kind: key
+    combo:
+      - command
+      - n
 
-  - id: focus-browser
-    kind: app
-    name: "{{browser_app}}"
+  - id: verify-compose-surface
+    kind: verify
+    timeout_ms: 2500
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"To"'
 
   - id: navigate-browser
     kind: navigate
     url: "{{browser_url}}"
 
+  - id: wait-browser-load
+    kind: wait
+    ms: 1200
+
   - id: verify-browser-surface
     kind: verify
+    timeout_ms: 4000
+    poll_ms: 300
     specs:
-      - 'text-appeared:"Microsoft 365"'
+      - 'text-appeared:"Microsoft"'
 
   - id: return-outlook
     kind: app
@@ -32,5 +40,7 @@ steps:
 
   - id: verify-outlook-compose
     kind: verify
+    timeout_ms: 2500
+    poll_ms: 250
     specs:
       - 'text-appeared:"To"'
