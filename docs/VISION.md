@@ -49,25 +49,22 @@ A **composable platform** others can clone, extend, and embed — not a full ent
 4. **Pluggable by default** — recognizers and actuators are swappable; core stays thin.
 5. **Clone-friendly** — clear docs, minimal magic, sensible defaults for a fork.
 
-## Success criteria
+## Current state
 
-Full MVP definition: **[MVP goalpost](MVP_GOALPOST.md)**.
+`v0.1.x` proved the deterministic core:
 
-### MVP (v0.1.0) — the bar
+- capture, find, act, verify primitives
+- declarative YAML flow execution
+- run artifacts for failure debugging
+- SDK + packaging for reuse
 
-A **declarative flow** runs repeatedly on a prepared desktop and automates a **multi-app RPA journey**:
+Detailed release criteria for `v0.1` are documented in [MVP_GOALPOST.md](MVP_GOALPOST.md).
 
-**Outlook (desktop) → Microsoft 365 (web) → create document(s) → compose email with attachment → send**, with step verification and the **same outcome on every run** (within documented environment assumptions).
+### v0.2 — agent integration layer (current)
 
-See the reference flow, acceptance checklist, and scope boundaries in [MVP_GOALPOST.md](MVP_GOALPOST.md).
-
-### Before MVP — engine milestones
-
-Incremental proof on the way to the goalpost:
-
-- Capture, find (a11y + OCR), act, verify on a **single app**
-- App focus and handoff between **two apps**
-- Flow runner executing an ordered step list with variables
+- MCP adapter integration surface for deterministic tool calls
+- Compact structured tool responses + artifact-first debugging
+- Phase 7 vision remains gated until interface metrics pass
 
 ### v1 — usable platform
 
@@ -75,12 +72,6 @@ Incremental proof on the way to the goalpost:
 - Documented flow format and recognizer plugins
 - **Windows** capture/a11y/act backends — same YAML flows as macOS MVP
 - Reference flow validated on Windows for enterprise RPA deployments
-
-### v0.2 — agent integration layer
-
-- MCP adapter integration surface for deterministic tool calls
-- Compact structured tool responses + artifact-first debugging
-- Phase 7 vision remains gated until interface metrics pass
 
 ### v2 — ecosystem
 

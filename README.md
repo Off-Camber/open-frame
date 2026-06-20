@@ -18,29 +18,21 @@ Open Frame is the deterministic desktop execution layer behind AI agents, not th
 
 Active development. `v0.1.1` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 
-**MVP goalpost:** a declarative flow that automates **Outlook → Microsoft 365 → create document → email**, repeatably across desktop apps. See [docs/MVP_GOALPOST.md](docs/MVP_GOALPOST.md).
-
 ## Documentation
 
-| Doc | Purpose |
-|-----|---------|
-| [Vision](docs/VISION.md) | What we're building and for whom |
-| [Architecture](docs/ARCHITECTURE.md) | System layers, modules, and interfaces |
-| [Action plan](docs/ACTION_PLAN.md) | Phased tasks and checklists |
-| [Decisions](docs/DECISIONS.md) | Record of key design choices |
-| [Capture manual test](docs/CAPTURE_MANUAL_TEST.md) | Live macOS validation checklist for Phase 1 capture |
-| [OCR setup](docs/OCR_SETUP.md) | Install and run the Tesseract recognizer |
-| [Accessibility setup](docs/A11Y_SETUP.md) | Configure macOS Accessibility permission for AX recognition |
-| [Act setup](docs/ACT_SETUP.md) | Install and safely run click/type actions |
-| [Act manual test](docs/ACT_MANUAL_TEST.md) | End-to-end capture → find → click validation steps |
-| [Verify setup](docs/VERIFY_SETUP.md) | Configure and use click verification with run artifacts |
-| [Flow setup](docs/FLOW_SETUP.md) | Define and run YAML flows |
-| [Acceptance runs](docs/ACCEPTANCE_RUNS.md) | Record three consecutive MVP flow runs |
-| [API](docs/API.md) | Programmatic `Session` SDK usage and extension points |
-| [Contributing](docs/CONTRIBUTING.md) | Development workflow and macOS permission setup |
-| [Publish to PyPI](docs/PUBLISH_PYPI.md) | Trusted publishing setup and release checklist |
-| [v0.1.1 backlog](docs/V0_1_1_BACKLOG.md) | Short-term stabilization priorities after first release |
-| [v0.2.0 checkpoint](docs/V0_2_0_CHECKPOINT.md) | Interface-first product direction (MCP before vision) |
+For most users, start with:
+
+- [Flow setup](docs/FLOW_SETUP.md)
+- [API](docs/API.md)
+- [Act setup](docs/ACT_SETUP.md)
+- [Verify setup](docs/VERIFY_SETUP.md)
+
+For contributors/maintainers:
+
+- [Contributing](docs/CONTRIBUTING.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Vision](docs/VISION.md)
+- [Full docs index](docs/README.md)
 
 ## Quick start (capture)
 
@@ -76,15 +68,6 @@ open-frame run examples/flows/outlook-m365-email/flow.yaml --dry-run --json
 # MCP pilot
 open-frame mcp list-tools --json
 python examples/mcp-pilot/pilot.py
-```
-
-## Planned next commands
-
-```bash
-# Run the MVP reference flow (prepared desktop: Outlook + browser signed in)
-open-frame run examples/flows/outlook-m365-email/flow.yaml
-
-open-frame find "New Email" --click
 ```
 
 ## License

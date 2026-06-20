@@ -1,17 +1,26 @@
 # Open Frame — documentation
 
-Primary docs for the project. Read in this order:
+Primary docs for the project.
 
-1. **[Vision](VISION.md)** — problem, audience, principles, success criteria
-2. **[MVP goalpost](MVP_GOALPOST.md)** — what “done” means (Outlook → M365 → email flow)
-3. **[Architecture](ARCHITECTURE.md)** — layers, modules, data flow, extension points
-4. **[Action plan](ACTION_PLAN.md)** — phased work breakdown with checklists
-5. **[Decisions](DECISIONS.md)** — naming, stack, scope, and other locked-in choices
+## User guides
 
-Implementation docs:
+- **[Flow setup](FLOW_SETUP.md)** — define and run YAML flows
+- **[API](API.md)** — programmatic `Session` API and integration guidance
+- **[Act setup](ACT_SETUP.md)** — configure and safely run input actions
+- **[Verify setup](VERIFY_SETUP.md)** — verify outcomes and inspect run artifacts
+- **[OCR setup](OCR_SETUP.md)** / **[A11Y setup](A11Y_SETUP.md)** — recognizer prerequisites
 
-- **[API](API.md)** — programmatic `Session` API and extension points
+## Developer docs
+
 - **[Contributing](CONTRIBUTING.md)** — local setup, tests, and macOS permissions
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
+- **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
+
+## Product/planning docs
+
+- **[Vision](VISION.md)** — positioning, audience, and product direction
+- **[MVP goalpost](MVP_GOALPOST.md)** — v0.1 release criteria and reference flow
+- **[Action plan](ACTION_PLAN.md)** — phased work breakdown and roadmap
+- **[Decisions](DECISIONS.md)** — key product and technical decisions
 - **[v0.1.1 backlog](V0_1_1_BACKLOG.md)** — immediate post-release stabilization plan
 - **[v0.2.0 checkpoint](V0_2_0_CHECKPOINT.md)** — interface-first product direction and release gates
