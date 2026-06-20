@@ -153,6 +153,9 @@ Phased checklist for building Open Frame. Estimate effort as **S** (days), **M**
 | C.3 | Define MCP MVP tools + JSON response contract in docs | M | ☑ |
 | C.4 | Define `v0.2.0` release gates focused on context reduction + reliability | S | ☑ |
 | C.5 | Defer full Phase 7 implementation until checkpoint gates pass | S | ☑ |
+| C.6 | Freeze MCP contract identifier + per-tool arg/error metadata | S | ☑ |
+| C.7 | Add MCP contract tests for envelope shape and validation failures | S | ☑ |
+| C.8 | Run a repeatability benchmark for representative MCP flows | M | ☑ |
 
 **Exit criteria:** A clear `v0.2.0` interface plan exists and Phase 7 remains gated behind interface stabilization.
 

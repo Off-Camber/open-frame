@@ -15,6 +15,7 @@ Primary docs for the project.
 - **[Contributing](CONTRIBUTING.md)** — local setup, tests, and macOS permissions
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
 - **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
+- **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
 
 ## Product/planning docs
 

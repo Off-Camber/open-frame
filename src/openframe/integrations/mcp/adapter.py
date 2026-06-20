@@ -15,14 +15,58 @@ from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import write_step_artifacts
 
+MCP_CONTRACT_VERSION = "v0.2.0-checkpoint-1"
+
 MCP_TOOLS: tuple[dict[str, Any], ...] = (
-    {"name": "capture", "description": "Capture screen/window/region into a frame"},
-    {"name": "find", "description": "Find targets by query on a frame"},
-    {"name": "click", "description": "Find and click a target by query"},
-    {"name": "type", "description": "Type text at current focus"},
-    {"name": "key", "description": "Press a key or key combo"},
-    {"name": "run_flow", "description": "Run a YAML flow file"},
-    {"name": "get_run_artifacts", "description": "List run artifact files for a run id"},
+    {
+        "name": "capture",
+        "description": "Capture screen/window/region into a frame",
+        "required_args": [],
+        "optional_args": ["mode", "window_title", "window_id", "x", "y", "width", "height", "out_path"],
+        "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "find",
+        "description": "Find targets by query on a frame",
+        "required_args": ["query"],
+        "optional_args": ["strategy", "frame_path"],
+        "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "click",
+        "description": "Find and click a target by query",
+        "required_args": ["query"],
+        "optional_args": ["anchor", "kind", "dry_run", "run_id", "frame_path"],
+        "error_codes": ["not_found", "validation_error", "capture_error", "action_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "type",
+        "description": "Type text at current focus",
+        "required_args": [],
+        "optional_args": ["text", "interval", "dry_run"],
+        "error_codes": ["action_error", "validation_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "key",
+        "description": "Press a key or key combo",
+        "required_args": [],
+        "optional_args": ["key", "combo", "dry_run"],
+        "error_codes": ["validation_error", "action_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "run_flow",
+        "description": "Run a YAML flow file",
+        "required_args": ["flow_path"],
+        "optional_args": ["dry_run", "run_id"],
+        "error_codes": ["flow_failed", "validation_error", "capture_error", "action_error", "runtime_error", "internal_error"],
+    },
+    {
+        "name": "get_run_artifacts",
+        "description": "List run artifact files for a run id",
+        "required_args": ["run_id"],
+        "optional_args": [],
+        "error_codes": ["not_found", "validation_error", "runtime_error", "internal_error"],
+    },
 )
 
 
@@ -48,7 +92,7 @@ class MCPToolError(RuntimeError):
 
 def list_mcp_tools() -> list[dict[str, Any]]:
     """Return available MCP tool metadata."""
-    return [dict(item) for item in MCP_TOOLS]
+    return [{**item, "contract_version": MCP_CONTRACT_VERSION} for item in MCP_TOOLS]
 
 
 def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:

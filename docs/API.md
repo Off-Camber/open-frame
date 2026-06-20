@@ -89,6 +89,8 @@ If `run_flow` returns `ok: false`, inspect artifacts:
 - `run_flow`
 - `get_run_artifacts`
 
+The current frozen contract identifier is `v0.2.0-checkpoint-1`.
+
 ## Response contract
 
 All MCP calls return the same envelope:
@@ -105,6 +107,17 @@ All MCP calls return the same envelope:
 ```
 
 When `ok` is `false`, read `error.code` and `error.message`, then use `artifacts` paths for debugging.
+
+Stable error codes used by MCP tools include:
+
+- `unknown_tool`
+- `validation_error`
+- `capture_error`
+- `action_error`
+- `not_found`
+- `flow_failed`
+- `runtime_error`
+- `internal_error`
 
 ## Choosing SDK vs MCP
 

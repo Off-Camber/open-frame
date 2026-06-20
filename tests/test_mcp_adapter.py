@@ -10,6 +10,8 @@ def test_list_mcp_tools_contains_expected_names() -> None:
     tools = list_mcp_tools()
     names = {item["name"] for item in tools}
     assert {"capture", "find", "click", "type", "key", "run_flow", "get_run_artifacts"}.issubset(names)
+    assert all(item["contract_version"] == "v0.2.0-checkpoint-1" for item in tools)
+    assert all("required_args" in item and "optional_args" in item and "error_codes" in item for item in tools)
 
 
 def test_call_mcp_tool_unknown_tool_returns_structured_error() -> None:
@@ -23,6 +25,7 @@ def test_get_run_artifacts_reports_not_found() -> None:
     result = call_mcp_tool("get_run_artifacts", {"run_id": "run-that-does-not-exist"})
     assert result["ok"] is False
     assert result["error"]["code"] == "not_found"
+    assert set(result.keys()) == {"ok", "tool", "run_id", "data", "error", "artifacts"}
 
 
 def test_run_flow_failure_maps_to_flow_failed(monkeypatch) -> None:
@@ -71,4 +74,14 @@ def test_get_run_artifacts_lists_step_files(tmp_path: Path, monkeypatch) -> None
     assert result["data"]["run_id"] == "r1"
     assert result["data"]["steps"][0]["step_id"] == "step-a"
     assert "step.json" in result["data"]["steps"][0]["files"]
+    assert set(result.keys()) == {"ok", "tool", "run_id", "data", "error", "artifacts"}
+    assert result["error"] is None
+
+
+def test_find_without_query_returns_validation_error() -> None:
+    result = call_mcp_tool("find", {})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "validation_error"
+    assert result["error"]["message"] == "query is required."
+    assert set(result.keys()) == {"ok", "tool", "run_id", "data", "error", "artifacts"}
 
