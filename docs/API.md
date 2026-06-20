@@ -1,6 +1,11 @@
 # API
 
-This document covers the programmatic Python API for Open Frame.
+Open Frame has two integration surfaces:
+
+- `Session` for Python SDK usage.
+- `mcp` commands for agent/orchestrator tool calls.
+
+If you are new, start with the SDK quick start below, then move to MCP.
 
 ## Install
 
@@ -8,100 +13,73 @@ This document covers the programmatic Python API for Open Frame.
 pip install off-camber-open-frame
 ```
 
-For editable local development:
-
-```bash
-pip install -e .
-```
-
-Install extras as needed:
+For local development with extras:
 
 ```bash
 pip install -e .[ocr,act,flow]
 ```
 
-## Core types
-
-- `Frame`: captured display image metadata and optional image path.
-- `Target`: located bounds and confidence for a UI element candidate.
-- `StepResult`: outcome for one executed step in a run.
-
-## Session
-
-`Session` is the primary SDK entrypoint for embedded usage.
-
-### Create a session
+## SDK quick start (`Session`)
 
 ```python
 from openframe import Session
 
 session = Session(dry_run=True)
-```
 
-### Find a target
+targets = session.find("New")
+print(f"matches: {len(targets)}")
 
-```python
-targets = session.find("New Email")
 if targets:
-    print(targets[0].x, targets[0].y, targets[0].confidence)
+    point = session.click("New", kind="click", anchor="center")
+    print("would click:", point)
 ```
 
-### Click by query
-
-```python
-point = session.click("Send", kind="click", anchor="center")
-print(point)
-```
-
-### Run in-memory steps
+Run a short in-memory flow:
 
 ```python
 results = session.run(
     [
         {"id": "focus", "kind": "app", "name": "Microsoft Outlook"},
-        {"id": "compose", "kind": "click", "query": "New Email"},
-        {"id": "type", "kind": "type", "text": "Automated message"},
+        {"id": "compose", "kind": "click", "query": "New"},
         {"id": "wait", "kind": "wait", "ms": 300},
     ]
 )
+print([r.ok for r in results])
 ```
 
-Each run appends `StepResult` records to `session.results`.
+`Session` also supports `register_recognizer(...)` for custom matching logic.
 
-## Custom recognizers
+## MCP quick start (CLI surface)
 
-You can register recognizers without changing Open Frame core:
+List available MCP tools:
 
-```python
-from openframe import Session
-from openframe.recognize import Recognizer, RecognizerResult
-from openframe.types import Target
-
-
-class StartsWithRecognizer(Recognizer):
-    name = "starts-with"
-
-    def find(self, frame, query, options=None):
-        if query.lower().startswith("demo"):
-            return RecognizerResult(
-                recognizer=self.name,
-                targets=[Target(x=20, y=20, width=120, height=36, confidence=0.9, source=self.name, text=query)],
-            )
-        return RecognizerResult(recognizer=self.name, targets=[])
-
-
-session = Session(dry_run=True)
-session.register_recognizer(StartsWithRecognizer(priority=10))
-print(session.find("demo button"))
+```bash
+.venv311/bin/python -m openframe.cli mcp list-tools --json
 ```
 
-See `examples/custom_recognizer/` for a complete example.
+Call a tool:
 
-## Agent integration guidance (v0.2 direction)
+```bash
+.venv311/bin/python -m openframe.cli mcp call find --args-json '{"query":"New"}'
+```
 
-Open Frame is designed to be called by an agent via MCP with compact structured responses.
+Run a flow via MCP:
 
-### MCP MVP tools
+```bash
+.venv311/bin/python -m openframe.cli mcp call run_flow --args-json '{
+  "flow_path": "examples/flows/outlook-new-email/flow.yaml",
+  "dry_run": true,
+  "run_id": "compose-dry-1"
+}'
+```
+
+If `run_flow` returns `ok: false`, inspect artifacts:
+
+```bash
+.venv311/bin/python -m openframe.cli mcp call get_run_artifacts --args-json '{"run_id":"compose-dry-1"}'
+```
+
+## MCP tool set (v0.2 checkpoint)
 
 - `capture`
 - `find`
@@ -111,9 +89,9 @@ Open Frame is designed to be called by an agent via MCP with compact structured 
 - `run_flow`
 - `get_run_artifacts`
 
-### Response shape
+## Response contract
 
-Use a stable JSON envelope for all tool responses:
+All MCP calls return the same envelope:
 
 ```json
 {
@@ -122,16 +100,17 @@ Use a stable JSON envelope for all tool responses:
   "run_id": "20260618T220000Z",
   "data": {},
   "error": null,
-  "artifacts": {
-    "step_dir": "runs/20260618T220000Z/find-button"
-  }
+  "artifacts": {}
 }
 ```
 
-When `ok` is `false`, keep `error.code` and `error.message` deterministic and include artifact paths.
+When `ok` is `false`, read `error.code` and `error.message`, then use `artifacts` paths for debugging.
 
-### Context minimization rules
+## Choosing SDK vs MCP
 
-- Return IDs, bounds, and file paths instead of long natural-language explanations.
-- Keep screenshots and large payloads in artifacts, not inline tool output.
-- Let the agent keep reasoning state while Open Frame stays focused on deterministic execution.
+- Use `Session` when your automation lives in Python code in the same process.
+- Use MCP when an external agent needs deterministic desktop actions with compact JSON responses.
+
+## Advanced: custom recognizers
+
+You can register recognizers without changing Open Frame core. See `examples/custom_recognizer/` for a complete working example.
