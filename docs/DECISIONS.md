@@ -46,7 +46,8 @@ Format: **Date · Decision · Rationale**
 
 ## Pending
 
-_None — all planned decisions locked for MVP scope. Revisit if scope changes._
+_None — no unresolved decisions for the current checkpoint scope. Revisit if
+scope changes._
 
 ---
 

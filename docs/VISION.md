@@ -58,7 +58,8 @@ A **composable platform** others can clone, extend, and embed — not a full ent
 - run artifacts for failure debugging
 - SDK + packaging for reuse
 
-Detailed release criteria for `v0.1` are documented in [MVP_GOALPOST.md](MVP_GOALPOST.md).
+Detailed `v0.1` milestone criteria are documented in
+[MVP_GOALPOST.md](MVP_GOALPOST.md) for historical context.
 
 ### v0.2 — agent integration layer (current)
 

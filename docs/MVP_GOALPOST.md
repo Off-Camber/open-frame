@@ -1,6 +1,13 @@
-# MVP goalpost
+# MVP goalpost (v0.1 milestone context)
 
-This document defines **done** for the first meaningful release. All phases in [ACTION_PLAN.md](ACTION_PLAN.md) build toward this — not a toy demo, but a **credible RPA-style flow** across real desktop apps.
+This document captures what **done** meant for the first meaningful release
+milestone (`v0.1.x`): not a toy demo, but a credible RPA-style cross-app flow.
+
+For the current product direction and active release gates, use:
+
+- [V0_2_0_CHECKPOINT.md](V0_2_0_CHECKPOINT.md) (current checkpoint contract)
+- [ACTION_PLAN.md](ACTION_PLAN.md) (active roadmap)
+- `examples/flows/` (source of truth for executable flow syntax)
 
 ---
 
@@ -8,13 +15,18 @@ This document defines **done** for the first meaningful release. All phases in [
 
 > A **declarative flow file** can be run repeatedly on a prepared desktop and executes a **multi-application user journey** — Outlook → Microsoft 365 (web) → create documents → compose and send email — with **verification at each step**, producing the **same outcome every run** (within defined environment constraints).
 
-That is the bar for **MVP (v0.1.0)**.
+That was the bar for the **v0.1 milestone**.
 
 ---
 
-## Reference flow: Outlook → M365 → email
+## Reference flow (historical): Outlook → M365 → email
 
-Typical enterprise RPA pattern. Open Frame ships this as `examples/flows/outlook-m365-email/` (exact steps refined during build).
+Typical enterprise RPA pattern. Open Frame now ships executable flow specs in:
+
+- `examples/flows/outlook-m365-email/flow.yaml`
+- `examples/flows/word-create-only/flow.yaml`
+- `examples/flows/outlook-send-only/flow.yaml`
+- `examples/flows/doc-attach-email/flow.yaml`
 
 ### Narrative (what the bot does)
 
@@ -25,7 +37,7 @@ Typical enterprise RPA pattern. Open Frame ships this as `examples/flows/outlook
 5. **Send** — send the email (or save to Drafts if `dry_run: true`).
 6. **Verify** — confirm send succeeded (sent folder, toast, or absence of compose window).
 
-### Example flow shape (illustrative)
+### Example flow shape (illustrative, not syntax-authoritative)
 
 ```yaml
 name: outlook-m365-email
@@ -71,7 +83,9 @@ steps:
     assert: sent-folder-contains: "{{subject}}"
 ```
 
-Syntax is **not final** — the goalpost is the **capability**, not the YAML keywords on day one.
+The snippet above is intentionally illustrative and not maintained as the parser
+contract. Treat `examples/flows/*.yaml` plus [FLOW_SETUP.md](FLOW_SETUP.md) as
+the authoritative syntax reference.
 
 ---
 
@@ -166,7 +180,7 @@ RPA buyers typically solve this with **service accounts**, **excluded MFA polici
 
 ---
 
-## Relationship to phases
+## Relationship to phases (historical framing)
 
 ```
 Phases 0–4   Engine: capture, recognize, act, verify
@@ -174,7 +188,8 @@ Phase 5      Flow runner + reference flow (this goalpost)
 Phase 6+     SDK polish, vision, broader platforms
 ```
 
-Phase 5 exit criteria in [ACTION_PLAN.md](ACTION_PLAN.md) are aligned with this document, not a Calculator-only demo.
+At the time, Phase 5 exit criteria in [ACTION_PLAN.md](ACTION_PLAN.md) were
+aligned with this document rather than a toy single-app demo.
 
 ---
 

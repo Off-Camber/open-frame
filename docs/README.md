@@ -20,7 +20,7 @@ Primary docs for the project.
 ## Product/planning docs
 
 - **[Vision](VISION.md)** — positioning, audience, and product direction
-- **[MVP goalpost](MVP_GOALPOST.md)** — v0.1 release criteria and reference flow
+- **[MVP goalpost](MVP_GOALPOST.md)** — historical v0.1 milestone criteria and reference flow context
 - **[Action plan](ACTION_PLAN.md)** — phased work breakdown and roadmap
 - **[Decisions](DECISIONS.md)** — key product and technical decisions
 - **[v0.1.1 backlog](V0_1_1_BACKLOG.md)** — immediate post-release stabilization plan
