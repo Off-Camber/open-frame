@@ -5,19 +5,32 @@ Thanks for contributing to Open Frame.
 ## Development setup
 
 1. Use Python 3.11+.
-2. Clone and install in editable mode:
+2. Create and activate a local virtual environment:
+
+```bash
+python3 -m venv .venv311
+source .venv311/bin/activate
+```
+
+3. Install in editable mode:
 
 ```bash
 pip install -e .[dev,ocr,act,flow]
 ```
 
-3. Run tests:
+4. Use CLI via Python module if `open-frame` is not on PATH:
+
+```bash
+python -m openframe.cli mcp list-tools --json
+```
+
+5. Run tests:
 
 ```bash
 pytest
 ```
 
-4. Run lint:
+6. Run lint:
 
 ```bash
 ruff check .
