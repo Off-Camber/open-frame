@@ -29,10 +29,13 @@ Guidelines:
 - Keep bullets concise and specific.
 - Link PRs/issues when available.
 
-## Unreleased
+## v0.1.2 - 2026-06-22
 
 ### Added
 - Window-level state awareness (Phase 11): `frontmost_window()` API, optional `window` guard on flow steps, `scope: window` recognition scoping, and verify specs `window-title-contains`, `window-role`, `window-app`.
+
+### Fixed
+- Frontmost window bounds correctly read array-shaped `position`/`size` returned by System Events JXA; previously bounds collapsed to zero.
 
 ### Docs
 - Flow setup guide gains a "window-aware guards and scoping" section; verify setup lists the new window specs.
