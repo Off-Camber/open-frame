@@ -20,9 +20,11 @@ from openframe.verify import (
     TargetGoneVerifier,
     TextPresenceVerifier,
     VerifyResult,
+    WindowStateVerifier,
     parse_match_bounds,
     write_step_artifacts,
 )
+from openframe.window import evaluate_window_guard, frontmost_window
 
 
 class FlowRunner:
@@ -95,6 +97,7 @@ class FlowRunner:
 
     def _execute_step(self, *, step: FlowStep, locator: Locator, actuator: Actuator) -> dict[str, Any]:
         kind = step.kind
+        _enforce_window_guard(step=step)
         if kind == "wait":
             milliseconds = int(step.params.get("ms", 0))
             actuator.wait_ms(milliseconds)
@@ -123,12 +126,14 @@ class FlowRunner:
             selector = str(step.params.get("selector", "first")).strip()
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            scope_to_window = _wants_window_scope(step)
             targets, scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
                 strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
+                scope_to_window=scope_to_window,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find target for query '{query}'.")
@@ -191,16 +196,24 @@ class FlowRunner:
                 raise ValueError(f"Step '{step.id}' find requires 'query'.")
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            scope_to_window = _wants_window_scope(step)
             targets, _scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
                 strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
+                scope_to_window=scope_to_window,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' did not find query '{query}'.")
-            return {"query": query, "matches": len(targets), "timeout_ms": timeout_ms, "poll_ms": poll_ms}
+            return {
+                "query": query,
+                "matches": len(targets),
+                "timeout_ms": timeout_ms,
+                "poll_ms": poll_ms,
+                "scope_to_window": scope_to_window,
+            }
 
         if kind == "capture":
             out_path = step.params.get("out")
@@ -249,12 +262,14 @@ class FlowRunner:
             selector = str(step.params.get("selector", "first")).strip()
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+            scope_to_window = _wants_window_scope(step)
             targets, scale_factor = _find_targets_with_retry(
                 locator=locator,
                 query=query,
                 strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
+                scope_to_window=scope_to_window,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' could not find fill target '{query}'.")
@@ -309,12 +324,14 @@ class FlowRunner:
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=250)
             match_bounds = parse_match_bounds(step.params.get("match_bounds"))
+            scope_to_window = _wants_window_scope(step)
             result = _run_verify_specs(
                 verify_specs=verify_specs,
                 locator=locator,
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 match_bounds=match_bounds,
+                scope_to_window=scope_to_window,
             )
             if not result.success:
                 raise ValueError(result.message)
@@ -335,9 +352,15 @@ def _run_verify_specs(
     timeout_ms: int,
     poll_ms: int,
     match_bounds: MatchBounds | None = None,
+    scope_to_window: bool = False,
 ) -> VerifyResult:
     verifiers = [
-        _parse_verifier_spec(raw_spec=raw_spec, locator=locator, match_bounds=match_bounds)
+        _parse_verifier_spec(
+            raw_spec=raw_spec,
+            locator=locator,
+            match_bounds=match_bounds,
+            scope_to_window=scope_to_window,
+        )
         for raw_spec in verify_specs
     ]
     if not verifiers:
@@ -372,21 +395,72 @@ def _find_targets_with_retry(
     strategy: str,
     timeout_ms: int,
     poll_ms: int,
+    scope_to_window: bool = False,
 ) -> tuple[list[Target], float]:
     """Find targets, returning them with the scale factor of the source frame.
 
     The scale factor is needed to convert recognizer pixel coordinates into
-    logical click space at actuation time.
+    logical click space at actuation time. When ``scope_to_window`` is true,
+    only targets whose bounds lie inside the frontmost window are returned.
     """
     deadline = monotonic() + (timeout_ms / 1000.0)
     while True:
         frame = screen()
         targets = locator.find(frame, query, strategy=strategy)
+        if scope_to_window:
+            targets = _filter_targets_to_window(targets=targets, scale_factor=frame.scale_factor)
         if targets:
             return targets, frame.scale_factor
         if monotonic() >= deadline:
             return [], frame.scale_factor
         sleep(poll_ms / 1000.0)
+
+
+def _wants_window_scope(step: FlowStep) -> bool:
+    """Return True when a step opts in to window-scoped recognition."""
+    raw = step.params.get("scope")
+    if isinstance(raw, str) and raw.strip().lower() == "window":
+        return True
+    return _coerce_bool(step.params.get("scope_to_window", False))
+
+
+def _filter_targets_to_window(
+    *, targets: list[Target], scale_factor: float
+) -> list[Target]:
+    """Keep only targets whose pixel bounds lie within the frontmost window."""
+    state = frontmost_window()
+    if state is None or state.width <= 0 or state.height <= 0:
+        return targets
+    scale = scale_factor if scale_factor > 0 else 1.0
+    kept: list[Target] = []
+    for target in targets:
+        logical_x = int(target.x / scale)
+        logical_y = int(target.y / scale)
+        logical_w = int(target.width / scale)
+        logical_h = int(target.height / scale)
+        if state.contains(x=logical_x, y=logical_y, width=logical_w, height=logical_h):
+            kept.append(target)
+    return kept
+
+
+def _enforce_window_guard(*, step: FlowStep) -> None:
+    """Assert frontmost window matches a step's optional ``window`` guard."""
+    raw_window = step.params.get("window")
+    if raw_window is None:
+        return
+    if not isinstance(raw_window, dict):
+        raise ValueError(f"Step '{step.id}' window guard must be a mapping.")
+    spec = {
+        key: str(value)
+        for key, value in raw_window.items()
+        if key in {"app", "title_contains", "role"} and value is not None
+    }
+    if not spec:
+        return
+    state = frontmost_window()
+    passed, message = evaluate_window_guard(spec=spec, state=state)
+    if not passed:
+        raise ValueError(f"Step '{step.id}' window guard failed: {message}")
 
 
 def _coerce_timeout_ms(*, step: FlowStep, default_ms: int) -> int:
@@ -433,26 +507,55 @@ def _select_target(*, targets: list[Target], selector: str) -> Target:
     raise ValueError(f"Invalid selector '{selector}'.")
 
 
-def _parse_verifier_spec(*, raw_spec: str, locator: Locator, match_bounds: MatchBounds | None = None):
+def _parse_verifier_spec(
+    *,
+    raw_spec: str,
+    locator: Locator,
+    match_bounds: MatchBounds | None = None,
+    scope_to_window: bool = False,
+):
     if ":" not in raw_spec:
         raise ValueError(f"Invalid verify spec: {raw_spec}")
     key, value = raw_spec.split(":", 1)
     value = value.strip().strip('"').strip("'")
 
+    text_bounds = match_bounds
+    if scope_to_window and key in {"text-gone", "text-appeared"}:
+        text_bounds = _window_bounds_as_match_bounds() or match_bounds
+
     if key == "text-gone":
         return TextPresenceVerifier(
-            locator=locator, text=value, should_exist=False, bounds=match_bounds
+            locator=locator, text=value, should_exist=False, bounds=text_bounds
         )
     if key == "text-appeared":
         return TextPresenceVerifier(
-            locator=locator, text=value, should_exist=True, bounds=match_bounds
+            locator=locator, text=value, should_exist=True, bounds=text_bounds
         )
     if key == "target-gone":
         return TargetGoneVerifier(locator=locator, query=value)
     if key == "diff":
         return ScreenshotDiffVerifier(max_ratio=float(value))
+    if key == "window-title-contains":
+        return WindowStateVerifier(kind="title_contains", expected=value, state_provider=frontmost_window)
+    if key == "window-role":
+        return WindowStateVerifier(kind="role", expected=value, state_provider=frontmost_window)
+    if key == "window-app":
+        return WindowStateVerifier(kind="app", expected=value, state_provider=frontmost_window)
 
     raise ValueError(f"Unsupported verify spec: {raw_spec}")
+
+
+def _window_bounds_as_match_bounds() -> MatchBounds | None:
+    """Return MatchBounds covering the frontmost window in pixel space."""
+    state = frontmost_window()
+    if state is None or state.width <= 0 or state.height <= 0:
+        return None
+    return MatchBounds(
+        min_x=state.x,
+        max_x=state.x + state.width,
+        min_y=state.y,
+        max_y=state.y + state.height,
+    )
 
 
 def _focus_app(name: str) -> None:

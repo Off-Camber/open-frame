@@ -127,6 +127,47 @@ For compose-style forms, prefer keyboard field navigation (`tab`, shortcuts) onc
 the target app is frontmost. This keeps text entry deterministic and avoids
 cross-window focus theft from generic labels.
 
+### 5c) Use window-aware guards and scoping (Phase 11)
+
+When a state cannot be expressed as a reliable visible signal, lean on
+window-level checks instead of inventing a fragile OCR token. Two primitives
+are available:
+
+- **Window guard** on a step asserts the frontmost window before acting:
+
+  ```yaml
+  - id: type-recipient
+    kind: type
+    text: "{{recipient}}"
+    window:
+      app: "Microsoft Outlook"
+      title_contains: "Message"
+  ```
+
+  If the frontmost window does not match the spec, the step fails fast with
+  `window guard failed: ...` rather than typing into the wrong app.
+
+- **Window-scoped recognition** confines OCR/find to the frontmost window's
+  bounds, so `"Subject"` in another window cannot satisfy the query:
+
+  ```yaml
+  - id: click-send
+    kind: click
+    query: "Send"
+    scope: window
+  ```
+
+  Both `click`, `find`, `fill`, and `verify` accept `scope: window`.
+
+- **Window verify specs** let you assert the active window directly:
+
+  - `window-title-contains:"Compose"`
+  - `window-role:"AXWindow"`
+  - `window-app:"Microsoft Outlook"`
+
+Prefer these over OCR-token guards whenever the distinction you care about is
+"which window is frontmost" rather than "is this text visible somewhere."
+
 ### Example pattern
 
 ```yaml

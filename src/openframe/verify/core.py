@@ -10,6 +10,7 @@ from typing import Any
 from openframe.recognize import Locator
 from openframe.types import Frame, Target
 from openframe.verify.base import VerifyResult, Verifier
+from openframe.window import WindowState, WindowStateProvider, frontmost_window
 
 
 @dataclass(slots=True)
@@ -172,6 +173,66 @@ class TextPresenceVerifier(Verifier):
                 "bounds": _bounds_details(self.bounds),
             },
         )
+
+
+class WindowStateVerifier(Verifier):
+    """Verify the frontmost window matches a title fragment or role.
+
+    Phase 11 verifier. Use this instead of fragile OCR tokens when the goal is
+    to confirm "this app's window is frontmost" or "we are on this kind of
+    window" (for example, a compose window vs. a main reading-pane window).
+    """
+
+    name = "verify:window"
+
+    def __init__(
+        self,
+        *,
+        kind: str,
+        expected: str,
+        state_provider: WindowStateProvider | None = None,
+    ) -> None:
+        if kind not in {"title_contains", "role", "app"}:
+            raise ValueError(f"Unsupported window verify kind '{kind}'.")
+        if not expected:
+            raise ValueError("Window verify spec requires a non-empty expected value.")
+        self.kind = kind
+        self.expected = expected
+        self._state_provider = state_provider or frontmost_window
+
+    def verify(self, *, before: Frame, after: Frame) -> VerifyResult:
+        _ = before, after
+        state = self._state_provider()
+        success, observed = _check_window_state(state=state, kind=self.kind, expected=self.expected)
+        message = (
+            f"window {self.kind} matched '{self.expected}'"
+            if success
+            else f"window {self.kind} did not match '{self.expected}' (observed: {observed})"
+        )
+        return VerifyResult(
+            verifier=self.name,
+            success=success,
+            message=message,
+            details={
+                "kind": self.kind,
+                "expected": self.expected,
+                "observed": observed,
+            },
+        )
+
+
+def _check_window_state(
+    *, state: WindowState | None, kind: str, expected: str
+) -> tuple[bool, str | None]:
+    if state is None:
+        return False, None
+    if kind == "title_contains":
+        return expected.lower() in state.title.lower(), state.title
+    if kind == "role":
+        return expected == state.role, state.role
+    if kind == "app":
+        return expected == state.app, state.app
+    return False, None
 
 
 class TargetGoneVerifier(Verifier):
