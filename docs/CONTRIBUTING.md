@@ -8,14 +8,14 @@ Thanks for contributing to Open Frame.
 2. Create and activate a local virtual environment:
 
 ```bash
-python3 -m venv .venv311
-source .venv311/bin/activate
+python3.11 -m venv .venv
+source .venv/bin/activate
 ```
 
 3. Install in editable mode:
 
 ```bash
-pip install -e .[dev,ocr,act,flow]
+pip install -e ".[dev,ocr,act,flow]"
 ```
 
 4. Use CLI via Python module if `open-frame` is not on PATH:
