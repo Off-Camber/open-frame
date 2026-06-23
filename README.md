@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="docs/assets/open-frame-logo.png" alt="Open Frame" width="520" />
+</p>
+
 # Open Frame
 
 Open-source desktop automation engine for AI agents and scripts.
 
 **Open Frame** sees what is on screen, finds targets, interacts with UI, and verifies outcomes. It is built to be deterministic, scriptable, and auditable.
+
+<p align="center">
+  <img src="docs/assets/calibration.gif" alt="Open Frame calibration flow running" width="720" />
+</p>
+
+<sub>Above: <code>open-frame run examples/flows/calibration-token/flow.yaml --dry-run --json</code> showing deterministic step execution with structured per-step output.</sub>
 
 > Open Frame is an independent project and is not affiliated with or endorsed by any third-party automation vendor.
 
@@ -16,7 +26,7 @@ Open Frame is the deterministic execution layer behind AI agents, not the agent 
 
 ## Status
 
-Active development. `v0.1.1` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
+Active development. `v0.1.2` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/). See the [changelog](CHANGELOG.md) for release history.
 
 ## Who this is for
 
