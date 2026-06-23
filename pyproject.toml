@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "off-camber-open-frame"
-version = "0.1.1"
+version = "0.1.2"
 description = "Open-source recognition and action for anything on a display."
 readme = "README.md"
 requires-python = ">=3.11"
