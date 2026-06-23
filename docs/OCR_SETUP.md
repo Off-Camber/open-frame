@@ -5,7 +5,7 @@ Phase 2 OCR uses Python bindings plus the system `tesseract` binary.
 ## Install Python extras
 
 ```bash
-pip install -e .[ocr]
+pip install -e ".[ocr]"
 ```
 
 ## Install `tesseract` on macOS
@@ -13,6 +13,9 @@ pip install -e .[ocr]
 ```bash
 brew install tesseract
 ```
+
+`pytesseract` is the Python wrapper; OCR will still fail unless the
+system `tesseract` binary is installed and on your PATH.
 
 ## Quick check
 

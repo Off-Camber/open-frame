@@ -49,16 +49,33 @@ If `open-frame` is not on your PATH yet, run through Python directly:
 python -m openframe.cli mcp list-tools --json
 ```
 
+On macOS, OCR features also require the system `tesseract` binary:
+
+```bash
+brew install tesseract
+```
+
 ## Local development (repo clone)
 
 Use this when developing or testing from source. No extra env variable is required.
 
 ```bash
-python3 -m venv .venv311
-source .venv311/bin/activate
-pip install -e .[dev,ocr,act,flow]
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev,ocr,act,flow]"
 python -m openframe.cli mcp list-tools --json
 ```
+
+If `python3.11` is not available on a fresh macOS machine:
+
+```bash
+brew install python@3.11
+```
+
+For live capture and action execution on macOS, grant your terminal or IDE host:
+
+- **Screen Recording** permission
+- **Accessibility** permission
 
 ## Next steps
 
