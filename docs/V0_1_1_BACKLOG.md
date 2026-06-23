@@ -2,6 +2,8 @@
 
 Target: first post-`v0.1.0` stabilization release with no scope expansion.
 
+Status: closed (completed in `v0.1.1`).
+
 ## Priorities
 
 1. **Release/CI hygiene**

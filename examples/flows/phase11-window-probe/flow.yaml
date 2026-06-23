@@ -1,0 +1,36 @@
+name: phase11-window-probe
+description: >
+  Read-only Phase 11 demo. Asserts the frontmost window state using the new
+  window-aware verify specs and the optional `window:` step guard. No clicks,
+  no typing — safe to run anywhere.
+
+variables:
+  expected_app: "Cursor"
+  expected_title_fragment: "Cursor"
+
+steps:
+  - id: verify-window-title
+    kind: verify
+    timeout_ms: 1500
+    poll_ms: 250
+    specs:
+      - 'window-title-contains:"{{expected_title_fragment}}"'
+
+  - id: verify-window-app
+    kind: verify
+    timeout_ms: 1500
+    poll_ms: 250
+    specs:
+      - 'window-app:"{{expected_app}}"'
+
+  - id: wait-with-window-guard
+    kind: wait
+    ms: 100
+    window:
+      app: "{{expected_app}}"
+
+  - id: expected-failure-when-window-mismatches
+    kind: wait
+    ms: 100
+    window:
+      app: "ThisAppDoesNotExist"

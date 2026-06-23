@@ -2,7 +2,7 @@
 
 Phased checklist for building Open Frame. Estimate effort as **S** (days), **M** (1–2 weeks), **L** (multi-week). Adjust as you learn.
 
-**Current phase:** v0.2 checkpoint — MCP interface before vision
+**Current phase:** Phase 11 — window-level state awareness (macOS done; Windows parity deferred to Phase 9)
 
 **MVP goalpost:** [MVP_GOALPOST.md](MVP_GOALPOST.md) — Outlook → M365 → create doc → email, repeatable via a flow file.
 
@@ -235,12 +235,12 @@ to the frontmost app and cannot leak to other windows).
 
 | # | Task | Size | Status |
 |---|------|------|--------|
-| 11.1 | Expose frontmost window title/role via macOS accessibility (extend `_frontmost_app_name`) | M | ☐ |
-| 11.2 | Add `window-title-contains` / `window-role` verify specs | M | ☐ |
-| 11.3 | Optional `window` field on guard steps to assert frontmost window before acting | S | ☐ |
-| 11.4 | Document guard-signal selection: prefer window-aware checks over fragile OCR tokens | S | ☐ |
+| 11.1 | Expose frontmost window title/role via macOS accessibility (extend `_frontmost_app_name`) | M | ☑ |
+| 11.2 | Add `window-title-contains` / `window-role` verify specs | M | ☑ |
+| 11.3 | Optional `window` field on guard steps to assert frontmost window before acting | S | ☑ |
+| 11.4 | Document guard-signal selection: prefer window-aware checks over fragile OCR tokens | S | ☑ |
 | 11.5 | Windows parity for window-state queries (after Phase 9) | M | ☐ |
-| 11.6 | Constrain OCR/find/click to the target app window bounds (avoid matching the controlling IDE/chat or other windows) | M | ☐ |
+| 11.6 | Constrain OCR/find/click to the target app window bounds (avoid matching the controlling IDE/chat or other windows) | M | ☑ |
 
 **Note:** This is engine-side state *reporting*, not branching/recovery.
 Choosing a different action based on the reported state remains an agent-mode

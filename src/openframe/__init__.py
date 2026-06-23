@@ -6,7 +6,8 @@ from .recognize import Locator, MacOSA11yRecognizer, Recognizer, RecognizerResul
 from .runner import FlowRunner
 from .session import Session
 from .types import Action, Frame, StepResult, Target
-from .verify import VerifyResult, Verifier
+from .verify import VerifyResult, Verifier, WindowStateVerifier
+from .window import WindowState, frontmost_window
 
 __all__ = [
     "Action",
@@ -26,4 +27,7 @@ __all__ = [
     "Target",
     "Verifier",
     "VerifyResult",
+    "WindowState",
+    "WindowStateVerifier",
+    "frontmost_window",
 ]
