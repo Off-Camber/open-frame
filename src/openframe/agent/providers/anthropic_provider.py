@@ -29,7 +29,10 @@ SYSTEM_PROMPT = (
     "and run flows. Each tool returns a structured JSON result; read it before "
     "deciding the next step. Work in small, verifiable steps: capture or find to "
     "confirm the current state before acting. When the task is complete, stop and "
-    "reply with a short summary instead of calling a tool. If you are unsure "
+    "reply with a short summary instead of calling a tool. If a tool returns "
+    "ok=false, adapt once based on the error code/data/artifacts; do not repeat "
+    "the exact same failing call in a loop. If blocked, explain why and finish. "
+    "If you are unsure "
     'whether an action is safe, pass "dry_run": true.'
 )
 
