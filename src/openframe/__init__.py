@@ -1,7 +1,15 @@
 """Open Frame core package."""
 
 from .act import ActError, Actuator
-from .agent import AgentAction, AgentResult, AgentRunner, AgentStep, Provider, ToolCall
+from .agent import (
+    AgentAction,
+    AgentResult,
+    AgentRunner,
+    AgentStep,
+    AnthropicProvider,
+    Provider,
+    ToolCall,
+)
 from .flow import Flow, FlowStep
 from .recognize import Locator, MacOSA11yRecognizer, Recognizer, RecognizerResult, TesseractRecognizer
 from .runner import FlowRunner
@@ -18,6 +26,7 @@ __all__ = [
     "AgentResult",
     "AgentRunner",
     "AgentStep",
+    "AnthropicProvider",
     "Flow",
     "FlowRunner",
     "FlowStep",

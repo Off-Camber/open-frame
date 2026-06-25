@@ -18,10 +18,17 @@ from typing import Any, Literal
 
 @dataclass(slots=True)
 class ToolCall:
-    """A single deterministic tool invocation the agent wants to make."""
+    """A single deterministic tool invocation the agent wants to make.
+
+    ``id`` is an opaque, provider-assigned handle (for example, an Anthropic
+    ``tool_use`` id). It lets a provider faithfully reconstruct its own
+    conversation from :class:`AgentStep` history. It is optional so non-LLM
+    providers (and tests) can omit it.
+    """
 
     tool: str
     args: dict[str, Any] = field(default_factory=dict)
+    id: str | None = None
 
 
 @dataclass(slots=True)
@@ -33,9 +40,15 @@ class AgentAction:
     final_message: str | None = None
 
     @classmethod
-    def call(cls, tool: str, args: dict[str, Any] | None = None) -> "AgentAction":
+    def call(
+        cls,
+        tool: str,
+        args: dict[str, Any] | None = None,
+        *,
+        id: str | None = None,
+    ) -> "AgentAction":
         """Build a tool-call action."""
-        return cls(kind="tool_call", tool_call=ToolCall(tool=tool, args=args or {}))
+        return cls(kind="tool_call", tool_call=ToolCall(tool=tool, args=args or {}, id=id))
 
     @classmethod
     def finish(cls, message: str | None = None) -> "AgentAction":

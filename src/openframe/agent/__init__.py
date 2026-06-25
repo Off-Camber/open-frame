@@ -6,6 +6,7 @@ execution and evidence; the agent only decides what to do next.
 """
 
 from .base import AgentAction, AgentResult, AgentStep, Provider, ToolCall
+from .providers import AnthropicProvider
 from .runner import AgentRunner
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "AgentResult",
     "AgentRunner",
     "AgentStep",
+    "AnthropicProvider",
     "Provider",
     "ToolCall",
 ]
