@@ -70,6 +70,14 @@ for step in result.steps:
 macOS will prompt for **Screen Recording** (and **Accessibility**, if the agent
 acts) the first time — see `docs/ACT_SETUP.md` for permission details.
 
+For a committed reference script, run:
+
+```bash
+python examples/agents/read_only_probe.py
+```
+
+See `examples/agents/README.md` for flags and usage notes.
+
 ## Custom contract
 
 Any provider implements one method:
@@ -92,6 +100,5 @@ print(result.success, result.stop_reason)
 
 ## What ships next (Phase A)
 
-- A.3 — a reference task in `examples/agents/`.
 - A.4 — failure-recovery patterns using structured errors + artifacts.
 - A.7 — acceptance: an agent completes real tasks end-to-end, repeatably.
