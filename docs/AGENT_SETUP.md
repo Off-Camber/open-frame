@@ -100,7 +100,6 @@ runner = AgentRunner(
     max_consecutive_tool_errors=3,
 )
 ```
-
 ## Custom contract
 
 Any provider implements one method:
