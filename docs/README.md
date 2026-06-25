@@ -22,7 +22,6 @@ Primary docs for the project.
 
 - **[Vision](VISION.md)** — positioning, audience, and product direction
 - **[MVP goalpost](MVP_GOALPOST.md)** — historical v0.1 milestone criteria and reference flow context
-- **[Action plan](ACTION_PLAN.md)** — phased work breakdown and roadmap
 - **[Decisions](DECISIONS.md)** — key product and technical decisions
 - **[v0.1.1 backlog](V0_1_1_BACKLOG.md)** — immediate post-release stabilization plan
 - **[v0.2.0 checkpoint](V0_2_0_CHECKPOINT.md)** — interface-first product direction and release gates

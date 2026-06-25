@@ -1,6 +1,7 @@
 """Open Frame core package."""
 
 from .act import ActError, Actuator
+from .agent import AgentAction, AgentResult, AgentRunner, AgentStep, Provider, ToolCall
 from .flow import Flow, FlowStep
 from .recognize import Locator, MacOSA11yRecognizer, Recognizer, RecognizerResult, TesseractRecognizer
 from .runner import FlowRunner
@@ -13,18 +14,24 @@ __all__ = [
     "Action",
     "ActError",
     "Actuator",
+    "AgentAction",
+    "AgentResult",
+    "AgentRunner",
+    "AgentStep",
     "Flow",
     "FlowRunner",
     "FlowStep",
     "Frame",
     "Locator",
     "MacOSA11yRecognizer",
+    "Provider",
     "Recognizer",
     "RecognizerResult",
     "Session",
     "StepResult",
     "TesseractRecognizer",
     "Target",
+    "ToolCall",
     "Verifier",
     "VerifyResult",
     "WindowState",
