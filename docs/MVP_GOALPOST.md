@@ -6,7 +6,6 @@ milestone (`v0.1.x`): not a toy demo, but a credible RPA-style cross-app flow.
 For the current product direction and active release gates, use:
 
 - [V0_2_0_CHECKPOINT.md](V0_2_0_CHECKPOINT.md) (current checkpoint contract)
-- [ACTION_PLAN.md](ACTION_PLAN.md) (active roadmap)
 - `examples/flows/` (source of truth for executable flow syntax)
 
 ---
@@ -188,7 +187,7 @@ Phase 5      Flow runner + reference flow (this goalpost)
 Phase 6+     SDK polish, vision, broader platforms
 ```
 
-At the time, Phase 5 exit criteria in [ACTION_PLAN.md](ACTION_PLAN.md) were
+At the time, Phase 5 exit criteria in the project action plan were
 aligned with this document rather than a toy single-app demo.
 
 ---

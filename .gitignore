@@ -20,3 +20,11 @@ runs/
 .idea/
 .vscode/
 branding/
+docs/ACTION_PLAN.md
+
+# Secrets / local environment - never commit
+.env
+.env.*
+*.key
+*.pem
+secrets/

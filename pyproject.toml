@@ -45,6 +45,9 @@ act = [
 flow = [
   "PyYAML",
 ]
+agent = [
+  "anthropic",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
