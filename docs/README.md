@@ -17,6 +17,7 @@ Primary docs for the project.
 - **[Changelog](../CHANGELOG.md)** — release notes and entry format
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
 - **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
+- **[Agent acceptance](AGENT_ACCEPTANCE.md)** — A.7 acceptance checks and pass criteria
 - **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
 
 ## Product/planning docs

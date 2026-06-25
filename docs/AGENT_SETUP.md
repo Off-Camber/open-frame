@@ -78,6 +78,8 @@ python examples/agents/read_only_probe.py
 
 See `examples/agents/README.md` for flags and usage notes.
 
+For release-style acceptance checks, see `docs/AGENT_ACCEPTANCE.md`.
+
 ## Failure recovery safeguards (A.4)
 
 `AgentRunner` now has bounded fail-fast guards so runs do not spin forever on
@@ -121,4 +123,5 @@ print(result.success, result.stop_reason)
 
 ## What ships next (Phase A)
 
-- A.7 — acceptance: an agent completes real tasks end-to-end, repeatably.
+- Next: expand acceptance coverage with additional task families (for example,
+  mail/calendar/browser) while keeping the same bounded failure semantics.
