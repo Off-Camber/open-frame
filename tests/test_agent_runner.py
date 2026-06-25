@@ -47,6 +47,24 @@ def _fake_caller_factory() -> tuple[Any, list[tuple[str, dict[str, Any]]]]:
     return caller, seen
 
 
+def _failing_caller_factory(
+    *, code: str = "not_found"
+) -> tuple[Any, list[tuple[str, dict[str, Any]]]]:
+    seen: list[tuple[str, dict[str, Any]]] = []
+
+    def caller(tool: str, args: dict[str, Any]) -> dict[str, Any]:
+        seen.append((tool, args))
+        return {
+            "ok": False,
+            "tool": tool,
+            "data": {},
+            "error": {"code": code, "message": "simulated failure"},
+            "artifacts": {},
+        }
+
+    return caller, seen
+
+
 def test_runner_executes_tool_calls_then_finishes() -> None:
     caller, seen = _fake_caller_factory()
     provider = ScriptedProvider(
@@ -118,3 +136,63 @@ def test_runner_rejects_non_positive_max_steps() -> None:
     provider = ScriptedProvider([AgentAction.finish()])
     with pytest.raises(ValueError, match="max_steps must be > 0"):
         AgentRunner(provider=provider, max_steps=0)
+
+
+def test_runner_stops_after_repeated_failed_call() -> None:
+    caller, seen = _failing_caller_factory(code="not_found")
+    provider = ScriptedProvider(
+        [
+            AgentAction.call("find", {"query": "Send"}),
+            AgentAction.call("find", {"query": "Send"}),
+            AgentAction.call("find", {"query": "Send"}),
+        ]
+    )
+    runner = AgentRunner(
+        provider=provider,
+        tool_caller=caller,
+        tool_catalog=_fake_catalog,
+        max_repeated_tool_errors=2,
+        max_consecutive_tool_errors=5,
+    )
+
+    result = runner.run("find the send button")
+
+    assert result.success is False
+    assert result.stop_reason == "repeated_tool_error"
+    assert len(result.steps) == 2
+    assert len(seen) == 2
+    assert "repeating the same failed tool call" in (result.final_message or "")
+
+
+def test_runner_stops_after_consecutive_tool_errors() -> None:
+    caller, seen = _failing_caller_factory(code="runtime_error")
+    provider = ScriptedProvider(
+        [
+            AgentAction.call("find", {"query": "A"}),
+            AgentAction.call("find", {"query": "B"}),
+            AgentAction.call("find", {"query": "C"}),
+        ]
+    )
+    runner = AgentRunner(
+        provider=provider,
+        tool_caller=caller,
+        tool_catalog=_fake_catalog,
+        max_repeated_tool_errors=5,
+        max_consecutive_tool_errors=3,
+    )
+
+    result = runner.run("probe")
+
+    assert result.success is False
+    assert result.stop_reason == "consecutive_tool_errors"
+    assert len(result.steps) == 3
+    assert len(seen) == 3
+    assert "consecutive tool errors" in (result.final_message or "")
+
+
+def test_runner_rejects_non_positive_error_thresholds() -> None:
+    provider = ScriptedProvider([AgentAction.finish()])
+    with pytest.raises(ValueError, match="max_consecutive_tool_errors must be > 0"):
+        AgentRunner(provider=provider, max_consecutive_tool_errors=0)
+    with pytest.raises(ValueError, match="max_repeated_tool_errors must be > 0"):
+        AgentRunner(provider=provider, max_repeated_tool_errors=0)

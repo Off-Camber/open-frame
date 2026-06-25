@@ -70,6 +70,36 @@ for step in result.steps:
 macOS will prompt for **Screen Recording** (and **Accessibility**, if the agent
 acts) the first time — see `docs/ACT_SETUP.md` for permission details.
 
+For a committed reference script, run:
+
+```bash
+python examples/agents/read_only_probe.py
+```
+
+See `examples/agents/README.md` for flags and usage notes.
+
+For release-style acceptance checks, see `docs/AGENT_ACCEPTANCE.md`.
+
+## Failure recovery safeguards (A.4)
+
+`AgentRunner` now has bounded fail-fast guards so runs do not spin forever on
+the same tool error:
+
+- Stops with `stop_reason="repeated_tool_error"` when the same failed
+  tool+args+error code repeats (default threshold: 2)
+- Stops with `stop_reason="consecutive_tool_errors"` after repeated failures
+  across steps (default threshold: 3)
+
+Both thresholds are configurable:
+
+```python
+runner = AgentRunner(
+    provider=AnthropicProvider(),
+    max_steps=20,
+    max_repeated_tool_errors=2,
+    max_consecutive_tool_errors=3,
+)
+```
 ## Custom contract
 
 Any provider implements one method:
@@ -92,6 +122,5 @@ print(result.success, result.stop_reason)
 
 ## What ships next (Phase A)
 
-- A.3 — a reference task in `examples/agents/`.
-- A.4 — failure-recovery patterns using structured errors + artifacts.
-- A.7 — acceptance: an agent completes real tasks end-to-end, repeatably.
+- Next: expand acceptance coverage with additional task families (for example,
+  mail/calendar/browser) while keeping the same bounded failure semantics.

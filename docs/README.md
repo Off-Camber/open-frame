@@ -6,6 +6,7 @@ Primary docs for the project.
 
 - **[Flow setup](FLOW_SETUP.md)** — define and run YAML flows
 - **[API](API.md)** — programmatic `Session` API and integration guidance
+- **[Agent setup](AGENT_SETUP.md)** — run model-driven tasks via deterministic MCP tools
 - **[Act setup](ACT_SETUP.md)** — configure and safely run input actions
 - **[Verify setup](VERIFY_SETUP.md)** — verify outcomes and inspect run artifacts
 - **[OCR setup](OCR_SETUP.md)** / **[A11Y setup](A11Y_SETUP.md)** — recognizer prerequisites
@@ -16,6 +17,7 @@ Primary docs for the project.
 - **[Changelog](../CHANGELOG.md)** — release notes and entry format
 - **[Publish to PyPI](PUBLISH_PYPI.md)** — release and trusted publishing workflow
 - **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
+- **[Agent acceptance](AGENT_ACCEPTANCE.md)** — A.7 acceptance checks and pass criteria
 - **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
 
 ## Product/planning docs
