@@ -58,6 +58,7 @@ class MacOSA11yRecognizer(Recognizer):
                     height=height,
                     confidence=0.95,
                     source=self.name,
+                    coordinate_space="logical",
                     text=text,
                     label=str(item.get("role", "")) or None,
                 )

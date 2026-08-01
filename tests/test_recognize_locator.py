@@ -12,6 +12,7 @@ class StubRecognizer(Recognizer):
         self._target_text = target_text
         self._target_bounds = (1, 2, 50, 20)
         self._confidence = 0.9
+        self._coordinate_space = "physical"
 
     def find(self, frame: Frame, query: str, options: dict | None = None) -> RecognizerResult:
         if self._target_text is None:
@@ -27,6 +28,7 @@ class StubRecognizer(Recognizer):
                     height=height,
                     confidence=self._confidence,
                     source=self.name,
+                    coordinate_space=self._coordinate_space,
                     text=self._target_text,
                 )
             ],
@@ -89,3 +91,20 @@ def test_locator_keeps_distinct_targets_when_not_overlapping() -> None:
 
     assert len(targets) == 2
     assert {target.text for target in targets} == {"Left", "Right"}
+
+
+def test_locator_dedupes_mixed_physical_and_logical_coordinate_spaces() -> None:
+    frame = Frame(width=200, height=200, scale_factor=2.0, source="screen:1")
+    ocr = StubRecognizer(priority=10, target_text="OCR")
+    ocr._target_bounds = (20, 20, 160, 60)
+    ocr._confidence = 0.6
+
+    a11y = StubRecognizer(priority=20, target_text="A11y")
+    a11y._target_bounds = (10, 10, 80, 30)
+    a11y._coordinate_space = "logical"
+    a11y._confidence = 0.95
+
+    targets = Locator([ocr, a11y]).find(frame, "Submit", strategy="all")
+
+    assert len(targets) == 1
+    assert targets[0].text == "A11y"

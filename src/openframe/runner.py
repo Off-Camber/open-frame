@@ -12,6 +12,7 @@ from openframe.act import Actuator
 from openframe.capture import screen
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
+from openframe.recognize.coords import target_logical_bounds
 from openframe.session import Session
 from openframe.types import StepResult, Target
 from openframe.verify import (
@@ -141,7 +142,9 @@ class FlowRunner:
                 raise ValueError(
                     f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
                 )
-            selected_target = _select_target(targets=targets, selector=selector)
+            selected_target = _select_target(
+                targets=targets, selector=selector, scale_factor=scale_factor
+            )
 
             anchor = str(step.params.get("anchor", "center"))
             click_kind = str(step.params.get("click_kind", "click"))
@@ -277,7 +280,9 @@ class FlowRunner:
                 raise ValueError(
                     f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
                 )
-            selected_target = _select_target(targets=targets, selector=selector)
+            selected_target = _select_target(
+                targets=targets, selector=selector, scale_factor=scale_factor
+            )
             actuator.click_target(
                 selected_target, anchor="center", kind="click", scale_factor=scale_factor
             )
@@ -431,13 +436,11 @@ def _filter_targets_to_window(
     state = frontmost_window()
     if state is None or state.width <= 0 or state.height <= 0:
         return targets
-    scale = scale_factor if scale_factor > 0 else 1.0
     kept: list[Target] = []
     for target in targets:
-        logical_x = int(target.x / scale)
-        logical_y = int(target.y / scale)
-        logical_w = int(target.width / scale)
-        logical_h = int(target.height / scale)
+        logical_x, logical_y, logical_w, logical_h = target_logical_bounds(
+            target, scale_factor=scale_factor
+        )
         if state.contains(x=logical_x, y=logical_y, width=logical_w, height=logical_h):
             kept.append(target)
     return kept
@@ -489,7 +492,9 @@ def _coerce_bool(value: Any) -> bool:
     return bool(value)
 
 
-def _select_target(*, targets: list[Target], selector: str) -> Target:
+def _select_target(
+    *, targets: list[Target], selector: str, scale_factor: float = 1.0
+) -> Target:
     if not targets:
         raise ValueError("No targets available for selection.")
 
@@ -497,13 +502,22 @@ def _select_target(*, targets: list[Target], selector: str) -> Target:
     if normalized in {"", "first"}:
         return targets[0]
     if normalized == "top_most":
-        return min(targets, key=lambda item: (item.y, item.x))
+        return min(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2][::-1],
+        )
     if normalized == "left_most":
-        return min(targets, key=lambda item: (item.x, item.y))
+        return min(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
+        )
     if normalized == "highest_confidence":
         return max(targets, key=lambda item: item.confidence)
     if normalized == "right_most":
-        return max(targets, key=lambda item: (item.x, item.y))
+        return max(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
+        )
     raise ValueError(f"Invalid selector '{selector}'.")
 
 

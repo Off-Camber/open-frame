@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Literal
 
+from openframe.recognize.coords import target_uses_physical_pixels
 from openframe.types import Frame, Target
 
 ClickAnchor = Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"]
@@ -52,7 +53,9 @@ class Actuator:
         else:
             raise ValueError(f"Unsupported click anchor: {anchor}")
 
-        return (round(px / scale_factor), round(py / scale_factor))
+        if target_uses_physical_pixels(target):
+            return (round(px / scale_factor), round(py / scale_factor))
+        return (px, py)
 
     def click_target(
         self,
