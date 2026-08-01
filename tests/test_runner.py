@@ -4,10 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from openframe.flow import Flow, FlowStep
-from openframe.runner import FlowRunner
-from openframe.runner import _focus_app
-from openframe.types import Frame
-from openframe.types import Target
+from openframe.runner import FlowRunner, _focus_app
+from openframe.types import Frame, Target
 
 
 def test_runner_stops_on_first_failure(monkeypatch) -> None:

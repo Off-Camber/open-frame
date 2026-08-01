@@ -16,7 +16,7 @@ import json
 import os
 from typing import Any
 
-from openframe.agent.base import AgentAction, AgentStep, Provider
+from openframe.agent.base import AgentAction, AgentStep, Provider, UsageStats
 
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_MAX_TOKENS = 1024
@@ -102,14 +102,16 @@ class AnthropicProvider(Provider):
         )
 
         tool_use = self._first_tool_use(response)
+        usage = self._usage_from_response(response)
         if tool_use is not None:
             args = dict(getattr(tool_use, "input", None) or {})
             return AgentAction.call(
-                getattr(tool_use, "name"),
+                tool_use.name,
                 args,
                 id=getattr(tool_use, "id", None),
+                usage=usage,
             )
-        return AgentAction.finish(self._response_text(response) or None)
+        return AgentAction.finish(self._response_text(response) or None, usage=usage)
 
     def _ensure_client(self) -> Any:
         if self._client is None:
@@ -198,3 +200,20 @@ class AnthropicProvider(Provider):
             if getattr(block, "type", None) == "text":
                 parts.append(getattr(block, "text", ""))
         return "\n".join(part for part in parts if part).strip()
+
+    @staticmethod
+    def _usage_from_response(response: Any) -> UsageStats:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return UsageStats(calls=1)
+        return UsageStats(
+            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            cache_creation_input_tokens=int(
+                getattr(usage, "cache_creation_input_tokens", 0) or 0
+            ),
+            cache_read_input_tokens=int(
+                getattr(usage, "cache_read_input_tokens", 0) or 0
+            ),
+            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+            calls=1,
+        )

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+import webbrowser
+from pathlib import Path
 from time import monotonic, perf_counter, sleep
 from typing import Any
-import webbrowser
 
 from openframe.act import Actuator
 from openframe.capture import screen
@@ -449,7 +449,7 @@ def _enforce_window_guard(*, step: FlowStep) -> None:
     if raw_window is None:
         return
     if not isinstance(raw_window, dict):
-        raise ValueError(f"Step '{step.id}' window guard must be a mapping.")
+        raise TypeError(f"Step '{step.id}' window guard must be a mapping.")
     spec = {
         key: str(value)
         for key, value in raw_window.items()
@@ -497,13 +497,13 @@ def _select_target(*, targets: list[Target], selector: str) -> Target:
     if normalized in {"", "first"}:
         return targets[0]
     if normalized == "top_most":
-        return sorted(targets, key=lambda item: (item.y, item.x))[0]
+        return min(targets, key=lambda item: (item.y, item.x))
     if normalized == "left_most":
-        return sorted(targets, key=lambda item: (item.x, item.y))[0]
+        return min(targets, key=lambda item: (item.x, item.y))
     if normalized == "highest_confidence":
-        return sorted(targets, key=lambda item: item.confidence, reverse=True)[0]
+        return max(targets, key=lambda item: item.confidence)
     if normalized == "right_most":
-        return sorted(targets, key=lambda item: (item.x, item.y), reverse=True)[0]
+        return max(targets, key=lambda item: (item.x, item.y))
     raise ValueError(f"Invalid selector '{selector}'.")
 
 

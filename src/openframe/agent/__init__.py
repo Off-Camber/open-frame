@@ -5,7 +5,7 @@ Frame's deterministic MCP tools. The engine stays the source of truth for
 execution and evidence; the agent only decides what to do next.
 """
 
-from .base import AgentAction, AgentResult, AgentStep, Provider, ToolCall
+from .base import AgentAction, AgentResult, AgentStep, Provider, ToolCall, UsageStats
 from .providers import AnthropicProvider
 from .runner import AgentRunner
 
@@ -17,4 +17,5 @@ __all__ = [
     "AnthropicProvider",
     "Provider",
     "ToolCall",
+    "UsageStats",
 ]

@@ -7,11 +7,11 @@ state rather than fragile OCR tokens that may match text in any window.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import subprocess
 import sys
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)

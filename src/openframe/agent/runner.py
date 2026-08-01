@@ -14,7 +14,8 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from openframe.agent.base import AgentResult, AgentStep, Provider
+from openframe.agent.base import AgentResult, AgentStep, Provider, UsageStats
+from openframe.agent.cost import estimate_cost
 from openframe.integrations.mcp.adapter import call_mcp_tool, list_mcp_tools
 
 ToolCaller = Callable[[str, dict[str, Any]], dict[str, Any]]
@@ -54,26 +55,31 @@ class AgentRunner:
 
         tools = self._list_tools()
         history: list[AgentStep] = []
+        usage_totals = UsageStats()
         consecutive_errors = 0
         last_error_signature: str | None = None
         repeated_error_count = 0
 
         for _ in range(self.max_steps):
             action = self.provider.next_action(task=task, tools=tools, history=history)
+            usage_totals = usage_totals.merged(action.usage)
 
             if action.kind == "finish":
+                model = getattr(self.provider, "model", None)
                 return AgentResult(
                     success=True,
                     steps=history,
                     final_message=action.final_message,
                     stop_reason="finished",
+                    usage=usage_totals,
+                    cost_usd=estimate_cost(usage_totals, model),
                 )
 
             if action.tool_call is None:
                 raise ValueError("A tool_call action must include a ToolCall.")
 
             envelope = self._call_tool(action.tool_call.tool, action.tool_call.args)
-            step = AgentStep(action=action, observation=envelope)
+            step = AgentStep(action=action, observation=envelope, usage=action.usage)
             history.append(step)
 
             if envelope.get("ok") is True:
@@ -99,6 +105,8 @@ class AgentRunner:
                         "Inspect the last tool error and artifacts."
                     ),
                     stop_reason="repeated_tool_error",
+                    usage=usage_totals,
+                    cost_usd=estimate_cost(usage_totals, getattr(self.provider, "model", None)),
                 )
 
             if consecutive_errors >= self.max_consecutive_tool_errors:
@@ -110,13 +118,18 @@ class AgentRunner:
                         "Inspect the last tool error and artifacts."
                     ),
                     stop_reason="consecutive_tool_errors",
+                    usage=usage_totals,
+                    cost_usd=estimate_cost(usage_totals, getattr(self.provider, "model", None)),
                 )
 
+        model = getattr(self.provider, "model", None)
         return AgentResult(
             success=False,
             steps=history,
             final_message=None,
             stop_reason="max_steps_exhausted",
+            usage=usage_totals,
+            cost_usd=estimate_cost(usage_totals, model),
         )
 
 
