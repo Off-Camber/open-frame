@@ -32,9 +32,27 @@ class _TextBlock:
 
 
 class _Response:
-    def __init__(self, content: list[Any], stop_reason: str = "tool_use") -> None:
+    def __init__(
+        self, content: list[Any], stop_reason: str = "tool_use", usage: Any | None = None
+    ) -> None:
         self.content = content
         self.stop_reason = stop_reason
+        self.usage = usage
+
+
+class _Usage:
+    def __init__(
+        self,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        cache_creation_input_tokens: int = 0,
+        cache_read_input_tokens: int = 0,
+    ) -> None:
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+        self.cache_creation_input_tokens = cache_creation_input_tokens
+        self.cache_read_input_tokens = cache_read_input_tokens
 
 
 class _StubMessages:
@@ -69,7 +87,19 @@ _TOOLS = [
 
 
 def test_provider_returns_tool_call_from_tool_use() -> None:
-    client = _StubClient([_Response([_ToolUseBlock(id="tu_1", name="find", input={"query": "Send"})])])
+    client = _StubClient(
+        [
+            _Response(
+                [_ToolUseBlock(id="tu_1", name="find", input={"query": "Send"})],
+                usage=_Usage(
+                    input_tokens=120,
+                    output_tokens=35,
+                    cache_creation_input_tokens=40,
+                    cache_read_input_tokens=80,
+                ),
+            )
+        ]
+    )
     provider = AnthropicProvider(client=client)
 
     action = provider.next_action(task="send email", tools=_TOOLS, history=[])
@@ -79,16 +109,34 @@ def test_provider_returns_tool_call_from_tool_use() -> None:
     assert action.tool_call.tool == "find"
     assert action.tool_call.args == {"query": "Send"}
     assert action.tool_call.id == "tu_1"
+    assert action.usage is not None
+    assert action.usage.input_tokens == 120
+    assert action.usage.cache_creation_input_tokens == 40
+    assert action.usage.cache_read_input_tokens == 80
+    assert action.usage.output_tokens == 35
+    assert action.usage.calls == 1
 
 
 def test_provider_finishes_on_text_only() -> None:
-    client = _StubClient([_Response([_TextBlock("All done.")], stop_reason="end_turn")])
+    client = _StubClient(
+        [
+            _Response(
+                [_TextBlock("All done.")],
+                stop_reason="end_turn",
+                usage=_Usage(input_tokens=100, output_tokens=20),
+            )
+        ]
+    )
     provider = AnthropicProvider(client=client)
 
     action = provider.next_action(task="task", tools=_TOOLS, history=[])
 
     assert action.kind == "finish"
     assert action.final_message == "All done."
+    assert action.usage is not None
+    assert action.usage.input_tokens == 100
+    assert action.usage.output_tokens == 20
+    assert action.usage.calls == 1
 
 
 def test_provider_builds_tool_schemas_with_typed_args() -> None:
@@ -150,8 +198,15 @@ def test_provider_truncates_large_observations() -> None:
 def test_provider_drives_runner_end_to_end() -> None:
     client = _StubClient(
         [
-            _Response([_ToolUseBlock(id="tu_1", name="find", input={"query": "Send"})]),
-            _Response([_TextBlock("Found it; done.")], stop_reason="end_turn"),
+            _Response(
+                [_ToolUseBlock(id="tu_1", name="find", input={"query": "Send"})],
+                usage=_Usage(input_tokens=250, output_tokens=50),
+            ),
+            _Response(
+                [_TextBlock("Found it; done.")],
+                stop_reason="end_turn",
+                usage=_Usage(input_tokens=60, output_tokens=40),
+            ),
         ]
     )
     provider = AnthropicProvider(client=client)
@@ -172,6 +227,12 @@ def test_provider_drives_runner_end_to_end() -> None:
     assert result.final_message == "Found it; done."
     assert seen == [("find", {"query": "Send"})]
     assert len(result.steps) == 1
+    assert result.steps[0].usage is not None
+    assert result.steps[0].usage.input_tokens == 250
+    assert result.steps[0].usage.output_tokens == 50
+    assert result.usage.input_tokens == 310
+    assert result.usage.output_tokens == 90
+    assert result.usage.calls == 2
 
 
 def test_missing_anthropic_raises_clear_error(monkeypatch: pytest.MonkeyPatch) -> None:

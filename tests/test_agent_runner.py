@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from openframe.agent import AgentAction, AgentRunner, AgentStep, Provider
+from openframe.agent import AgentAction, AgentRunner, AgentStep, Provider, UsageStats
 
 
 class ScriptedProvider(Provider):
@@ -19,6 +19,7 @@ class ScriptedProvider(Provider):
     def __init__(self, actions: list[AgentAction]) -> None:
         self._actions = list(actions)
         self.calls: list[int] = []
+        self.model = "claude-haiku-4-5-20251001"
 
     def next_action(
         self,
@@ -81,6 +82,8 @@ def test_runner_executes_tool_calls_then_finishes() -> None:
     assert result.success is True
     assert result.stop_reason == "finished"
     assert result.final_message == "done"
+    assert result.usage == UsageStats()
+    assert result.cost_usd == 0.0
     assert len(result.steps) == 2
     assert seen == [("find", {"query": "Send"}), ("click", {"query": "Send"})]
     assert result.steps[0].observation == {"ok": True, "tool": "find", "data": {"echo": {"query": "Send"}}}
@@ -112,6 +115,8 @@ def test_runner_stops_at_max_steps() -> None:
     assert result.stop_reason == "max_steps_exhausted"
     assert len(result.steps) == 3
     assert len(seen) == 3
+    assert result.usage == UsageStats()
+    assert result.cost_usd == 0.0
 
 
 def test_runner_rejects_tool_call_without_payload() -> None:
@@ -196,3 +201,29 @@ def test_runner_rejects_non_positive_error_thresholds() -> None:
         AgentRunner(provider=provider, max_consecutive_tool_errors=0)
     with pytest.raises(ValueError, match="max_repeated_tool_errors must be > 0"):
         AgentRunner(provider=provider, max_repeated_tool_errors=0)
+
+
+def test_runner_aggregates_usage_and_cost_from_actions() -> None:
+    caller, _ = _fake_caller_factory()
+    provider = ScriptedProvider(
+        [
+            AgentAction.call(
+                "find",
+                {"query": "Send"},
+                usage=UsageStats(input_tokens=1000, output_tokens=200, calls=1),
+            ),
+            AgentAction.finish(
+                "done",
+                usage=UsageStats(input_tokens=500, output_tokens=300, calls=1),
+            ),
+        ]
+    )
+    runner = AgentRunner(provider=provider, tool_caller=caller, tool_catalog=_fake_catalog)
+
+    result = runner.run("send email")
+
+    assert result.success is True
+    assert result.usage == UsageStats(input_tokens=1500, output_tokens=500, calls=2)
+    assert len(result.steps) == 1
+    assert result.steps[0].usage == UsageStats(input_tokens=1000, output_tokens=200, calls=1)
+    assert result.cost_usd == pytest.approx(0.004)

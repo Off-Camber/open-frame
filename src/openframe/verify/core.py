@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
-import shutil
 from typing import Any
 
 from openframe.recognize import Locator
 from openframe.types import Frame, Target
-from openframe.verify.base import VerifyResult, Verifier
+from openframe.verify.base import Verifier, VerifyResult
 from openframe.window import WindowState, WindowStateProvider, frontmost_window
 
 
@@ -32,7 +32,7 @@ def parse_match_bounds(raw: dict[str, Any] | None) -> MatchBounds | None:
     if not raw:
         return None
     if not isinstance(raw, dict):
-        raise ValueError("match_bounds must be a mapping.")
+        raise TypeError("match_bounds must be a mapping.")
 
     margin = int(raw.get("margin", 20))
     if margin < 0:

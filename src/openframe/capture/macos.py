@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import struct
 import subprocess
-import tempfile
 import sys
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from openframe.types import Frame

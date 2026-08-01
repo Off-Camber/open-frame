@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
 from openframe.cli import main
-from openframe.types import Frame
-from openframe.types import StepResult
-from openframe.types import Target
+from openframe.types import Frame, StepResult, Target
 
 
 def test_capture_command_prints_output_path(
@@ -266,7 +265,7 @@ def test_click_with_failed_verification_returns_nonzero(
         success = False
         message = "verification failed"
         verifier = "verify:text"
-        details = {}
+        details: ClassVar[dict] = {}
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
     monkeypatch.setattr("openframe.cli.screen", lambda: frame)
@@ -295,7 +294,7 @@ def test_run_command_json_success(monkeypatch: pytest.MonkeyPatch, capsys: pytes
 
         def run(self, flow, *, run_id: str):
             class SessionObj:
-                results = [
+                results: ClassVar[list] = [
                     StepResult(
                         step_id="one",
                         success=True,

@@ -3,24 +3,29 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
-from datetime import datetime, timezone
 import json
+from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, list_displays, list_windows, region, screen, window
 from openframe.flow import load_flow
 from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
-from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer, draw_debug_overlay
+from openframe.recognize import (
+    Locator,
+    MacOSA11yRecognizer,
+    TesseractRecognizer,
+    draw_debug_overlay,
+)
 from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import (
     ScreenshotDiffVerifier,
     TargetGoneVerifier,
     TextPresenceVerifier,
-    VerifyResult,
     Verifier,
+    VerifyResult,
     write_step_artifacts,
 )
 
@@ -366,7 +371,7 @@ def _parse_verifier_spec(*, raw_spec: str, locator: Locator) -> Verifier:
 
 
 def _default_run_id() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 if __name__ == "__main__":
