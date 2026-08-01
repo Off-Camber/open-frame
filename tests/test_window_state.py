@@ -104,7 +104,7 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0):
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             clicked["y"] = target.y

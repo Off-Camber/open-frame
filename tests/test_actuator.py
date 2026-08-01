@@ -36,6 +36,22 @@ def test_point_for_target_converts_retina_pixels_to_logical_points() -> None:
     assert actuator.point_for_target(target, anchor="top-left", scale_factor=2.0) == (5, 10)
 
 
+def test_point_for_target_keeps_logical_accessibility_coordinates() -> None:
+    actuator = Actuator(dry_run=True)
+    target = Target(
+        x=100,
+        y=200,
+        width=80,
+        height=24,
+        confidence=0.95,
+        source="a11y:macos",
+        coordinate_space="logical",
+        text="Vendor",
+    )
+
+    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0) == (140, 212)
+
+
 def test_click_target_applies_scale_factor_to_click_point(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict] = []
 

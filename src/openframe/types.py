@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
+
+CoordinateSpace = Literal["physical", "logical"]
 
 
 @dataclass(slots=True)
@@ -28,6 +30,7 @@ class Target:
     height: int
     confidence: float
     source: str
+    coordinate_space: CoordinateSpace = "physical"
     label: str | None = None
     text: str | None = None
 

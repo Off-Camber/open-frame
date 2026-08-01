@@ -123,7 +123,7 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
         def __init__(self, *, dry_run):
             _ = dry_run
 
-        def click_target(self, target, *, anchor, kind, scale_factor=1.0):
+        def click_target(self, target, *, anchor, kind, scale_factor=1.0, **kwargs: object):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             clicked["y"] = target.y

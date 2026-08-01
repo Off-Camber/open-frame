@@ -113,3 +113,32 @@ def test_filter_targets_excludes_matches_right_of_anchor() -> None:
         locator=locator,
     )
     assert filtered == [left]
+
+
+def test_filter_targets_applies_logical_bounds_to_physical_ocr_targets() -> None:
+    frame = Frame(width=2000, height=1600, scale_factor=2.0, source="screen")
+    inside = Target(
+        x=200,
+        y=200,
+        width=40,
+        height=40,
+        confidence=0.9,
+        source="ocr:tesseract",
+    )
+    outside = Target(
+        x=40,
+        y=40,
+        width=20,
+        height=20,
+        confidence=0.9,
+        source="ocr:tesseract",
+    )
+
+    filtered = filter_targets(
+        [inside, outside],
+        frame=frame,
+        bounds=MatchBounds(min_x=100, min_y=100),
+        locator=StubLocator(0),
+    )
+
+    assert filtered == [inside]
