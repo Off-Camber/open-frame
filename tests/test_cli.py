@@ -218,7 +218,7 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
         def __init__(self, *, dry_run: bool) -> None:
             assert dry_run is True
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0) -> tuple[int, int]:
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object) -> tuple[int, int]:
             assert target.text == "Submit"
             assert anchor == "center"
             assert kind == "click"
@@ -257,7 +257,7 @@ def test_click_with_failed_verification_returns_nonzero(
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0) -> tuple[int, int]:
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object) -> tuple[int, int]:
             _ = target, anchor, kind, scale_factor
             return (25, 40)
 

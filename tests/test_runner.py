@@ -250,7 +250,7 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0):
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
             _ = anchor, kind
             clicked["x"] = target.x
             clicked["y"] = target.y
@@ -414,7 +414,7 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0):
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             return (target.x, target.y)
