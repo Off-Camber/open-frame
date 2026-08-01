@@ -9,6 +9,7 @@ from .agent import (
     AnthropicProvider,
     Provider,
     ToolCall,
+    UsageStats,
 )
 from .flow import Flow, FlowStep
 from .recognize import Locator, MacOSA11yRecognizer, Recognizer, RecognizerResult, TesseractRecognizer
@@ -41,6 +42,7 @@ __all__ = [
     "TesseractRecognizer",
     "Target",
     "ToolCall",
+    "UsageStats",
     "Verifier",
     "VerifyResult",
     "WindowState",

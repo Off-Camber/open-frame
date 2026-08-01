@@ -42,6 +42,13 @@ call_mcp_tool(tool, args)  ──▶  structured envelope recorded in history
 - **Evidence:** tool responses carry artifact paths, so an agent run is
   auditable the same way a flow run is.
 
+## Usage and estimated cost
+
+`AgentResult.usage` totals model calls, uncached input, cache-creation input,
+cache-read input, and output tokens across the entire run. `AgentResult.cost_usd`
+uses the selected model's configured rates. It is `None` when pricing is unknown
+rather than reporting an incorrect zero-dollar cost.
+
 ## Run it locally (Anthropic)
 
 This drives the **real** engine, so it will capture your screen and may move the
