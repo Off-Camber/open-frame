@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import time
-from typing import Callable
+from collections.abc import Callable
 from typing import Literal
 
-from openframe.types import Frame
-from openframe.types import Target
+from openframe.types import Frame, Target
 
 ClickAnchor = Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"]
 ClickKind = Literal["click", "double", "right"]

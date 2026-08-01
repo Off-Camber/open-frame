@@ -23,8 +23,8 @@ class TesseractRecognizer(Recognizer):
             raise ValueError("TesseractRecognizer requires frame.image_path to be set.")
 
         try:
-            from PIL import Image
             import pytesseract
+            from PIL import Image
             from pytesseract import Output
         except ImportError as exc:
             raise RuntimeError(

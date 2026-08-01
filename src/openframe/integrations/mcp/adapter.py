@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -423,7 +423,7 @@ def _as_bool(value: Any) -> bool:
 
 
 def _default_run_id() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _select_target(*, targets: list[Any], selector: str) -> Any:
@@ -434,12 +434,12 @@ def _select_target(*, targets: list[Any], selector: str) -> Any:
     if normalized in {"", "first"}:
         return targets[0]
     if normalized == "top_most":
-        return sorted(targets, key=lambda item: (item.y, item.x))[0]
+        return min(targets, key=lambda item: (item.y, item.x))
     if normalized == "left_most":
-        return sorted(targets, key=lambda item: (item.x, item.y))[0]
+        return min(targets, key=lambda item: (item.x, item.y))
     if normalized == "highest_confidence":
-        return sorted(targets, key=lambda item: item.confidence, reverse=True)[0]
+        return max(targets, key=lambda item: item.confidence)
     if normalized == "right_most":
-        return sorted(targets, key=lambda item: (item.x, item.y), reverse=True)[0]
+        return max(targets, key=lambda item: (item.x, item.y))
     raise ValueError(f"Invalid selector '{selector}'.")
 

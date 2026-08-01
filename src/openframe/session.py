@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from openframe.act import Actuator, ClickAnchor, ClickKind
 from openframe.capture import screen
-from openframe.recognize import Locator, LocatorStrategy, MacOSA11yRecognizer, Recognizer, TesseractRecognizer
+from openframe.recognize import (
+    Locator,
+    LocatorStrategy,
+    MacOSA11yRecognizer,
+    Recognizer,
+    TesseractRecognizer,
+)
 from openframe.types import Frame, StepResult, Target
 
 
@@ -16,7 +22,7 @@ from openframe.types import Frame, StepResult, Target
 class Session:
     """Embeddable automation session with helpers for find/click/run."""
 
-    run_id: str = field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"))
+    run_id: str = field(default_factory=lambda: datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"))
     dry_run: bool = False
     results: list[StepResult] = field(default_factory=list)
     _locator: Locator | None = field(default=None, init=False, repr=False)
@@ -76,7 +82,7 @@ class Session:
         flow_steps: list[FlowStep] = []
         for idx, step in enumerate(steps):
             if not isinstance(step, dict):
-                raise ValueError(f"Step at index {idx} must be a mapping.")
+                raise TypeError(f"Step at index {idx} must be a mapping.")
             kind = str(step.get("kind", "")).strip()
             if not kind:
                 raise ValueError(f"Step at index {idx} is missing 'kind'.")

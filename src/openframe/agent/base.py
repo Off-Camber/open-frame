@@ -17,6 +17,39 @@ from typing import Any, Literal
 
 
 @dataclass(slots=True)
+class UsageStats:
+    """Normalized usage totals for model-backed provider calls."""
+
+    input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    output_tokens: int = 0
+    calls: int = 0
+
+    def merged(self, other: UsageStats | None) -> UsageStats:
+        """Return a new UsageStats instance with both totals summed."""
+        if other is None:
+            return UsageStats(
+                input_tokens=self.input_tokens,
+                cache_creation_input_tokens=self.cache_creation_input_tokens,
+                cache_read_input_tokens=self.cache_read_input_tokens,
+                output_tokens=self.output_tokens,
+                calls=self.calls,
+            )
+        return UsageStats(
+            input_tokens=self.input_tokens + other.input_tokens,
+            cache_creation_input_tokens=(
+                self.cache_creation_input_tokens + other.cache_creation_input_tokens
+            ),
+            cache_read_input_tokens=(
+                self.cache_read_input_tokens + other.cache_read_input_tokens
+            ),
+            output_tokens=self.output_tokens + other.output_tokens,
+            calls=self.calls + other.calls,
+        )
+
+
+@dataclass(slots=True)
 class ToolCall:
     """A single deterministic tool invocation the agent wants to make.
 
@@ -38,6 +71,7 @@ class AgentAction:
     kind: Literal["tool_call", "finish"]
     tool_call: ToolCall | None = None
     final_message: str | None = None
+    usage: UsageStats | None = None
 
     @classmethod
     def call(
@@ -46,14 +80,21 @@ class AgentAction:
         args: dict[str, Any] | None = None,
         *,
         id: str | None = None,
-    ) -> "AgentAction":
+        usage: UsageStats | None = None,
+    ) -> AgentAction:
         """Build a tool-call action."""
-        return cls(kind="tool_call", tool_call=ToolCall(tool=tool, args=args or {}, id=id))
+        return cls(
+            kind="tool_call",
+            tool_call=ToolCall(tool=tool, args=args or {}, id=id),
+            usage=usage,
+        )
 
     @classmethod
-    def finish(cls, message: str | None = None) -> "AgentAction":
+    def finish(
+        cls, message: str | None = None, *, usage: UsageStats | None = None
+    ) -> AgentAction:
         """Build a finish action that ends the run."""
-        return cls(kind="finish", final_message=message)
+        return cls(kind="finish", final_message=message, usage=usage)
 
 
 @dataclass(slots=True)
@@ -62,6 +103,7 @@ class AgentStep:
 
     action: AgentAction
     observation: dict[str, Any] | None = None
+    usage: UsageStats | None = None
 
 
 @dataclass(slots=True)
@@ -72,6 +114,8 @@ class AgentResult:
     steps: list[AgentStep]
     final_message: str | None = None
     stop_reason: str = "finished"
+    usage: UsageStats = field(default_factory=UsageStats)
+    cost_usd: float | None = None
 
 
 class Provider(ABC):
