@@ -132,5 +132,5 @@ if (procs.length === 0) {
         raise RuntimeError("macOS accessibility recognizer returned invalid JSON.") from exc
 
     if not isinstance(parsed, list):
-        raise RuntimeError("macOS accessibility recognizer returned non-list output.")
+        raise TypeError("macOS accessibility recognizer returned non-list output.")
     return parsed

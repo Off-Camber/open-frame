@@ -5,8 +5,7 @@ import sys
 import pytest
 
 from openframe.act import ActError, Actuator
-from openframe.types import Frame
-from openframe.types import Target
+from openframe.types import Frame, Target
 
 
 def _target() -> Target:

@@ -26,7 +26,7 @@ class UsageStats:
     output_tokens: int = 0
     calls: int = 0
 
-    def merged(self, other: "UsageStats | None") -> "UsageStats":
+    def merged(self, other: UsageStats | None) -> UsageStats:
         """Return a new UsageStats instance with both totals summed."""
         if other is None:
             return UsageStats(
@@ -81,7 +81,7 @@ class AgentAction:
         *,
         id: str | None = None,
         usage: UsageStats | None = None,
-    ) -> "AgentAction":
+    ) -> AgentAction:
         """Build a tool-call action."""
         return cls(
             kind="tool_call",
@@ -92,7 +92,7 @@ class AgentAction:
     @classmethod
     def finish(
         cls, message: str | None = None, *, usage: UsageStats | None = None
-    ) -> "AgentAction":
+    ) -> AgentAction:
         """Build a finish action that ends the run."""
         return cls(kind="finish", final_message=message, usage=usage)
 

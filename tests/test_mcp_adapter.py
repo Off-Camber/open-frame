@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 from openframe.integrations.mcp.adapter import call_mcp_tool, list_mcp_tools
-from openframe.types import StepResult
-from openframe.types import Frame
-from openframe.types import Target
+from openframe.types import Frame, StepResult, Target
 
 
 def test_list_mcp_tools_contains_expected_names() -> None:
@@ -42,7 +41,7 @@ def test_run_flow_failure_maps_to_flow_failed(monkeypatch) -> None:
             _ = flow, run_id
 
             class SessionObj:
-                results = [
+                results: ClassVar[list] = [
                     StepResult(
                         step_id="one",
                         success=False,

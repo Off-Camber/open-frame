@@ -1,6 +1,6 @@
 """Verification layer."""
 
-from .base import VerifyResult, Verifier
+from .base import Verifier, VerifyResult
 from .core import (
     MatchBounds,
     ScreenshotDiffVerifier,
@@ -17,8 +17,8 @@ __all__ = [
     "ScreenshotDiffVerifier",
     "TargetGoneVerifier",
     "TextPresenceVerifier",
-    "VerifyResult",
     "Verifier",
+    "VerifyResult",
     "WindowStateVerifier",
     "filter_targets",
     "parse_match_bounds",

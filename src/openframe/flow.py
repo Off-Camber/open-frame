@@ -25,17 +25,17 @@ class Flow:
     steps: list[FlowStep] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "Flow":
+    def from_dict(cls, payload: dict[str, Any]) -> Flow:
         name = str(payload.get("name", "flow"))
         variables = payload.get("variables", {}) or {}
         raw_steps = payload.get("steps", []) or []
         if not isinstance(raw_steps, list):
-            raise ValueError("Flow steps must be a list.")
+            raise TypeError("Flow steps must be a list.")
 
         steps: list[FlowStep] = []
         for idx, item in enumerate(raw_steps):
             if not isinstance(item, dict):
-                raise ValueError(f"Flow step at index {idx} must be a mapping.")
+                raise TypeError(f"Flow step at index {idx} must be a mapping.")
             kind = str(item.get("kind", "")).strip()
             if not kind:
                 raise ValueError(f"Flow step at index {idx} is missing 'kind'.")
@@ -54,7 +54,7 @@ def load_flow(path: str | Path) -> Flow:
 
     payload = _load_yaml(flow_path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
-        raise ValueError("Flow file must parse to a top-level mapping.")
+        raise TypeError("Flow file must parse to a top-level mapping.")
     return Flow.from_dict(payload)
 
 

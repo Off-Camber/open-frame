@@ -106,7 +106,7 @@ class AnthropicProvider(Provider):
         if tool_use is not None:
             args = dict(getattr(tool_use, "input", None) or {})
             return AgentAction.call(
-                getattr(tool_use, "name"),
+                tool_use.name,
                 args,
                 id=getattr(tool_use, "id", None),
                 usage=usage,

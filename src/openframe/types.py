@@ -1,7 +1,7 @@
 """Core datatypes for Open Frame."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -13,7 +13,7 @@ class Frame:
     height: int
     scale_factor: float
     source: str
-    captured_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    captured_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     image_path: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
 import types
+from pathlib import Path
 
 from openframe.recognize.debug import draw_debug_overlay
 from openframe.types import Target
@@ -12,7 +12,7 @@ def test_draw_debug_overlay_saves_png(monkeypatch, tmp_path: Path) -> None:
     saved: dict[str, str] = {}
 
     class FakeImage:
-        def convert(self, _mode: str) -> "FakeImage":
+        def convert(self, _mode: str) -> FakeImage:
             return self
 
         def save(self, out_path: Path, format: str) -> None:
