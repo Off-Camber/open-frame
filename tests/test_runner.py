@@ -250,7 +250,7 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0):
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
             _ = anchor, kind
             clicked["x"] = target.x
             clicked["y"] = target.y
@@ -268,6 +268,34 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
 
     assert session.results[0].success is True
     assert clicked == {"x": 30, "y": 100, "scale_factor": 2.0}
+
+
+def test_select_target_normalizes_mixed_coordinate_spaces() -> None:
+    from openframe.runner import _select_target
+
+    targets = [
+        Target(
+            x=20,
+            y=600,
+            width=100,
+            height=40,
+            confidence=0.9,
+            source="ocr:tesseract",
+        ),
+        Target(
+            x=20,
+            y=400,
+            width=100,
+            height=40,
+            confidence=0.8,
+            source="a11y:macos",
+            coordinate_space="logical",
+        ),
+    ]
+
+    selected = _select_target(targets=targets, selector="top_most", scale_factor=2.0)
+
+    assert selected.coordinate_space == "physical"
 
 
 def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
@@ -386,7 +414,7 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0):
+        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             return (target.x, target.y)

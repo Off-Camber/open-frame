@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from typing import Any, Literal
 
 from openframe.recognize.base import Recognizer
+from openframe.recognize.coords import target_logical_bounds
 from openframe.types import Frame, Target
 
 LocatorStrategy = Literal["first", "all"]
@@ -46,7 +47,12 @@ class Locator:
                 continue
 
             for candidate in result.targets:
-                _merge_target(merged_targets, candidate, dedupe_iou_threshold)
+                _merge_target(
+                    merged_targets,
+                    candidate,
+                    dedupe_iou_threshold,
+                    scale_factor=frame.scale_factor,
+                )
 
             if strategy == "first":
                 break
@@ -54,9 +60,15 @@ class Locator:
         return merged_targets
 
 
-def _merge_target(collected: list[Target], candidate: Target, iou_threshold: float) -> None:
+def _merge_target(
+    collected: list[Target],
+    candidate: Target,
+    iou_threshold: float,
+    *,
+    scale_factor: float,
+) -> None:
     for idx, existing in enumerate(collected):
-        if _iou(existing, candidate) < iou_threshold:
+        if _iou(existing, candidate, scale_factor=scale_factor) < iou_threshold:
             continue
 
         # Keep the best-confidence target when boxes likely refer to same UI element.
@@ -67,14 +79,20 @@ def _merge_target(collected: list[Target], candidate: Target, iou_threshold: flo
     collected.append(candidate)
 
 
-def _iou(left: Target, right: Target) -> float:
-    left_x2 = left.x + left.width
-    left_y2 = left.y + left.height
-    right_x2 = right.x + right.width
-    right_y2 = right.y + right.height
+def _iou(left: Target, right: Target, *, scale_factor: float = 1.0) -> float:
+    left_x, left_y, left_width, left_height = target_logical_bounds(
+        left, scale_factor=scale_factor
+    )
+    right_x, right_y, right_width, right_height = target_logical_bounds(
+        right, scale_factor=scale_factor
+    )
+    left_x2 = left_x + left_width
+    left_y2 = left_y + left_height
+    right_x2 = right_x + right_width
+    right_y2 = right_y + right_height
 
-    inter_left = max(left.x, right.x)
-    inter_top = max(left.y, right.y)
+    inter_left = max(left_x, right_x)
+    inter_top = max(left_y, right_y)
     inter_right = min(left_x2, right_x2)
     inter_bottom = min(left_y2, right_y2)
 
@@ -84,8 +102,8 @@ def _iou(left: Target, right: Target) -> float:
     if inter_area == 0:
         return 0.0
 
-    left_area = left.width * left.height
-    right_area = right.width * right.height
+    left_area = left_width * left_height
+    right_area = right_width * right_height
     union = left_area + right_area - inter_area
     if union <= 0:
         return 0.0

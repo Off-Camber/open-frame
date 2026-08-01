@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from openframe.recognize import Locator
+from openframe.recognize.coords import target_logical_bounds
 from openframe.types import Frame, Target
 from openframe.verify.base import Verifier, VerifyResult
 from openframe.window import WindowState, WindowStateProvider, frontmost_window
@@ -61,35 +62,62 @@ def filter_targets(
     if bounds is None:
         return targets
 
-    filtered = list(targets)
+    filtered = [
+        (item, target_logical_bounds(item, scale_factor=frame.scale_factor))
+        for item in targets
+    ]
     if bounds.left_of_query:
         anchors = locator.find(frame, bounds.left_of_query, strategy="all")
         if not anchors:
             return []
-        boundary_x = max(item.x for item in anchors)
+        boundary_x = max(
+            target_logical_bounds(item, scale_factor=frame.scale_factor)[0]
+            for item in anchors
+        )
         filtered = [
-            item
-            for item in filtered
-            if (item.x + item.width) <= (boundary_x - bounds.margin)
+            (item, logical)
+            for item, logical in filtered
+            if (logical[0] + logical[2]) <= (boundary_x - bounds.margin)
         ]
 
+    logical_frame_width = frame.width / (frame.scale_factor if frame.scale_factor > 0 else 1.0)
     if bounds.min_x_ratio is not None:
-        min_x = int(frame.width * bounds.min_x_ratio)
-        filtered = [item for item in filtered if item.x >= min_x]
+        min_x = int(logical_frame_width * bounds.min_x_ratio)
+        filtered = [
+            (item, logical) for item, logical in filtered if logical[0] >= min_x
+        ]
     if bounds.max_x_ratio is not None:
-        max_x = int(frame.width * bounds.max_x_ratio)
-        filtered = [item for item in filtered if item.x <= max_x]
+        max_x = int(logical_frame_width * bounds.max_x_ratio)
+        filtered = [
+            (item, logical) for item, logical in filtered if logical[0] <= max_x
+        ]
 
     if bounds.min_x is not None:
-        filtered = [item for item in filtered if item.x >= bounds.min_x]
+        filtered = [
+            (item, logical)
+            for item, logical in filtered
+            if logical[0] >= bounds.min_x
+        ]
     if bounds.max_x is not None:
-        filtered = [item for item in filtered if (item.x + item.width) <= bounds.max_x]
+        filtered = [
+            (item, logical)
+            for item, logical in filtered
+            if (logical[0] + logical[2]) <= bounds.max_x
+        ]
     if bounds.min_y is not None:
-        filtered = [item for item in filtered if item.y >= bounds.min_y]
+        filtered = [
+            (item, logical)
+            for item, logical in filtered
+            if logical[1] >= bounds.min_y
+        ]
     if bounds.max_y is not None:
-        filtered = [item for item in filtered if (item.y + item.height) <= bounds.max_y]
+        filtered = [
+            (item, logical)
+            for item, logical in filtered
+            if (logical[1] + logical[3]) <= bounds.max_y
+        ]
 
-    return filtered
+    return [item for item, _logical in filtered]
 
 
 def _optional_int(value: Any) -> int | None:
