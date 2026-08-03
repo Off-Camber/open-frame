@@ -12,7 +12,7 @@ from openframe.act import Actuator
 from openframe.capture import screen
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
-from openframe.recognize.coords import target_logical_bounds
+from openframe.recognize.coords import select_target, target_logical_bounds
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.session import Session
 from openframe.types import StepResult, Target
@@ -27,6 +27,11 @@ from openframe.verify import (
     write_step_artifacts,
 )
 from openframe.window import evaluate_window_guard, frontmost_window
+
+
+# Backward-compatible private alias used by CLI/Session/tests.
+def _select_target(*, targets: list[Target], selector: str, scale_factor: float = 1.0) -> Target:
+    return select_target(targets=targets, selector=selector, scale_factor=scale_factor)
 
 
 class FlowRunner:
@@ -507,33 +512,6 @@ def _coerce_bool(value: Any) -> bool:
         if normalized in {"0", "false", "no", "off"}:
             return False
     return bool(value)
-
-
-def _select_target(*, targets: list[Target], selector: str, scale_factor: float = 1.0) -> Target:
-    if not targets:
-        raise ValueError("No targets available for selection.")
-
-    normalized = selector.strip().lower()
-    if normalized in {"", "first"}:
-        return targets[0]
-    if normalized == "top_most":
-        return min(
-            targets,
-            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2][::-1],
-        )
-    if normalized == "left_most":
-        return min(
-            targets,
-            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
-        )
-    if normalized == "highest_confidence":
-        return max(targets, key=lambda item: item.confidence)
-    if normalized == "right_most":
-        return max(
-            targets,
-            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
-        )
-    raise ValueError(f"Invalid selector '{selector}'.")
 
 
 def _parse_verifier_spec(

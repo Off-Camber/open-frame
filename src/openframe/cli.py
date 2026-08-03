@@ -19,7 +19,8 @@ from openframe.recognize import (
     draw_debug_overlay,
 )
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
-from openframe.runner import FlowRunner, _select_target
+from openframe.recognize.coords import select_target
+from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import (
     ScreenshotDiffVerifier,
@@ -225,7 +226,7 @@ def main() -> int:
                 selector=selector,
                 expect_one=expect_one,
             )
-            selected = _select_target(
+            selected = select_target(
                 targets=targets,
                 selector=selector or "first",
                 scale_factor=frame.scale_factor,

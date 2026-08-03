@@ -312,7 +312,7 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
 
 
 def test_select_target_normalizes_mixed_coordinate_spaces() -> None:
-    from openframe.runner import _select_target
+    from openframe.recognize.coords import select_target
 
     targets = [
         Target(
@@ -334,7 +334,7 @@ def test_select_target_normalizes_mixed_coordinate_spaces() -> None:
         ),
     ]
 
-    selected = _select_target(targets=targets, selector="top_most", scale_factor=2.0)
+    selected = select_target(targets=targets, selector="top_most", scale_factor=2.0)
 
     assert selected.coordinate_space == "physical"
 
