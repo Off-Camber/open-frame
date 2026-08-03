@@ -5,7 +5,11 @@ from pathlib import Path
 
 def test_outlook_smoke_flow_file_has_expected_steps() -> None:
     flow_path = (
-        Path(__file__).resolve().parent.parent / "examples" / "flows" / "outlook-new-email" / "flow.yaml"
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "outlook-new-email"
+        / "flow.yaml"
     )
     text = flow_path.read_text(encoding="utf-8")
 
@@ -18,7 +22,7 @@ def test_outlook_smoke_flow_file_has_expected_steps() -> None:
     assert "kind: verify" in text
     assert "timeout_ms: 2500" in text
     assert "poll_ms: 250" in text
-    assert "text-appeared:\"To\"" in text
+    assert 'text-appeared:"To"' in text
 
 
 def test_handoff_flow_file_has_cross_app_steps() -> None:
@@ -44,7 +48,11 @@ def test_handoff_flow_file_has_cross_app_steps() -> None:
 
 def test_full_mvp_flow_file_has_end_to_end_steps() -> None:
     flow_path = (
-        Path(__file__).resolve().parent.parent / "examples" / "flows" / "outlook-m365-email" / "flow.yaml"
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "outlook-m365-email"
+        / "flow.yaml"
     )
     text = flow_path.read_text(encoding="utf-8")
 
@@ -67,7 +75,11 @@ def test_full_mvp_flow_file_has_end_to_end_steps() -> None:
 
 def test_calibration_flow_has_unique_token_outcome_verify() -> None:
     flow_path = (
-        Path(__file__).resolve().parent.parent / "examples" / "flows" / "calibration-token" / "flow.yaml"
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "calibration-token"
+        / "flow.yaml"
     )
     text = flow_path.read_text(encoding="utf-8")
 
@@ -81,10 +93,49 @@ def test_calibration_flow_has_unique_token_outcome_verify() -> None:
     assert "type-token" in text
     assert "verify-token-visible" in text
     assert 'text-appeared:"{{marker}}"' in text
+    assert "scope: window" in text
+    assert "wait-settle" in text
+    assert "wait-document" in text
+    assert 'app: "TextEdit"' in text
+    assert "refocus-before-verify" in text
+    assert "refocus-before-close" in text
+    assert "close-document" in text
+    assert "discard-save" in text
+    assert 'query: "Delete"' in text
+    assert "selector: left_most" in text
+    assert text.index('window-app:"TextEdit"') < text.index('text-appeared:"{{marker}}"')
+
+
+def test_calibration_miss_flow_verifies_absent_marker() -> None:
+    flow_path = (
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "calibration-token-miss"
+        / "flow.yaml"
+    )
+    text = flow_path.read_text(encoding="utf-8")
+
+    assert "name: calibration-token-miss" in text
+    assert 'missing: "OFMISSINGZZZ"' in text
+    assert "verify-missing-text" in text
+    assert 'text-appeared:"{{missing}}"' in text
+    assert "timeout_ms: 1500" in text
+    assert "close-document" in text
+    assert "discard-save" in text
+    assert 'query: "Delete"' in text
+    # Teardown must run before the failing verify so the window is not orphaned.
+    assert text.index("discard-save") < text.index("verify-missing-text")
 
 
 def test_word_create_only_flow_has_document_outcome_check() -> None:
-    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "word-create-only" / "flow.yaml"
+    flow_path = (
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "word-create-only"
+        / "flow.yaml"
+    )
     text = flow_path.read_text(encoding="utf-8")
 
     assert "name: word-create-only" in text
@@ -100,7 +151,13 @@ def test_word_create_only_flow_has_document_outcome_check() -> None:
 
 
 def test_outlook_send_only_flow_has_sent_outcome_check() -> None:
-    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "outlook-send-only" / "flow.yaml"
+    flow_path = (
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "outlook-send-only"
+        / "flow.yaml"
+    )
     text = flow_path.read_text(encoding="utf-8")
 
     assert "name: outlook-send-only" in text
@@ -111,7 +168,7 @@ def test_outlook_send_only_flow_has_sent_outcome_check() -> None:
     assert "type-subject" in text
     assert text.count("selector: top_most") >= 2
     assert "match_bounds:" in text
-    assert "left_of_query: \"From\"" in text
+    assert 'left_of_query: "From"' in text
     assert "send-email" in text
     assert "open-sent-items" in text
     assert "verify-sent" in text
@@ -119,7 +176,13 @@ def test_outlook_send_only_flow_has_sent_outcome_check() -> None:
 
 
 def test_doc_attach_email_flow_shares_one_artifact() -> None:
-    flow_path = Path(__file__).resolve().parent.parent / "examples" / "flows" / "doc-attach-email" / "flow.yaml"
+    flow_path = (
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "flows"
+        / "doc-attach-email"
+        / "flow.yaml"
+    )
     text = flow_path.read_text(encoding="utf-8")
 
     assert "name: doc-attach-email" in text

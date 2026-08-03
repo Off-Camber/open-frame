@@ -1,7 +1,7 @@
-name: calibration-token
+name: calibration-token-miss
 variables:
   marker: "OFMARKZXQ"
-  token: "{{marker}} {{run_id}}"
+  missing: "OFMISSINGZZZ"
 steps:
   - id: focus-textedit
     kind: app
@@ -17,37 +17,24 @@ steps:
 
   - id: wait-document
     kind: wait
-    ms: 1200
+    ms: 900
 
-  - id: type-token
+  - id: type-marker-only
     kind: type
-    text: "{{token}}"
+    text: "{{marker}}"
     window:
       app: "TextEdit"
 
   - id: wait-settle
     kind: wait
-    ms: 700
-
-  - id: refocus-before-verify
-    kind: app
-    name: "TextEdit"
-
-  - id: verify-token-visible
-    kind: verify
-    timeout_ms: 8000
-    poll_ms: 250
-    scope: window
-    window:
-      app: "TextEdit"
-    specs:
-      - 'window-app:"TextEdit"'
-      - 'text-appeared:"{{marker}}"'
+    ms: 500
 
   - id: refocus-before-close
     kind: app
     name: "TextEdit"
 
+  # Close before the intentional failure so the run does not leave an Untitled
+  # window behind when verify stops the flow.
   - id: close-document
     kind: key
     combo:
@@ -60,10 +47,20 @@ steps:
     kind: wait
     ms: 700
 
-  # Newer TextEdit close sheets label the discard action "Delete" (not "Don't Save").
   - id: discard-save
     kind: click
     query: "Delete"
     selector: left_most
     timeout_ms: 4000
     poll_ms: 200
+
+  - id: wait-after-close
+    kind: wait
+    ms: 400
+
+  - id: verify-missing-text
+    kind: verify
+    timeout_ms: 1500
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"{{missing}}"'
