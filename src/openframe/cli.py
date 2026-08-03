@@ -18,8 +18,8 @@ from openframe.recognize import (
     TesseractRecognizer,
     draw_debug_overlay,
 )
-from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.recognize.coords import select_target
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import (

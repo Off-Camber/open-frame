@@ -15,8 +15,8 @@ from openframe.recognize import (
     Recognizer,
     TesseractRecognizer,
 )
-from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.recognize.coords import select_target
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.types import Frame, StepResult, Target
 
 
