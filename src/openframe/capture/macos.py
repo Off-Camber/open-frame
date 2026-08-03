@@ -181,30 +181,55 @@ def _run_osascript_jxa(script: str) -> subprocess.CompletedProcess[str]:
     return _run_command(["osascript", "-l", "JavaScript", "-e", script])
 
 
-def _list_window_infos() -> list[dict[str, Any]]:
-    script = """
+_LIST_WINDOW_INFOS_SCRIPT = """
 ObjC.import('CoreGraphics');
+ObjC.import('Foundation');
 const options = $.kCGWindowListOptionOnScreenOnly | $.kCGWindowListExcludeDesktopElements;
 const infoRef = $.CGWindowListCopyWindowInfo(options, $.kCGNullWindowID);
-const info = ObjC.deepUnwrap(infoRef);
-const windows = info
-  .filter(w => (w.kCGWindowLayer ?? 0) === 0)
-  .filter(w => (w.kCGWindowAlpha ?? 1) > 0)
-  .filter(w => (w.kCGWindowBounds?.Width ?? 0) > 1 && (w.kCGWindowBounds?.Height ?? 0) > 1)
-  .map(w => ({
-    id: Number(w.kCGWindowNumber),
-    owner: String(w.kCGWindowOwnerName ?? ''),
-    title: String(w.kCGWindowName ?? ''),
+// macOS 26+ no longer yields a usable JS Array from ObjC.deepUnwrap(CFArray).
+// Bridge through NSArray/NSDictionary accessors instead.
+const arr = ObjC.castRefToObject(infoRef);
+const count = Number(arr.count);
+
+function scalar(dict, key) {
+  const value = dict.objectForKey(key);
+  if (value === undefined || value === null) return null;
+  return ObjC.unwrap(value);
+}
+
+function boundNumber(boundsDict, upper, lower) {
+  if (!boundsDict) return 0;
+  const value = scalar(boundsDict, upper) ?? scalar(boundsDict, lower) ?? 0;
+  return Number(value);
+}
+
+const windows = [];
+for (let i = 0; i < count; i++) {
+  const dict = arr.objectAtIndex(i);
+  const layer = Number(scalar(dict, 'kCGWindowLayer') ?? 0);
+  const alpha = Number(scalar(dict, 'kCGWindowAlpha') ?? 1);
+  const boundsDict = dict.objectForKey('kCGWindowBounds');
+  const width = boundNumber(boundsDict, 'Width', 'width');
+  const height = boundNumber(boundsDict, 'Height', 'height');
+  if (layer !== 0 || alpha <= 0 || width <= 1 || height <= 1) continue;
+  windows.push({
+    id: Number(scalar(dict, 'kCGWindowNumber')),
+    owner: String(scalar(dict, 'kCGWindowOwnerName') ?? ''),
+    title: String(scalar(dict, 'kCGWindowName') ?? ''),
     bounds: {
-      x: Number(w.kCGWindowBounds?.X ?? 0),
-      y: Number(w.kCGWindowBounds?.Y ?? 0),
-      width: Number(w.kCGWindowBounds?.Width ?? 0),
-      height: Number(w.kCGWindowBounds?.Height ?? 0),
+      x: boundNumber(boundsDict, 'X', 'x'),
+      y: boundNumber(boundsDict, 'Y', 'y'),
+      width,
+      height,
     }
-  }));
+  });
+}
 JSON.stringify(windows);
 """.strip()
-    completed = _run_osascript_jxa(script)
+
+
+def _list_window_infos() -> list[dict[str, Any]]:
+    completed = _run_osascript_jxa(_LIST_WINDOW_INFOS_SCRIPT)
     try:
         parsed = json.loads(completed.stdout.strip() or "[]")
     except json.JSONDecodeError as exc:

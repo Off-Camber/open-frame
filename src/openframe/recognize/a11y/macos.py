@@ -75,8 +75,7 @@ def _is_macos() -> bool:
     return subprocess.run(["uname", "-s"], check=False, capture_output=True, text=True).stdout.strip() == "Darwin"
 
 
-def _list_frontmost_elements() -> list[dict[str, Any]]:
-    script = """
+_LIST_FRONTMOST_ELEMENTS_SCRIPT = """
 function safeCall(fn, fallback) {
   try { return fn(); } catch (e) { return fallback; }
 }
@@ -91,8 +90,17 @@ function collect(elem, depth, out) {
   var pos = safeCall(function () { return elem.position(); }, null);
   var size = safeCall(function () { return elem.size(); }, null);
   var x = 0, y = 0, w = 0, h = 0;
-  if (pos && pos.x !== undefined && pos.y !== undefined) { x = Number(pos.x); y = Number(pos.y); }
-  if (size && size.width !== undefined && size.height !== undefined) { w = Number(size.width); h = Number(size.height); }
+  // System Events may return [x, y] / [width, height] arrays or {x,y}/{width,height} objects.
+  if (pos) {
+    if (Array.isArray(pos) && pos.length >= 2) { x = Number(pos[0]); y = Number(pos[1]); }
+    else if (pos.x !== undefined && pos.y !== undefined) { x = Number(pos.x); y = Number(pos.y); }
+  }
+  if (size) {
+    if (Array.isArray(size) && size.length >= 2) { w = Number(size[0]); h = Number(size[1]); }
+    else if (size.width !== undefined && size.height !== undefined) {
+      w = Number(size.width); h = Number(size.height);
+    }
+  }
 
   out.push({ title: String(title), role: String(role), x: x, y: y, width: w, height: h });
 
@@ -117,8 +125,10 @@ if (procs.length === 0) {
 }
 """.strip()
 
+
+def _list_frontmost_elements() -> list[dict[str, Any]]:
     completed = subprocess.run(
-        ["osascript", "-l", "JavaScript", "-e", script],
+        ["osascript", "-l", "JavaScript", "-e", _LIST_FRONTMOST_ELEMENTS_SCRIPT],
         check=False,
         capture_output=True,
         text=True,

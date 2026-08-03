@@ -101,6 +101,55 @@ def test_list_windows_returns_backend_output(monkeypatch: pytest.MonkeyPatch) ->
     assert macos.list_windows() == expected
 
 
+def test_list_window_infos_script_uses_nsarray_bridge_on_cfarray() -> None:
+    script = macos._LIST_WINDOW_INFOS_SCRIPT
+    assert "ObjC.castRefToObject(infoRef)" in script
+    assert "arr.objectAtIndex(i)" in script
+    assert "dict.objectForKey(key)" in script
+    assert "ObjC.unwrap(value)" in script
+    assert "boundNumber(boundsDict, 'Width', 'width')" in script
+    # Avoid the macOS 26 failure mode that called .filter on deepUnwrap output.
+    assert "ObjC.deepUnwrap(infoRef)" not in script
+    assert "info.filter" not in script
+
+
+def test_list_window_infos_parses_osascript_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Result:
+        stdout = """
+[{"id": 42, "owner": "TextEdit", "title": "Untitled", "bounds": {"x": 10, "y": 20, "width": 800, "height": 600}}]
+""".strip()
+        stderr = ""
+        returncode = 0
+
+    monkeypatch.setattr(macos, "_run_osascript_jxa", lambda _script: Result())
+
+    windows = macos._list_window_infos()
+
+    assert windows == [
+        {
+            "id": 42,
+            "owner": "TextEdit",
+            "title": "Untitled",
+            "bounds": {"x": 10, "y": 20, "width": 800, "height": 600},
+        }
+    ]
+
+
+def test_list_window_infos_raises_when_osascript_reports_filter_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(_script: str) -> object:
+        raise macos.CaptureError(
+            "Capture command failed: osascript -l JavaScript -e ... "
+            "(TypeError: info.filter is not a function)"
+        )
+
+    monkeypatch.setattr(macos, "_run_osascript_jxa", boom)
+
+    with pytest.raises(macos.CaptureError, match="info.filter is not a function"):
+        macos._list_window_infos()
+
+
 def test_list_displays_parses_system_profiler(monkeypatch: pytest.MonkeyPatch) -> None:
     class Result:
         stdout = """
