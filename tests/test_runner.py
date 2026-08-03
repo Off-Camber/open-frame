@@ -375,6 +375,54 @@ def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
     assert session.results[0].success is True
 
 
+def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
+    flow = Flow(
+        name="missing-verify",
+        steps=[
+            FlowStep(
+                id="verify-missing",
+                kind="verify",
+                params={"spec": 'text-appeared:"OFMISSINGZZZ"', "timeout_ms": 20, "poll_ms": 5},
+            )
+        ],
+    )
+    frame = Frame(
+        width=10,
+        height=10,
+        scale_factor=1.0,
+        source="screen",
+        image_path="/tmp/openframe-missing-before.png",
+    )
+    artifact_calls: list[dict[str, object]] = []
+
+    class FakeLocator:
+        def __init__(self, _recognizers: list[object]) -> None:
+            pass
+
+        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+            _ = frame, query, strategy
+            return []
+
+    def fake_artifacts(**kwargs: object) -> Path:
+        artifact_calls.append(kwargs)
+        return Path("runs/r-miss/verify-missing")
+
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
+    monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", fake_artifacts)
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r-miss")
+
+    assert session.results[0].success is False
+    assert session.results[0].error
+    assert session.results[0].details["artifact_dir"] == "runs/r-miss/verify-missing"
+    assert artifact_calls
+    assert artifact_calls[0]["step_id"] == "verify-missing"
+
+
 def test_focus_app_raises_when_frontmost_differs(monkeypatch) -> None:
     calls = {"count": 0}
 
