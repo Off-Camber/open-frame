@@ -13,6 +13,7 @@ from openframe.capture import screen
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
 from openframe.recognize.coords import target_logical_bounds
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.session import Session
 from openframe.types import StepResult, Target
 from openframe.verify import (
@@ -62,7 +63,9 @@ class FlowRunner:
             details: dict[str, Any] = {"kind": step.kind, "params": dict(resolved_step.params)}
 
             try:
-                details.update(self._execute_step(step=resolved_step, locator=locator, actuator=actuator))
+                details.update(
+                    self._execute_step(step=resolved_step, locator=locator, actuator=actuator)
+                )
                 success = True
             except Exception as exc:  # noqa: BLE001
                 success = False
@@ -96,7 +99,9 @@ class FlowRunner:
 
         return session
 
-    def _execute_step(self, *, step: FlowStep, locator: Locator, actuator: Actuator) -> dict[str, Any]:
+    def _execute_step(
+        self, *, step: FlowStep, locator: Locator, actuator: Actuator
+    ) -> dict[str, Any]:
         kind = step.kind
         _enforce_window_guard(step=step)
         if kind == "wait":
@@ -124,7 +129,7 @@ class FlowRunner:
             if not query:
                 raise ValueError(f"Step '{step.id}' click requires 'query'.")
             expect_one = _coerce_bool(step.params.get("expect_one", False))
-            selector = str(step.params.get("selector", "first")).strip()
+            selector = explicit_selector(step.params.get("selector"))
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
@@ -136,14 +141,22 @@ class FlowRunner:
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
             )
-            if not targets:
-                raise ValueError(f"Step '{step.id}' could not find target for query '{query}'.")
-            if expect_one and len(targets) != 1:
-                raise ValueError(
-                    f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
+            try:
+                ensure_actionable_match_count(
+                    query=query,
+                    match_count=len(targets),
+                    selector=selector,
+                    expect_one=expect_one,
                 )
+            except ValueError as exc:
+                message = str(exc)
+                if message.startswith("No target found"):
+                    raise ValueError(
+                        f"Step '{step.id}' could not find target for query '{query}'."
+                    ) from exc
+                raise ValueError(f"Step '{step.id}' {message}") from exc
             selected_target = _select_target(
-                targets=targets, selector=selector, scale_factor=scale_factor
+                targets=targets, selector=selector or "first", scale_factor=scale_factor
             )
 
             anchor = str(step.params.get("anchor", "center"))
@@ -160,7 +173,7 @@ class FlowRunner:
                 "click_kind": click_kind,
                 "anchor": anchor,
                 "expect_one": expect_one,
-                "selector": selector,
+                "selector": selector or "first",
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
             }
@@ -178,9 +191,7 @@ class FlowRunner:
                 x = int(step.params["x"])
                 y = int(step.params["y"])
             else:
-                raise ValueError(
-                    f"Step '{step.id}' click_point requires x_ratio/y_ratio or x/y."
-                )
+                raise ValueError(f"Step '{step.id}' click_point requires x_ratio/y_ratio or x/y.")
 
             click_kind = str(step.params.get("click_kind", "click"))
             if click_kind not in {"click", "double", "right"}:
@@ -262,7 +273,7 @@ class FlowRunner:
             if not query:
                 raise ValueError(f"Step '{step.id}' fill requires 'query'.")
             expect_one = _coerce_bool(step.params.get("expect_one", False))
-            selector = str(step.params.get("selector", "first")).strip()
+            selector = explicit_selector(step.params.get("selector"))
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
@@ -274,14 +285,22 @@ class FlowRunner:
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
             )
-            if not targets:
-                raise ValueError(f"Step '{step.id}' could not find fill target '{query}'.")
-            if expect_one and len(targets) != 1:
-                raise ValueError(
-                    f"ambiguous_target: Step '{step.id}' expected one target for '{query}', found {len(targets)}."
+            try:
+                ensure_actionable_match_count(
+                    query=query,
+                    match_count=len(targets),
+                    selector=selector,
+                    expect_one=expect_one,
                 )
+            except ValueError as exc:
+                message = str(exc)
+                if message.startswith("No target found"):
+                    raise ValueError(
+                        f"Step '{step.id}' could not find fill target '{query}'."
+                    ) from exc
+                raise ValueError(f"Step '{step.id}' {message}") from exc
             selected_target = _select_target(
-                targets=targets, selector=selector, scale_factor=scale_factor
+                targets=targets, selector=selector or "first", scale_factor=scale_factor
             )
             actuator.click_target(
                 selected_target, anchor="center", kind="click", scale_factor=scale_factor
@@ -293,7 +312,7 @@ class FlowRunner:
                 "query": query,
                 "text_length": len(text),
                 "expect_one": expect_one,
-                "selector": selector,
+                "selector": selector or "first",
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
             }
@@ -429,9 +448,7 @@ def _wants_window_scope(step: FlowStep) -> bool:
     return _coerce_bool(step.params.get("scope_to_window", False))
 
 
-def _filter_targets_to_window(
-    *, targets: list[Target], scale_factor: float
-) -> list[Target]:
+def _filter_targets_to_window(*, targets: list[Target], scale_factor: float) -> list[Target]:
     """Keep only targets whose pixel bounds lie within the frontmost window."""
     state = frontmost_window()
     if state is None or state.width <= 0 or state.height <= 0:
@@ -492,9 +509,7 @@ def _coerce_bool(value: Any) -> bool:
     return bool(value)
 
 
-def _select_target(
-    *, targets: list[Target], selector: str, scale_factor: float = 1.0
-) -> Target:
+def _select_target(*, targets: list[Target], selector: str, scale_factor: float = 1.0) -> Target:
     if not targets:
         raise ValueError("No targets available for selection.")
 
@@ -550,7 +565,9 @@ def _parse_verifier_spec(
     if key == "diff":
         return ScreenshotDiffVerifier(max_ratio=float(value))
     if key == "window-title-contains":
-        return WindowStateVerifier(kind="title_contains", expected=value, state_provider=frontmost_window)
+        return WindowStateVerifier(
+            kind="title_contains", expected=value, state_provider=frontmost_window
+        )
     if key == "window-role":
         return WindowStateVerifier(kind="role", expected=value, state_provider=frontmost_window)
     if key == "window-app":
@@ -612,6 +629,7 @@ _MAX_TEMPLATE_PASSES = 5
 
 def _resolve_templates(value: Any, context: dict[str, Any]) -> Any:
     if isinstance(value, str):
+
         def replace(match: re.Match[str]) -> str:
             key = match.group(1)
             if key not in context:

@@ -105,3 +105,40 @@ def test_a11y_recognizer_returns_empty_off_macos(monkeypatch: pytest.MonkeyPatch
 
     assert result.targets == []
     assert result.metadata["reason"] == "non-macos"
+
+
+def test_a11y_recognizer_uses_token_matching(monkeypatch: pytest.MonkeyPatch) -> None:
+    recognizer = MacOSA11yRecognizer()
+    frame = Frame(width=100, height=100, scale_factor=2.0, source="screen:1")
+
+    monkeypatch.setattr("openframe.recognize.a11y.macos._is_macos", lambda: True)
+    monkeypatch.setattr(
+        "openframe.recognize.a11y.macos._list_frontmost_elements",
+        lambda: [
+            {"title": "actuation", "role": "AXStaticText", "x": 10, "y": 20, "width": 80, "height": 30},
+            {"title": "AC", "role": "AXButton", "x": 100, "y": 20, "width": 40, "height": 30},
+            {"title": "Invoice No 123", "role": "AXStaticText", "x": 10, "y": 60, "width": 120, "height": 20},
+        ],
+    )
+
+    ac_matches = recognizer.find(frame=frame, query="AC")
+    assert len(ac_matches.targets) == 1
+    assert ac_matches.targets[0].text == "AC"
+
+    monkeypatch.setattr(
+        "openframe.recognize.a11y.macos._list_frontmost_elements",
+        lambda: [
+            {"title": "actuation", "role": "AXStaticText", "x": 10, "y": 20, "width": 80, "height": 30},
+        ],
+    )
+    assert recognizer.find(frame=frame, query="AC").targets == []
+
+    monkeypatch.setattr(
+        "openframe.recognize.a11y.macos._list_frontmost_elements",
+        lambda: [
+            {"title": "Invoice No 123", "role": "AXStaticText", "x": 10, "y": 60, "width": 120, "height": 20},
+        ],
+    )
+    phrase = recognizer.find(frame=frame, query="Invoice No")
+    assert len(phrase.targets) == 1
+    assert phrase.targets[0].text == "Invoice No 123"

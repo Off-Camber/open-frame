@@ -227,6 +227,47 @@ def test_runner_click_expect_one_fails_on_multiple_matches(monkeypatch) -> None:
     assert "ambiguous_target" in (session.results[0].error or "")
 
 
+def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
+    flow = Flow(
+        name="ambiguous-default",
+        steps=[FlowStep(id="click-default", kind="click", params={"query": "Create"})],
+    )
+    frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
+    clicked = {"count": 0}
+
+    class FakeLocator:
+        def __init__(self, _recognizers: list[object]) -> None:
+            pass
+
+        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+            _ = frame, query, strategy
+            return [
+                Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Create"),
+                Target(x=20, y=20, width=10, height=10, confidence=0.9, source="stub", text="Create"),
+            ]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, *args: object, **kwargs: object) -> tuple[int, int]:
+            clicked["count"] += 1
+            return (0, 0)
+
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
+    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r1")
+
+    assert session.results[0].success is False
+    assert "ambiguous_target" in (session.results[0].error or "")
+    assert clicked["count"] == 0
+
+
 def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     flow = Flow(
         name="selector-click",

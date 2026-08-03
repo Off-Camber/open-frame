@@ -11,6 +11,7 @@ from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, region, screen, window
 from openframe.flow import load_flow
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import write_step_artifacts
@@ -22,7 +23,16 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "capture",
         "description": "Capture screen/window/region into a frame",
         "required_args": [],
-        "optional_args": ["mode", "window_title", "window_id", "x", "y", "width", "height", "out_path"],
+        "optional_args": [
+            "mode",
+            "window_title",
+            "window_id",
+            "x",
+            "y",
+            "width",
+            "height",
+            "out_path",
+        ],
         "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
     },
     {
@@ -36,7 +46,15 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "click",
         "description": "Find and click a target by query",
         "required_args": ["query"],
-        "optional_args": ["anchor", "kind", "dry_run", "run_id", "frame_path", "expect_one", "selector"],
+        "optional_args": [
+            "anchor",
+            "kind",
+            "dry_run",
+            "run_id",
+            "frame_path",
+            "expect_one",
+            "selector",
+        ],
         "error_codes": [
             "not_found",
             "ambiguous_target",
@@ -66,7 +84,14 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": "Run a YAML flow file",
         "required_args": ["flow_path"],
         "optional_args": ["dry_run", "run_id"],
-        "error_codes": ["flow_failed", "validation_error", "capture_error", "action_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "flow_failed",
+            "validation_error",
+            "capture_error",
+            "action_error",
+            "runtime_error",
+            "internal_error",
+        ],
     },
     {
         "name": "get_run_artifacts",
@@ -199,22 +224,30 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
     click_kind = str(args.get("kind", "click")).strip()
     dry_run = _as_bool(args.get("dry_run", False))
     expect_one = _as_bool(args.get("expect_one", False))
-    selector = str(args.get("selector", "first")).strip()
+    selector = explicit_selector(args.get("selector"))
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
 
     frame = _resolve_frame(_optional_string(args.get("frame_path")))
     locator = _build_locator()
     targets = locator.find(frame=frame, query=query, strategy="all")
-    if not targets:
-        raise MCPToolError(code="not_found", message=f'No target found for query "{query}".', run_id=run_id)
-    if expect_one and len(targets) != 1:
+    try:
+        ensure_actionable_match_count(
+            query=query,
+            match_count=len(targets),
+            selector=selector,
+            expect_one=expect_one,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if message.startswith("No target found"):
+            raise MCPToolError(code="not_found", message=message, run_id=run_id) from exc
         raise MCPToolError(
             code="ambiguous_target",
-            message=f'Expected one target for query "{query}", found {len(targets)}.',
+            message=message,
             run_id=run_id,
             data={"query": query, "match_count": len(targets)},
-        )
-    selected_target = _select_target(targets=targets, selector=selector)
+        ) from exc
+    selected_target = _select_target(targets=targets, selector=selector or "first")
 
     actuator = Actuator(dry_run=dry_run)
     point = actuator.click_target(
@@ -235,7 +268,7 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         "kind": click_kind,
         "dry_run": dry_run,
         "expect_one": expect_one,
-        "selector": selector,
+        "selector": selector or "first",
         "point": {"x": point[0], "y": point[1]},
         "target": asdict(selected_target),
     }
@@ -297,14 +330,20 @@ def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, di
     return data, run_id, artifacts
 
 
-def _tool_get_run_artifacts(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
+def _tool_get_run_artifacts(
+    args: dict[str, Any],
+) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     run_id = _required_string(args, "run_id")
     run_dir = Path("runs") / run_id
     if not run_dir.exists():
-        raise MCPToolError(code="not_found", message=f"Run artifacts not found for run_id {run_id}.", run_id=run_id)
+        raise MCPToolError(
+            code="not_found", message=f"Run artifacts not found for run_id {run_id}.", run_id=run_id
+        )
 
     step_payloads: list[dict[str, Any]] = []
-    for step_dir in sorted([item for item in run_dir.iterdir() if item.is_dir()], key=lambda item: item.name):
+    for step_dir in sorted(
+        [item for item in run_dir.iterdir() if item.is_dir()], key=lambda item: item.name
+    ):
         files = sorted([item.name for item in step_dir.iterdir() if item.is_file()])
         step_payloads.append(
             {
@@ -442,4 +481,3 @@ def _select_target(*, targets: list[Any], selector: str) -> Any:
     if normalized == "right_most":
         return max(targets, key=lambda item: (item.x, item.y))
     raise ValueError(f"Invalid selector '{selector}'.")
-
