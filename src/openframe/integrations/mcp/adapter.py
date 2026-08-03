@@ -11,6 +11,7 @@ from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, region, screen, window
 from openframe.flow import load_flow
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
+from openframe.recognize.coords import select_target
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
 from openframe.types import Frame
@@ -247,7 +248,9 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
             run_id=run_id,
             data={"query": query, "match_count": len(targets)},
         ) from exc
-    selected_target = _select_target(targets=targets, selector=selector or "first")
+    selected_target = select_target(
+        targets=targets, selector=selector or "first", scale_factor=frame.scale_factor
+    )
 
     actuator = Actuator(dry_run=dry_run)
     point = actuator.click_target(
@@ -463,21 +466,3 @@ def _as_bool(value: Any) -> bool:
 
 def _default_run_id() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-
-
-def _select_target(*, targets: list[Any], selector: str) -> Any:
-    if not targets:
-        raise ValueError("No targets available for selection.")
-
-    normalized = selector.strip().lower()
-    if normalized in {"", "first"}:
-        return targets[0]
-    if normalized == "top_most":
-        return min(targets, key=lambda item: (item.y, item.x))
-    if normalized == "left_most":
-        return min(targets, key=lambda item: (item.x, item.y))
-    if normalized == "highest_confidence":
-        return max(targets, key=lambda item: item.confidence)
-    if normalized == "right_most":
-        return max(targets, key=lambda item: (item.x, item.y))
-    raise ValueError(f"Invalid selector '{selector}'.")

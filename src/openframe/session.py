@@ -16,6 +16,7 @@ from openframe.recognize import (
     TesseractRecognizer,
 )
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
+from openframe.recognize.coords import select_target
 from openframe.types import Frame, StepResult, Target
 
 
@@ -73,8 +74,6 @@ class Session:
         Fails closed when zero targets match, or when multiple targets match
         without an explicit ``selector`` / ``expect_one`` policy.
         """
-        from openframe.runner import _select_target
-
         active_frame = frame or screen()
         targets = self.find(query, frame=active_frame, strategy="all", options=options)
         resolved_selector = explicit_selector(selector)
@@ -84,7 +83,7 @@ class Session:
             selector=resolved_selector,
             expect_one=expect_one,
         )
-        selected = _select_target(
+        selected = select_target(
             targets=targets,
             selector=resolved_selector or "first",
             scale_factor=active_frame.scale_factor,

@@ -28,3 +28,41 @@ def target_logical_bounds(
         max(1, right - left),
         max(1, bottom - top),
     )
+
+
+def select_target(
+    *,
+    targets: list[Target],
+    selector: str,
+    scale_factor: float = 1.0,
+) -> Target:
+    """Pick one target using a named selector policy.
+
+    Spatial selectors (``top_most``, ``left_most``, ``right_most``) compare
+    logical screen bounds so mixed physical OCR and logical a11y candidates
+    stay consistent across FlowRunner, MCP, CLI, and Session.
+    """
+    if not targets:
+        raise ValueError("No targets available for selection.")
+
+    normalized = selector.strip().lower()
+    if normalized in {"", "first"}:
+        return targets[0]
+    if normalized == "top_most":
+        return min(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2][::-1],
+        )
+    if normalized == "left_most":
+        return min(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
+        )
+    if normalized == "highest_confidence":
+        return max(targets, key=lambda item: item.confidence)
+    if normalized == "right_most":
+        return max(
+            targets,
+            key=lambda item: target_logical_bounds(item, scale_factor=scale_factor)[:2],
+        )
+    raise ValueError(f"Invalid selector '{selector}'.")
