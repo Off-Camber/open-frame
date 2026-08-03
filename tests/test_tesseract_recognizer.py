@@ -102,3 +102,49 @@ def test_tesseract_recognizer_matches_multi_word_queries_on_one_line(
     assert len(result.targets) == 1
     assert result.targets[0].text == "Invoice No:"
     assert (result.targets[0].x, result.targets[0].width) == (10, 110)
+
+
+def test_tesseract_recognizer_rejects_substring_inside_longer_word(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture_path = Path(__file__).parent / "fixtures" / "ocr" / "sample.ppm"
+    pil_module = types.SimpleNamespace(Image=types.SimpleNamespace(open=lambda _path: object()))
+
+    def _data_for(texts: list[str]) -> dict[str, list[object]]:
+        count = len(texts)
+        return {
+            "text": texts,
+            "conf": ["90"] * count,
+            "left": [10 + idx * 120 for idx in range(count)],
+            "top": [20] * count,
+            "width": [100] * count,
+            "height": [18] * count,
+            "page_num": [1] * count,
+            "block_num": [1] * count,
+            "par_num": [1] * count,
+            "line_num": [1] * count,
+        }
+
+    current = {"payload": _data_for(["actuation"])}
+    pytesseract_module = types.SimpleNamespace(
+        image_to_data=lambda _image, output_type: current["payload"],
+        Output=types.SimpleNamespace(DICT="DICT"),
+    )
+    monkeypatch.setitem(sys.modules, "PIL", pil_module)
+    monkeypatch.setitem(sys.modules, "pytesseract", pytesseract_module)
+
+    recognizer = TesseractRecognizer()
+    frame = Frame(
+        width=1000,
+        height=800,
+        scale_factor=2.0,
+        source="screen:1",
+        image_path=str(fixture_path),
+    )
+
+    assert recognizer.find(frame=frame, query="AC").targets == []
+
+    current["payload"] = _data_for(["actuation", "AC"])
+    result = recognizer.find(frame=frame, query="AC")
+    assert len(result.targets) == 1
+    assert result.targets[0].text == "AC"

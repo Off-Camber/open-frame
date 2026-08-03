@@ -211,7 +211,7 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
 
         def find(self, frame: Frame, query: str, strategy: str) -> list[Target]:
             assert query == "Submit"
-            assert strategy == "first"
+            assert strategy == "all"
             return [target]
 
     class FakeActuator:

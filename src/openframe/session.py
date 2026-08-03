@@ -15,6 +15,7 @@ from openframe.recognize import (
     Recognizer,
     TesseractRecognizer,
 )
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.types import Frame, StepResult, Target
 
 
@@ -63,15 +64,33 @@ class Session:
         frame: Frame | None = None,
         anchor: ClickAnchor = "center",
         kind: ClickKind = "click",
+        selector: str | None = None,
+        expect_one: bool = False,
         options: dict[str, Any] | None = None,
     ) -> tuple[int, int]:
-        """Find a target by query and click it."""
+        """Find a target by query and click it.
+
+        Fails closed when zero targets match, or when multiple targets match
+        without an explicit ``selector`` / ``expect_one`` policy.
+        """
+        from openframe.runner import _select_target
+
         active_frame = frame or screen()
-        targets = self.find(query, frame=active_frame, strategy="first", options=options)
-        if not targets:
-            raise ValueError(f'No target found for query "{query}".')
+        targets = self.find(query, frame=active_frame, strategy="all", options=options)
+        resolved_selector = explicit_selector(selector)
+        ensure_actionable_match_count(
+            query=query,
+            match_count=len(targets),
+            selector=resolved_selector,
+            expect_one=expect_one,
+        )
+        selected = _select_target(
+            targets=targets,
+            selector=resolved_selector or "first",
+            scale_factor=active_frame.scale_factor,
+        )
         return self._actuator.click_target(
-            targets[0], anchor=anchor, kind=kind, scale_factor=active_frame.scale_factor
+            selected, anchor=anchor, kind=kind, scale_factor=active_frame.scale_factor
         )
 
     def run(self, steps: list[dict[str, Any]]) -> list[StepResult]:

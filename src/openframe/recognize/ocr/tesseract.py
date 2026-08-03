@@ -5,6 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from openframe.recognize.base import Recognizer, RecognizerResult
+from openframe.recognize.match import (
+    MatchMode,
+    matching_token_spans,
+    normalize_text,
+    text_matches_query,
+    tokenize,
+)
 from openframe.types import Frame, Target
 
 
@@ -20,7 +27,11 @@ class TesseractRecognizer(Recognizer):
         self, frame: Frame, query: str, options: dict[str, Any] | None = None
     ) -> RecognizerResult:
         if not frame.image_path:
-            raise ValueError("TesseractRecognizer requires frame.image_path to be set.")
+            return RecognizerResult(
+                recognizer=self.name,
+                targets=[],
+                metadata={"reason": "missing_image_path", "query": query},
+            )
 
         try:
             import pytesseract
@@ -33,23 +44,22 @@ class TesseractRecognizer(Recognizer):
 
         image = Image.open(frame.image_path)
         data = pytesseract.image_to_data(image, output_type=Output.DICT)
-        query_normalized = _normalize_text(query)
+        query_normalized = normalize_text(query)
         if not query_normalized:
             return RecognizerResult(
                 recognizer=self.name,
                 targets=[],
                 metadata={"query": query, "match_count": 0},
             )
-        multi_word = len(query_normalized.split()) > 1
+        multi_word = len(tokenize(query)) > 1
+        match_mode = _match_mode(options)
 
         word_targets = _targets_from_words(
-            data, query_normalized=query_normalized, source=self.name
+            data, query=query, source=self.name, match_mode=match_mode
         )
         line_targets = (
-            _targets_from_lines(
-                data, query_normalized=query_normalized, source=self.name
-            )
-            if multi_word
+            _targets_from_lines(data, query=query, source=self.name, match_mode=match_mode)
+            if multi_word or match_mode == "substring"
             else []
         )
 
@@ -62,12 +72,23 @@ class TesseractRecognizer(Recognizer):
         return RecognizerResult(
             recognizer=self.name,
             targets=targets,
-            metadata={"query": query, "match_count": len(targets)},
+            metadata={"query": query, "match_count": len(targets), "match_mode": match_mode},
         )
 
 
+def _match_mode(options: dict[str, Any] | None) -> MatchMode:
+    raw = str((options or {}).get("match_mode", "token")).strip().lower()
+    if raw == "substring":
+        return "substring"
+    return "token"
+
+
 def _targets_from_words(
-    data: dict[str, Any], *, query_normalized: str, source: str
+    data: dict[str, Any],
+    *,
+    query: str,
+    source: str,
+    match_mode: MatchMode = "token",
 ) -> list[Target]:
     targets: list[Target] = []
     total = len(data.get("text", []))
@@ -76,7 +97,7 @@ def _targets_from_words(
         if not raw_text:
             continue
 
-        if query_normalized not in _normalize_text(raw_text):
+        if not text_matches_query(raw_text, query, mode=match_mode):
             continue
 
         confidence = _parse_confidence(
@@ -97,7 +118,11 @@ def _targets_from_words(
 
 
 def _targets_from_lines(
-    data: dict[str, Any], *, query_normalized: str, source: str
+    data: dict[str, Any],
+    *,
+    query: str,
+    source: str,
+    match_mode: MatchMode = "token",
 ) -> list[Target]:
     groups: dict[tuple[int, int, int, int], list[int]] = {}
     total = len(data.get("text", []))
@@ -107,60 +132,46 @@ def _targets_from_lines(
         key = _line_key(data, idx)
         groups.setdefault(key, []).append(idx)
 
+    query_tokens = tokenize(query)
     targets: list[Target] = []
     for indices in groups.values():
         words = [str(data["text"][idx]).strip() for idx in indices]
-        normalized_words = [_normalize_text(word) for word in words]
-        for start, end in _matching_word_spans(normalized_words, query_normalized):
+        if match_mode == "substring":
+            joined = " ".join(words)
+            if not text_matches_query(joined, query, mode="substring"):
+                continue
+            start = 0
+            end = len(words)
+            matched_indices = indices
+        else:
+            word_tokens = [tokenize(word)[0] if tokenize(word) else "" for word in words]
+            spans = matching_token_spans(word_tokens, query_tokens)
+            if not spans:
+                continue
+            start, end = spans[0]
             matched_indices = indices[start:end]
-            left = min(int(data["left"][idx]) for idx in matched_indices)
-            top = min(int(data["top"][idx]) for idx in matched_indices)
-            right = max(
-                int(data["left"][idx]) + int(data["width"][idx])
-                for idx in matched_indices
+
+        left = min(int(data["left"][idx]) for idx in matched_indices)
+        top = min(int(data["top"][idx]) for idx in matched_indices)
+        right = max(int(data["left"][idx]) + int(data["width"][idx]) for idx in matched_indices)
+        bottom = max(int(data["top"][idx]) + int(data["height"][idx]) for idx in matched_indices)
+        confidences = [
+            _parse_confidence(data.get("conf", [])[idx] if idx < len(data.get("conf", [])) else "")
+            for idx in matched_indices
+        ]
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        targets.append(
+            Target(
+                x=left,
+                y=top,
+                width=max(1, right - left),
+                height=max(1, bottom - top),
+                confidence=confidence,
+                source=source,
+                text=" ".join(words[start:end]),
             )
-            bottom = max(
-                int(data["top"][idx]) + int(data["height"][idx])
-                for idx in matched_indices
-            )
-            confidences = [
-                _parse_confidence(
-                    data.get("conf", [])[idx] if idx < len(data.get("conf", [])) else ""
-                )
-                for idx in matched_indices
-            ]
-            confidence = sum(confidences) / len(confidences) if confidences else 0.0
-            targets.append(
-                Target(
-                    x=left,
-                    y=top,
-                    width=max(1, right - left),
-                    height=max(1, bottom - top),
-                    confidence=confidence,
-                    source=source,
-                    text=" ".join(words[start:end]),
-                )
-            )
+        )
     return targets
-
-
-def _matching_word_spans(
-    normalized_words: list[str], query_normalized: str
-) -> list[tuple[int, int]]:
-    """Return word-index spans whose joined text contains the normalized query."""
-    spans: list[tuple[int, int]] = []
-    query_word_count = len(query_normalized.split())
-    if query_word_count == 0:
-        return spans
-    for start in range(len(normalized_words) - query_word_count + 1):
-        end = start + query_word_count
-        if query_normalized in " ".join(normalized_words[start:end]):
-            spans.append((start, end))
-    return spans
-
-
-def _normalize_text(value: str) -> str:
-    return " ".join(value.casefold().split())
 
 
 def _line_key(data: dict[str, Any], idx: int) -> tuple[int, int, int, int]:

@@ -7,6 +7,7 @@ import subprocess
 from typing import Any
 
 from openframe.recognize.base import Recognizer, RecognizerResult
+from openframe.recognize.match import MatchMode, text_matches_query
 from openframe.types import Frame, Target
 
 
@@ -22,11 +23,14 @@ class MacOSA11yRecognizer(Recognizer):
         self, frame: Frame, query: str, options: dict[str, Any] | None = None
     ) -> RecognizerResult:
         if not _is_macos():
-            return RecognizerResult(recognizer=self.name, targets=[], metadata={"reason": "non-macos"})
+            return RecognizerResult(
+                recognizer=self.name, targets=[], metadata={"reason": "non-macos"}
+            )
 
-        query_lower = query.strip().lower()
-        if not query_lower:
+        if not query.strip():
             return RecognizerResult(recognizer=self.name, targets=[])
+
+        match_mode = _match_mode(options)
 
         try:
             elements = _list_frontmost_elements()
@@ -42,7 +46,7 @@ class MacOSA11yRecognizer(Recognizer):
             text = str(item.get("title", "")).strip()
             if not text:
                 continue
-            if query_lower not in text.lower():
+            if not text_matches_query(text, query, mode=match_mode):
                 continue
 
             width = int(item.get("width", 0))
@@ -67,12 +71,27 @@ class MacOSA11yRecognizer(Recognizer):
         return RecognizerResult(
             recognizer=self.name,
             targets=targets,
-            metadata={"query": query, "match_count": len(targets), "elements_seen": len(elements)},
+            metadata={
+                "query": query,
+                "match_count": len(targets),
+                "elements_seen": len(elements),
+                "match_mode": match_mode,
+            },
         )
 
 
+def _match_mode(options: dict[str, Any] | None) -> MatchMode:
+    raw = str((options or {}).get("match_mode", "token")).strip().lower()
+    if raw == "substring":
+        return "substring"
+    return "token"
+
+
 def _is_macos() -> bool:
-    return subprocess.run(["uname", "-s"], check=False, capture_output=True, text=True).stdout.strip() == "Darwin"
+    return (
+        subprocess.run(["uname", "-s"], check=False, capture_output=True, text=True).stdout.strip()
+        == "Darwin"
+    )
 
 
 _LIST_FRONTMOST_ELEMENTS_SCRIPT = """
@@ -134,7 +153,9 @@ def _list_frontmost_elements() -> list[dict[str, Any]]:
         text=True,
     )
     if completed.returncode != 0:
-        message = completed.stderr.strip() or completed.stdout.strip() or "unknown accessibility error"
+        message = (
+            completed.stderr.strip() or completed.stdout.strip() or "unknown accessibility error"
+        )
         raise RuntimeError(f"macOS accessibility query failed: {message}")
 
     try:

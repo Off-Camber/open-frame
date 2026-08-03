@@ -18,7 +18,8 @@ from openframe.recognize import (
     TesseractRecognizer,
     draw_debug_overlay,
 )
-from openframe.runner import FlowRunner
+from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
+from openframe.runner import FlowRunner, _select_target
 from openframe.types import Frame
 from openframe.verify import (
     ScreenshotDiffVerifier,
@@ -36,7 +37,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     capture_parser = subparsers.add_parser("capture", help="Capture display or window")
     capture_parser.add_argument("--out", type=Path, required=True, help="Output PNG path")
-    capture_parser.add_argument("--window-title", type=str, help="Capture first visible matching title")
+    capture_parser.add_argument(
+        "--window-title", type=str, help="Capture first visible matching title"
+    )
     capture_parser.add_argument("--window-id", type=int, help="Capture a visible window by id")
     capture_parser.add_argument("--x", type=int, help="Region left coordinate (screen space)")
     capture_parser.add_argument("--y", type=int, help="Region top coordinate (screen space)")
@@ -51,32 +54,54 @@ def build_parser() -> argparse.ArgumentParser:
     find_parser.add_argument("query", type=str, help="Text query to find")
     find_parser.add_argument("--frame", type=Path, help="Use an existing PNG frame path")
     find_parser.add_argument("--strategy", choices=("first", "all"), default="first")
-    find_parser.add_argument("--overlay-out", type=Path, help="Write debug overlay image with matched boxes")
+    find_parser.add_argument(
+        "--overlay-out", type=Path, help="Write debug overlay image with matched boxes"
+    )
     find_parser.add_argument("--json", action="store_true", help="Output JSON")
 
     click_parser = subparsers.add_parser("click", help="Find and click a target")
     click_parser.add_argument("query", type=str, help="Text query to find before clicking")
-    click_parser.add_argument("--frame", type=Path, help="Use an existing frame path for recognition")
+    click_parser.add_argument(
+        "--frame", type=Path, help="Use an existing frame path for recognition"
+    )
     click_parser.add_argument(
         "--anchor",
         choices=("center", "top-left", "top-right", "bottom-left", "bottom-right"),
         default="center",
     )
     click_parser.add_argument("--kind", choices=("click", "double", "right"), default="click")
-    click_parser.add_argument("--dry-run", action="store_true", help="Log click point without clicking")
+    click_parser.add_argument(
+        "--dry-run", action="store_true", help="Log click point without clicking"
+    )
+    click_parser.add_argument(
+        "--selector",
+        choices=("first", "top_most", "left_most", "right_most", "highest_confidence"),
+        help="Explicit multi-match selector (required when more than one target matches)",
+    )
+    click_parser.add_argument(
+        "--expect-one",
+        action="store_true",
+        help="Fail unless exactly one target matches",
+    )
     click_parser.add_argument(
         "--verify",
         action="append",
         default=[],
         help='Verification spec: text-gone:"Save", text-appeared:"Done", target-gone:"Dialog", diff:0.15',
     )
-    click_parser.add_argument("--run-id", type=str, help="Run id for artifacts (defaults to timestamp)")
+    click_parser.add_argument(
+        "--run-id", type=str, help="Run id for artifacts (defaults to timestamp)"
+    )
     click_parser.add_argument("--json", action="store_true", help="Output JSON")
 
     run_parser = subparsers.add_parser("run", help="Execute a YAML flow")
     run_parser.add_argument("flow_path", type=Path, help="Path to flow YAML")
-    run_parser.add_argument("--run-id", type=str, help="Run id for artifacts (defaults to timestamp)")
-    run_parser.add_argument("--dry-run", action="store_true", help="Run without sending input actions")
+    run_parser.add_argument(
+        "--run-id", type=str, help="Run id for artifacts (defaults to timestamp)"
+    )
+    run_parser.add_argument(
+        "--dry-run", action="store_true", help="Run without sending input actions"
+    )
     run_parser.add_argument("--json", action="store_true", help="Output JSON")
 
     mcp_parser = subparsers.add_parser("mcp", help="MCP-compatible tool surface")
@@ -148,11 +173,13 @@ def main() -> int:
             print(json.dumps(payload, indent=2))
             return 0
         for item in windows:
-            print(f'{item["id"]}\t{item["owner"]}\t{item["title"]}')
+            print(f"{item['id']}\t{item['owner']}\t{item['title']}")
         if args.displays:
             print("-- displays --")
             for item in displays:
-                print(f'{item["name"]}\t{item["resolution"]}\tretina={item["retina"]}\tmain={item["main"]}')
+                print(
+                    f"{item['name']}\t{item['resolution']}\tretina={item['retina']}\tmain={item['main']}"
+                )
         return 0
 
     if args.command == "find":
@@ -160,7 +187,9 @@ def main() -> int:
             frame = _resolve_find_frame(args.frame)
             locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
             targets = locator.find(frame=frame, query=args.query, strategy=args.strategy)
-            overlay_path = _maybe_write_overlay(frame=frame, targets=targets, out_path=args.overlay_out)
+            overlay_path = _maybe_write_overlay(
+                frame=frame, targets=targets, out_path=args.overlay_out
+            )
         except (CaptureError, RuntimeError, ValueError) as error:
             parser.error(str(error))
         if args.json:
@@ -176,7 +205,9 @@ def main() -> int:
             return 0
         for item in targets:
             text = item.text or ""
-            print(f"{item.x},{item.y},{item.width},{item.height}\tconf={item.confidence:.2f}\t{text}")
+            print(
+                f"{item.x},{item.y},{item.width},{item.height}\tconf={item.confidence:.2f}\t{text}"
+            )
         if overlay_path is not None:
             print(str(overlay_path))
         return 0
@@ -185,13 +216,24 @@ def main() -> int:
         try:
             frame = _resolve_find_frame(args.frame)
             locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
-            targets = locator.find(frame=frame, query=args.query, strategy="first")
-            if not targets:
-                raise ValueError(f'No target found for query "{args.query}".')
+            targets = locator.find(frame=frame, query=args.query, strategy="all")
+            selector = explicit_selector(getattr(args, "selector", None))
+            expect_one = bool(getattr(args, "expect_one", False))
+            ensure_actionable_match_count(
+                query=args.query,
+                match_count=len(targets),
+                selector=selector,
+                expect_one=expect_one,
+            )
+            selected = _select_target(
+                targets=targets,
+                selector=selector or "first",
+                scale_factor=frame.scale_factor,
+            )
 
             actuator = Actuator(dry_run=args.dry_run)
             point = actuator.click_target(
-                targets[0], anchor=args.anchor, kind=args.kind, scale_factor=frame.scale_factor
+                selected, anchor=args.anchor, kind=args.kind, scale_factor=frame.scale_factor
             )
             if args.dry_run and not args.verify:
                 after_frame = frame
@@ -222,7 +264,7 @@ def main() -> int:
                     "kind": args.kind,
                     "anchor": args.anchor,
                     "point": {"x": point[0], "y": point[1]},
-                    "target": asdict(targets[0]),
+                    "target": asdict(selected),
                     "verification": asdict(verification_result),
                     "artifact_dir": str(artifact_dir),
                 }
@@ -239,7 +281,7 @@ def main() -> int:
                 "kind": args.kind,
                 "anchor": args.anchor,
                 "point": {"x": point[0], "y": point[1]},
-                "target": asdict(targets[0]),
+                "target": asdict(selected),
                 "artifact_dir": str(artifact_dir),
             }
             if verification_result is not None:
@@ -286,7 +328,7 @@ def main() -> int:
                 print(json.dumps({"tools": tools}, indent=2))
                 return 0
             for item in tools:
-                print(f'{item["name"]}\t{item["description"]}')
+                print(f"{item['name']}\t{item['description']}")
             return 0
 
         if args.mcp_command == "call":

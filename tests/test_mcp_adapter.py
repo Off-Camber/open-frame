@@ -107,6 +107,36 @@ def test_click_expect_one_returns_ambiguous_target(monkeypatch) -> None:
     assert result["run_id"] == "r1"
 
 
+def test_click_fails_closed_without_selector(monkeypatch) -> None:
+    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    clicked = {"count": 0}
+
+    class FakeLocator:
+        def find(self, frame, query, strategy):
+            _ = frame, query, strategy
+            return [
+                Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
+                Target(x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"),
+            ]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run):
+            _ = dry_run
+
+        def click_target(self, *args, **kwargs):
+            clicked["count"] += 1
+            return (0, 0)
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+
+    result = call_mcp_tool("click", {"query": "Create", "dry_run": True, "run_id": "r1"})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "ambiguous_target"
+    assert clicked["count"] == 0
+
+
 def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
     clicked = {}
