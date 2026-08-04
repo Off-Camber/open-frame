@@ -12,7 +12,6 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, ImageSequence
 
-
 BRAND = "Open Frame"
 PHASES = {
     "find": ("FIND", "locate “Post payment”"),
@@ -72,7 +71,7 @@ def _find_button_box(image: Image.Image) -> tuple[int, int, int, int] | None:
             return (x1 - pad, y1 - pad, x2 + pad, y2 + pad)
 
     for text, x, y, w, h in words:
-        if re.fullmatch(r"post", text, flags=re.I):
+        if re.fullmatch(r"post", text, flags=re.IGNORECASE):
             pad = 14
             return (x - pad, y - pad, x + max(w, 160) + 40, y + h + pad)
     return None
@@ -175,10 +174,13 @@ def annotate_frames(frames: list[Image.Image]) -> list[Image.Image]:
     for idx, frame in enumerate(frames):
         try:
             import pytesseract
-
-            text = pytesseract.image_to_string(frame.convert("RGB")).lower()
-        except Exception:
+        except ImportError:
             text = ""
+        else:
+            try:
+                text = pytesseract.image_to_string(frame.convert("RGB")).lower()
+            except pytesseract.TesseractError:
+                text = ""
         if "payment posted" in text:
             verify_at = idx
             break
