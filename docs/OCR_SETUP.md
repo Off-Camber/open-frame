@@ -22,3 +22,13 @@ system `tesseract` binary is installed and on your PATH.
 ```bash
 open-frame find "Submit" --frame path/to/frame.png --json
 ```
+
+Default matching is whole-token / token-phrase. Short queries like `AC` will not
+match longer words such as `actuation` unless you explicitly pass
+`match_mode: substring`.
+
+For release-style OCR evidence on macOS (including 5× calibration), run:
+
+```bash
+./scripts/macos_live_gate.sh
+```

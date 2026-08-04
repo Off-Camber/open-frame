@@ -1,0 +1,11 @@
+name: mcp-dry-run-actions
+steps:
+  - id: type-dry-run
+    kind: type
+    text: "Open Frame mcp dry-run"
+  - id: key-dry-run
+    kind: key
+    key: escape
+  - id: wait-one
+    kind: wait
+    ms: 1

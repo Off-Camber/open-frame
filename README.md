@@ -26,7 +26,7 @@ Open Frame is the deterministic execution layer behind AI agents, not the agent 
 
 ## Status
 
-Active development. `v0.1.2` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/). See the [changelog](CHANGELOG.md) for release history.
+Active development / **internal alpha**. `v0.1.2` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/). Public stability claims and version bumps wait on the [release gates](docs/RELEASE_GATES.md) checklist (CI + local macOS live gate). See the [changelog](CHANGELOG.md) for release history.
 
 ## Who this is for
 

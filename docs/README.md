@@ -19,6 +19,7 @@ Primary docs for the project.
 - **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
 - **[Agent acceptance](AGENT_ACCEPTANCE.md)** — A.7 acceptance checks and pass criteria
 - **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
+- **[Release gates](RELEASE_GATES.md)** — CI matrix + local macOS live gate checklist
 
 ## Product/planning docs
 

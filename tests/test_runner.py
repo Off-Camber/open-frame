@@ -525,3 +525,76 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
 
     assert session.results[0].success is True
     assert clicked["x"] == 900
+
+
+def test_runner_type_via_applescript_sets_textedit_document(monkeypatch) -> None:
+    flow = Flow(
+        name="seed",
+        steps=[
+            FlowStep(
+                id="type-token",
+                kind="type",
+                params={"text": "CALMARK89", "via": "applescript", "size": 48},
+            )
+        ],
+    )
+    calls: list[tuple[str, int | None]] = []
+
+    def fake_set(text: str, *, font_size: int | None = None) -> None:
+        calls.append((text, font_size))
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def type_text(self, text: str, *, interval: float = 0.0) -> None:
+            raise AssertionError("keystroke type_text should not run for via=applescript")
+
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner._textedit_set_front_document_text", fake_set)
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
+    monkeypatch.setattr("openframe.runner.Locator", lambda *_a, **_k: object())
+    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+
+    session = FlowRunner(dry_run=False).run(flow, run_id="r1")
+
+    assert session.results[0].success is True
+    assert calls == [("CALMARK89", 48)]
+    assert session.results[0].details["via"] == "applescript"
+
+
+def test_runner_type_via_applescript_close_closes_documents(monkeypatch) -> None:
+    flow = Flow(
+        name="close",
+        steps=[
+            FlowStep(
+                id="close-document",
+                kind="type",
+                params={"text": "", "via": "applescript-close"},
+            )
+        ],
+    )
+    closed = {"count": 0}
+
+    def fake_close() -> None:
+        closed["count"] += 1
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner._textedit_close_all_documents", fake_close)
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
+    monkeypatch.setattr("openframe.runner.Locator", lambda *_a, **_k: object())
+    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+
+    session = FlowRunner(dry_run=False).run(flow, run_id="r1")
+
+    assert session.results[0].success is True
+    assert closed["count"] == 1
+    assert session.results[0].details["via"] == "applescript-close"

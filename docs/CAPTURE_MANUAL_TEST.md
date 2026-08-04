@@ -2,11 +2,20 @@
 
 Use this checklist to validate live capture behavior on a real desktop.
 
+For the full release-style live package (capture + a11y + safe click +
+calibration), prefer:
+
+```bash
+./scripts/macos_live_gate.sh
+```
+
+See `docs/RELEASE_GATES.md`.
+
 ## Preconditions
 
 - macOS with Screen Recording permission granted to the terminal or IDE running `open-frame`
 - At least one visible application window
-- Project virtualenv installed (`pip install -e .[dev]`)
+- Project virtualenv installed (`pip install -e ".[dev,ocr,act,flow]"`)
 
 ## Commands
 

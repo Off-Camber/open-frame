@@ -9,13 +9,14 @@ from time import monotonic, perf_counter, sleep
 from typing import Any
 
 from openframe.act import Actuator
-from openframe.capture import screen
+from openframe.capture import list_windows, screen, window
+from openframe.capture.macos import CaptureError
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
 from openframe.recognize.coords import select_target, target_logical_bounds
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.session import Session
-from openframe.types import StepResult, Target
+from openframe.types import Frame, StepResult, Target
 from openframe.verify import (
     MatchBounds,
     ScreenshotDiffVerifier,
@@ -253,8 +254,23 @@ class FlowRunner:
         if kind == "type":
             text = str(step.params.get("text", ""))
             interval = float(step.params.get("interval", 0.0))
+            via = str(step.params.get("via", "keystrokes")).strip().lower()
+            if via in {"applescript-close", "textedit-close"}:
+                if not self.dry_run:
+                    _textedit_close_all_documents()
+                return {"via": "applescript-close", "closed": True}
+            if via in {"applescript", "textedit"}:
+                size = step.params.get("size")
+                font_size = int(size) if size is not None else None
+                if not self.dry_run:
+                    _textedit_set_front_document_text(text, font_size=font_size)
+                return {
+                    "text_length": len(text),
+                    "via": "applescript",
+                    "font_size": font_size,
+                }
             actuator.type_text(text, interval=interval)
-            return {"text_length": len(text)}
+            return {"text_length": len(text), "via": "keystrokes"}
 
         if kind == "key":
             key = str(step.params.get("key", "")).strip()
@@ -383,23 +399,27 @@ def _run_verify_specs(
     match_bounds: MatchBounds | None = None,
     scope_to_window: bool = False,
 ) -> VerifyResult:
-    verifiers = [
-        _parse_verifier_spec(
-            raw_spec=raw_spec,
-            locator=locator,
-            match_bounds=match_bounds,
-            scope_to_window=scope_to_window,
-        )
-        for raw_spec in verify_specs
-    ]
-    if not verifiers:
+    if not verify_specs:
         raise ValueError("At least one verify spec is required.")
 
     deadline = monotonic() + (timeout_ms / 1000.0)
     last: VerifyResult | None = None
 
     while True:
-        frame = screen()
+        frame, used_window_capture = _capture_scoped_frame(scope_to_window=scope_to_window)
+        # Window captures are already cropped; screen-space window bounds would
+        # be wrong and must not be applied on top of the window image.
+        apply_window_bounds = scope_to_window and not used_window_capture
+        verifiers = [
+            _parse_verifier_spec(
+                raw_spec=raw_spec,
+                locator=locator,
+                match_bounds=match_bounds,
+                scope_to_window=apply_window_bounds,
+            )
+            for raw_spec in verify_specs
+        ]
+
         all_success = True
         for verifier in verifiers:
             result = verifier.verify(before=frame, after=frame)
@@ -408,13 +428,54 @@ def _run_verify_specs(
                 all_success = False
                 break
 
-        if all_success:
+        if all_success and last is not None:
             return last
 
         if monotonic() >= deadline:
+            if last is None:
+                raise ValueError("Verification produced no result.")
             return last
 
         sleep(poll_ms / 1000.0)
+
+
+def _capture_scoped_frame(*, scope_to_window: bool) -> tuple[Frame, bool]:
+    """Capture screen, or the frontmost window when scope_to_window is requested."""
+    if scope_to_window:
+        captured = _capture_frontmost_window_frame()
+        if captured is not None:
+            return captured, True
+    return screen(), False
+
+
+def _capture_frontmost_window_frame() -> Frame | None:
+    """Capture the frontmost app window image (not a full-screen crop)."""
+    state = frontmost_window()
+    if state is None or state.width <= 0 or state.height <= 0:
+        return None
+
+    windows = list_windows()
+    candidates = [
+        item
+        for item in windows
+        if str(item.get("owner", "")) == state.app
+    ]
+    if not candidates:
+        return None
+
+    selected = None
+    if state.title:
+        for item in candidates:
+            if str(item.get("title", "")) == state.title:
+                selected = item
+                break
+    if selected is None:
+        selected = candidates[0]
+
+    try:
+        return window(window_id=int(selected["id"]))
+    except (CaptureError, KeyError, TypeError, ValueError):
+        return None
 
 
 def _find_targets_with_retry(
@@ -434,9 +495,9 @@ def _find_targets_with_retry(
     """
     deadline = monotonic() + (timeout_ms / 1000.0)
     while True:
-        frame = screen()
+        frame, used_window_capture = _capture_scoped_frame(scope_to_window=scope_to_window)
         targets = locator.find(frame, query, strategy=strategy)
-        if scope_to_window:
+        if scope_to_window and not used_window_capture:
             targets = _filter_targets_to_window(targets=targets, scale_factor=frame.scale_factor)
         if targets:
             return targets, frame.scale_factor
@@ -574,16 +635,121 @@ def _focus_app(name: str) -> None:
     if sys.platform != "darwin":
         raise RuntimeError("app step is currently supported on macOS only.")
 
-    command = ["osascript", "-e", f'tell application "{name}" to activate']
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    # Bound AppleEvent waits — default osascript timeouts can hang for ~120s.
+    script = (
+        f"with timeout of 5 seconds\n"
+        f'  tell application "{name}" to activate\n'
+        f"end timeout"
+    )
+    command = ["osascript", "-e", script]
+    last_error = "unknown error"
+    for attempt in range(1, 4):
+        completed = subprocess.run(command, check=False, capture_output=True, text=True)
+        if completed.returncode != 0:
+            last_error = completed.stderr.strip() or "unknown error"
+            sleep(0.35 * attempt)
+            continue
+        # Give macOS a short moment to settle focus transitions.
+        sleep(0.25 * attempt)
+        frontmost = _frontmost_app_name()
+        if frontmost == name:
+            return
+        last_error = f"frontmost app is '{frontmost}'."
+        sleep(0.25 * attempt)
+
+    raise RuntimeError(f"Could not focus app '{name}': {last_error}")
+
+
+def _textedit_set_front_document_text(text: str, *, font_size: int | None = None) -> None:
+    """Set TextEdit front document text via AppleScript (avoids keystroke focus races)."""
+    import subprocess
+    import sys
+
+    if sys.platform != "darwin":
+        raise RuntimeError("applescript type via is currently supported on macOS only.")
+
+    _textedit_close_all_documents()
+
+    escaped = (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "")
+    )
+    size_block = ""
+    if font_size is not None:
+        if font_size <= 0:
+            raise ValueError("type size must be > 0 when provided.")
+        size_block = (
+            f"    try\n"
+            f"      set size of text of front document to {int(font_size)}\n"
+            f"    end try\n"
+            f"    try\n"
+            f"      set size of every attribute run of text of front document "
+            f"to {int(font_size)}\n"
+            f"    end try\n"
+        )
+    script = f"""
+with timeout of 8 seconds
+  tell application "TextEdit"
+    activate
+    make new document
+    set text of front document to "{escaped}"
+{size_block}  end tell
+end timeout
+""".strip()
+    completed = subprocess.run(
+        ["osascript", "-e", script], check=False, capture_output=True, text=True
+    )
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or "unknown error"
-        raise RuntimeError(f"Could not focus app '{name}': {stderr}")
-    # Give macOS a short moment to settle focus transitions.
-    sleep(0.15)
-    frontmost = _frontmost_app_name()
-    if frontmost and frontmost != name:
-        raise RuntimeError(f"Could not focus app '{name}': frontmost app is '{frontmost}'.")
+        raise RuntimeError(f"Could not set TextEdit document text: {stderr}")
+    sleep(0.45)
+
+
+def _textedit_close_all_documents() -> None:
+    """Close every TextEdit document without saving (dismisses save sheets)."""
+    import subprocess
+    import sys
+
+    if sys.platform != "darwin":
+        return
+
+    script = """
+with timeout of 8 seconds
+  tell application "TextEdit"
+    activate
+    repeat while (count of documents) > 0
+      try
+        close front document saving no
+      on error
+        exit repeat
+      end try
+    end repeat
+  end tell
+  tell application "System Events"
+    if exists (process "TextEdit") then
+      tell process "TextEdit"
+        repeat 10 times
+          if exists (sheet 1 of window 1) then
+            try
+              click button "Delete" of sheet 1 of window 1
+            end try
+            try
+              click button "Don't Save" of sheet 1 of window 1
+            end try
+            delay 0.15
+          else
+            exit repeat
+          end if
+        end repeat
+      end tell
+    end if
+  end tell
+end timeout
+""".strip()
+    subprocess.run(["osascript", "-e", script], check=False, capture_output=True, text=True)
+    sleep(0.2)
 
 
 def _frontmost_app_name() -> str | None:
@@ -592,7 +758,12 @@ def _frontmost_app_name() -> str | None:
     command = [
         "osascript",
         "-e",
-        'tell application "System Events" to get name of first process whose frontmost is true',
+        (
+            "with timeout of 3 seconds\n"
+            '  tell application "System Events" to get name of first process '
+            "whose frontmost is true\n"
+            "end timeout"
+        ),
     ]
     completed = subprocess.run(command, check=False, capture_output=True, text=True)
     if completed.returncode != 0:

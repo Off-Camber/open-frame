@@ -13,7 +13,17 @@ It is the evidence task for Action Plan checkpoint item `C.8`.
 
 ## Run the benchmark
 
-Dry-run on one flow:
+Dry-run on deterministic MCP gate flows:
+
+```bash
+.venv311/bin/python scripts/mcp_repeatability_benchmark.py \
+  --flow examples/flows/mcp-dry-run-wait/flow.yaml \
+  --flow examples/flows/mcp-dry-run-actions/flow.yaml \
+  --repetitions 20 \
+  --mode dry-run
+```
+
+Dry-run on one app-dependent flow:
 
 ```bash
 .venv311/bin/python scripts/mcp_repeatability_benchmark.py \
@@ -61,6 +71,11 @@ Each sample includes:
 
 For checkpoint validation, start with:
 
-- dry-run pass rate >= 95% on representative flows
+- dry-run pass rate >= 95% on the deterministic MCP gate flows
+  (`examples/flows/mcp-dry-run-wait/flow.yaml`,
+  `examples/flows/mcp-dry-run-actions/flow.yaml`)
 - stable error codes on failures (no envelope drift)
 - no large runtime regressions vs previous report
+
+App-dependent example flows (Outlook, TextEdit calibration) belong in the
+local macOS live gate, not the dry-run repeatability floor.
