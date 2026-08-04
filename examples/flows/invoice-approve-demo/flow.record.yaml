@@ -1,0 +1,25 @@
+name: invoice-approve-demo-record
+description: >
+  Hero recording variant — page is already open in a positioned Safari window.
+steps:
+  - id: focus-safari
+    kind: app
+    name: "Safari"
+
+  - id: wait-focus
+    kind: wait
+    ms: 500
+
+  - id: click-post-payment
+    kind: click
+    query: "Post payment"
+    selector: first
+    timeout_ms: 10000
+    poll_ms: 250
+
+  - id: verify-posted
+    kind: verify
+    timeout_ms: 8000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"Payment posted to Northline"'
