@@ -111,6 +111,8 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
             return (target.x, target.y)
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
+    # Force geometric window filtering (the path under test), not native window capture.
+    monkeypatch.setattr("openframe.runner._capture_frontmost_window_frame", lambda: None)
     monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
