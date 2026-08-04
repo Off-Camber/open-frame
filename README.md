@@ -9,10 +9,10 @@ Open-source desktop automation engine for AI agents and scripts.
 **Open Frame** sees what is on screen, finds targets, interacts with UI, and verifies outcomes. It is built to be deterministic, scriptable, and auditable.
 
 <p align="center">
-  <img src="docs/assets/calibration.gif" alt="Open Frame calibration flow running" width="720" />
+  <img src="docs/assets/invoice-approve.gif" alt="Open Frame approving an invoice in the browser" width="720" />
 </p>
 
-<sub>Above: <code>open-frame run examples/flows/calibration-token/flow.yaml --dry-run --json</code> showing deterministic step execution with structured per-step output.</sub>
+<sub>Above: Open Frame drives a live invoice UI — <strong>FIND</strong> “Post payment”, <strong>CLICK</strong> the match, <strong>VERIFY</strong> “Payment posted to Northline.”</sub>
 
 > Open Frame is an independent project and is not affiliated with or endorsed by any third-party automation vendor.
 

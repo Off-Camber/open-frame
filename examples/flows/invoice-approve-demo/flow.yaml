@@ -1,0 +1,26 @@
+name: invoice-approve-demo
+description: >
+  Marketable hero demo — open a local invoice page, click Post payment, verify success.
+  Serve examples/demo/invoice-approve with: python -m http.server 8765 --bind 127.0.0.1
+steps:
+  - id: open-invoice
+    kind: navigate
+    url: "http://127.0.0.1:8765/"
+
+  - id: wait-page
+    kind: wait
+    ms: 1800
+
+  - id: click-post-payment
+    kind: click
+    query: "Post payment"
+    selector: first
+    timeout_ms: 10000
+    poll_ms: 250
+
+  - id: verify-posted
+    kind: verify
+    timeout_ms: 8000
+    poll_ms: 250
+    specs:
+      - 'text-appeared:"Payment posted to Northline"'

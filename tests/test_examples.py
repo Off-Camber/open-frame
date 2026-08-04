@@ -195,6 +195,28 @@ def test_doc_attach_email_flow_shares_one_artifact() -> None:
     assert 'text-appeared:"{{subject_marker}}"' in text
 
 
+def test_invoice_approve_demo_flow_is_present() -> None:
+    base = Path(__file__).resolve().parent.parent / "examples" / "flows" / "invoice-approve-demo"
+    flow = (base / "flow.yaml").read_text(encoding="utf-8")
+    record = (base / "flow.record.yaml").read_text(encoding="utf-8")
+    page = (
+        Path(__file__).resolve().parent.parent
+        / "examples"
+        / "demo"
+        / "invoice-approve"
+        / "index.html"
+    ).read_text(encoding="utf-8")
+
+    assert "name: invoice-approve-demo" in flow
+    assert "kind: navigate" in flow
+    assert 'query: "Post payment"' in flow
+    assert 'text-appeared:"Payment posted to Northline"' in flow
+    assert "name: invoice-approve-demo-record" in record
+    assert "Post payment" in page
+    assert "Payment posted to Northline." in page
+    assert 'id="badge"' in page
+
+
 def test_mcp_dry_run_gate_flows_are_deterministic() -> None:
     base = Path(__file__).resolve().parent.parent / "examples" / "flows"
     wait_text = (base / "mcp-dry-run-wait" / "flow.yaml").read_text(encoding="utf-8")

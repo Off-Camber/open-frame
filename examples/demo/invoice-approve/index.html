@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice INV-4821 — Approval</title>
+    <style>
+      :root {
+        --ink: #10151c;
+        --paper: #f4efe6;
+        --line: #d7d0c4;
+        --muted: #5c6570;
+        --approve: #0b6e4f;
+        --approve-hover: #095c42;
+        --reject: #6b2f2f;
+        --pending: #9a6b16;
+        --ok: #0b6e4f;
+        --shadow: 0 18px 50px rgba(16, 21, 28, 0.28);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 700px at 12% -10%, #2a3644 0%, transparent 55%),
+          radial-gradient(900px 600px at 100% 0%, #1a4338 0%, transparent 45%),
+          linear-gradient(160deg, #151b24 0%, #0d1117 55%, #121820 100%);
+        display: grid;
+        place-items: center;
+        padding: 48px 24px;
+      }
+
+      .stage {
+        width: min(720px, 100%);
+      }
+
+      .eyebrow {
+        color: #c7d0da;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+        font-weight: 500;
+      }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+        padding: 36px 40px 32px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 22px;
+        margin-bottom: 26px;
+      }
+
+      h1 {
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        font-size: 34px;
+        line-height: 1.1;
+        margin: 0 0 8px;
+        font-weight: 600;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--pending);
+        background: rgba(154, 107, 22, 0.08);
+        white-space: nowrap;
+      }
+
+      .badge.approved {
+        color: var(--ok);
+        background: rgba(11, 110, 79, 0.1);
+      }
+
+      .badge::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 18px 28px;
+        margin-bottom: 28px;
+      }
+
+      .label {
+        display: block;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+
+      .value {
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .amount {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 8px;
+      }
+
+      button {
+        font: inherit;
+        border: 0;
+        cursor: pointer;
+        border-radius: 3px;
+        padding: 14px 22px;
+        font-size: 18px;
+        font-weight: 600;
+        min-width: 140px;
+        transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+      }
+
+      button:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+
+      #approve {
+        background: #06382b;
+        color: #f5fff9;
+        font-size: 22px;
+        letter-spacing: 0.01em;
+        padding: 16px 26px;
+        min-width: 180px;
+        border: 1px solid #0b6e4f;
+      }
+
+      #approve:hover:not(:disabled) {
+        background: #0b6e4f;
+      }
+
+      #reject {
+        background: transparent;
+        color: var(--reject);
+        border: 1px solid rgba(107, 47, 47, 0.45);
+      }
+
+      .note {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        min-height: 1.4em;
+      }
+
+      .note.ok {
+        color: var(--ok);
+        font-weight: 700;
+        font-size: 20px;
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-radius: 3px;
+        background: rgba(11, 110, 79, 0.12);
+        border: 1px solid rgba(11, 110, 79, 0.28);
+      }
+
+      @media (max-width: 640px) {
+        .header,
+        .grid,
+        .actions {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        .card {
+          padding: 28px 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <p class="eyebrow">Accounts payable</p>
+      <section class="card" aria-label="Invoice approval">
+        <div class="header">
+          <div>
+            <h1>Invoice INV-4821</h1>
+            <p class="meta">Northline Supplies · Net 30 · Due Aug 18</p>
+          </div>
+          <div id="badge" class="badge" aria-live="polite">Pending</div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <span class="label">Vendor</span>
+            <div class="value">Northline Supplies</div>
+          </div>
+          <div>
+            <span class="label">Amount due</span>
+            <div class="value amount">$4,280.00</div>
+          </div>
+          <div>
+            <span class="label">PO reference</span>
+            <div class="value">PO-11904</div>
+          </div>
+          <div>
+            <span class="label">Submitted by</span>
+            <div class="value">ops@northline.example</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="approve" type="button" aria-label="Post payment">Post payment</button>
+          <button id="reject" type="button">Reject</button>
+        </div>
+        <p id="note" class="note">Review line items, then release funds to the vendor.</p>
+      </section>
+    </main>
+
+    <script>
+      const approve = document.getElementById("approve");
+      const reject = document.getElementById("reject");
+      const badge = document.getElementById("badge");
+      const note = document.getElementById("note");
+
+      approve.addEventListener("click", () => {
+        badge.textContent = "Approved";
+        badge.classList.add("approved");
+        note.textContent = "Payment posted to Northline.";
+        note.classList.add("ok");
+        approve.disabled = true;
+        reject.disabled = true;
+      });
+
+      reject.addEventListener("click", () => {
+        badge.textContent = "Rejected";
+        note.textContent = "Returned to vendor for revision.";
+        approve.disabled = true;
+        reject.disabled = true;
+      });
+    </script>
+  </body>
+</html>
