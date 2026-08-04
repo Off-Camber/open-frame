@@ -92,17 +92,24 @@ This is preferred over hardcoding long `wait` steps.
 
 ### 3b) Fail fast on ambiguous targets
 
-Set `expect_one: true` on `click` and `fill` when the step should only ever match one element.
+Click/fill are fail-closed by default: if more than one target matches and you
+did not set `selector` or `expect_one`, the step fails with `ambiguous_target`
+instead of guessing.
 
-If multiple matches exist, the runner fails with `ambiguous_target` so the agent/orchestrator can disambiguate instead of guessing.
+Set `expect_one: true` when the step should only ever match one element.
 
-When you intentionally allow multiple matches, you can set a deterministic `selector` (on `click` and `fill`):
+When you intentionally allow multiple matches, set an explicit deterministic
+`selector` (on `click` and `fill`):
 
-- `first` (default)
+- `first`
 - `top_most`
 - `left_most`
 - `right_most`
 - `highest_confidence`
+
+When you set `scope: window` on find/verify/click, Open Frame captures the
+frontmost window image directly (not a full-screen shot filtered by bounds).
+That avoids OCR'ing whatever other app is visually covering the same rectangle.
 
 ### 4) Add fallbacks for brittle points
 
@@ -269,7 +276,14 @@ Before running complex cross-app flows, run a calibration flow that checks an un
 open-frame run examples/flows/calibration-token/flow.yaml --json
 ```
 
-The calibration flow writes a unique token (`OF-CAL-{{run_id}}`) into TextEdit and verifies that token appears on screen.
+The calibration flow types a unique marker (`CALMARK89` plus `{{run_id}}`) into
+TextEdit via AppleScript (large font, no keystroke focus races), verifies it with
+window-scoped OCR, then closes the document. For release-style evidence, prefer
+the full live gate:
+
+```bash
+./scripts/macos_live_gate.sh
+```
 
 If calibration fails, pause and fix environment/setup (permissions, focus behavior, recognizer setup) before trusting higher-level flow results.
 

@@ -63,3 +63,15 @@ Without these permissions, capture/recognize/act steps may fail or return empty 
 - Prefer unit tests with fixture images where possible.
 - Keep OS-specific behavior behind abstractions and guard checks.
 - For manual tests, document app versions, display scaling, and expected outcomes.
+
+## Release / stability gates
+
+Hosted CI covers lint, unit tests, and packaging on Python 3.11 and 3.12.
+Permissioned GUI checks are local-only:
+
+```bash
+./scripts/macos_live_gate.sh
+```
+
+See `docs/RELEASE_GATES.md` for the full candidate-SHA checklist before changing
+release-status language or package version.

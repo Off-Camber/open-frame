@@ -1,33 +1,27 @@
 name: calibration-token
 variables:
-  marker: "OFMARKZXQ"
+  # Prefer digits/consonants: leading O in OFMARKZXQ is often OCR'd as Q on
+  # Retina TextEdit crops, while Cursor may also display markers on-screen.
+  marker: "CALMARK89"
   token: "{{marker}} {{run_id}}"
 steps:
   - id: focus-textedit
     kind: app
     name: "TextEdit"
 
-  - id: new-document
-    kind: key
-    combo:
-      - command
-      - n
-    window:
-      app: "TextEdit"
-
-  - id: wait-document
-    kind: wait
-    ms: 1200
-
+  # AppleScript set closes leftover docs/sheets, creates a fresh document, and
+  # sets large text — avoids keystroke races and save-sheet occlusion.
   - id: type-token
     kind: type
     text: "{{token}}"
+    via: applescript
+    size: 48
     window:
       app: "TextEdit"
 
   - id: wait-settle
     kind: wait
-    ms: 700
+    ms: 900
 
   - id: refocus-before-verify
     kind: app
@@ -35,7 +29,7 @@ steps:
 
   - id: verify-token-visible
     kind: verify
-    timeout_ms: 8000
+    timeout_ms: 12000
     poll_ms: 250
     scope: window
     window:
@@ -48,22 +42,14 @@ steps:
     kind: app
     name: "TextEdit"
 
+  # Close without save prompts (Cmd+W can leave sheets that poison the next run).
   - id: close-document
-    kind: key
-    combo:
-      - command
-      - w
+    kind: type
+    text: ""
+    via: applescript-close
     window:
       app: "TextEdit"
 
-  - id: wait-save-sheet
+  - id: wait-after-close
     kind: wait
-    ms: 700
-
-  # Newer TextEdit close sheets label the discard action "Delete" (not "Don't Save").
-  - id: discard-save
-    kind: click
-    query: "Delete"
-    selector: left_most
-    timeout_ms: 4000
-    poll_ms: 200
+    ms: 400

@@ -1,58 +1,35 @@
 name: calibration-token-miss
 variables:
-  marker: "OFMARKZXQ"
-  missing: "OFMISSINGZZZ"
+  marker: "CALMARK89"
+  missing: "CALMISSING99"
 steps:
   - id: focus-textedit
     kind: app
     name: "TextEdit"
 
-  - id: new-document
-    kind: key
-    combo:
-      - command
-      - n
-    window:
-      app: "TextEdit"
-
-  - id: wait-document
-    kind: wait
-    ms: 900
-
   - id: type-marker-only
     kind: type
     text: "{{marker}}"
+    via: applescript
+    size: 48
     window:
       app: "TextEdit"
 
   - id: wait-settle
     kind: wait
-    ms: 500
+    ms: 400
 
   - id: refocus-before-close
     kind: app
     name: "TextEdit"
 
-  # Close before the intentional failure so the run does not leave an Untitled
-  # window behind when verify stops the flow.
+  # Close before the intentional failure so the run does not leave docs/sheets.
   - id: close-document
-    kind: key
-    combo:
-      - command
-      - w
+    kind: type
+    text: ""
+    via: applescript-close
     window:
       app: "TextEdit"
-
-  - id: wait-save-sheet
-    kind: wait
-    ms: 700
-
-  - id: discard-save
-    kind: click
-    query: "Delete"
-    selector: left_most
-    timeout_ms: 4000
-    poll_ms: 200
 
   - id: wait-after-close
     kind: wait

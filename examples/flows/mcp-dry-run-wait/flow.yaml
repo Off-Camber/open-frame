@@ -1,0 +1,9 @@
+name: mcp-dry-run-wait
+steps:
+  - id: wait-one
+    kind: wait
+    ms: 1
+  - id: write-marker
+    kind: write_file
+    path: "{{run_dir}}/marker.txt"
+    text: "mcp-dry-run {{run_id}}"

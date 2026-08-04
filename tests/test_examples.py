@@ -84,25 +84,22 @@ def test_calibration_flow_has_unique_token_outcome_verify() -> None:
     text = flow_path.read_text(encoding="utf-8")
 
     assert "name: calibration-token" in text
-    assert 'marker: "OFMARKZXQ"' in text
+    assert 'marker: "CALMARK89"' in text
     assert 'token: "{{marker}} {{run_id}}"' in text
     assert 'name: "TextEdit"' in text
-    assert "new-document" in text
-    assert "- command" in text
-    assert "- n" in text
     assert "type-token" in text
     assert "verify-token-visible" in text
     assert 'text-appeared:"{{marker}}"' in text
     assert "scope: window" in text
     assert "wait-settle" in text
-    assert "wait-document" in text
     assert 'app: "TextEdit"' in text
     assert "refocus-before-verify" in text
     assert "refocus-before-close" in text
     assert "close-document" in text
-    assert "discard-save" in text
-    assert 'query: "Delete"' in text
-    assert "selector: left_most" in text
+    assert "via: applescript" in text
+    assert "via: applescript-close" in text
+    assert "size: 48" in text
+    assert text.index("via: applescript") < text.index("verify-token-visible")
     assert text.index('window-app:"TextEdit"') < text.index('text-appeared:"{{marker}}"')
 
 
@@ -117,15 +114,15 @@ def test_calibration_miss_flow_verifies_absent_marker() -> None:
     text = flow_path.read_text(encoding="utf-8")
 
     assert "name: calibration-token-miss" in text
-    assert 'missing: "OFMISSINGZZZ"' in text
+    assert 'missing: "CALMISSING99"' in text
     assert "verify-missing-text" in text
     assert 'text-appeared:"{{missing}}"' in text
     assert "timeout_ms: 1500" in text
     assert "close-document" in text
-    assert "discard-save" in text
-    assert 'query: "Delete"' in text
+    assert "via: applescript-close" in text
+    assert "via: applescript" in text
     # Teardown must run before the failing verify so the window is not orphaned.
-    assert text.index("discard-save") < text.index("verify-missing-text")
+    assert text.index("close-document") < text.index("verify-missing-text")
 
 
 def test_word_create_only_flow_has_document_outcome_check() -> None:
@@ -196,6 +193,21 @@ def test_doc_attach_email_flow_shares_one_artifact() -> None:
     assert "verify-sent" in text
     assert "match_bounds:" in text
     assert 'text-appeared:"{{subject_marker}}"' in text
+
+
+def test_mcp_dry_run_gate_flows_are_deterministic() -> None:
+    base = Path(__file__).resolve().parent.parent / "examples" / "flows"
+    wait_text = (base / "mcp-dry-run-wait" / "flow.yaml").read_text(encoding="utf-8")
+    actions_text = (base / "mcp-dry-run-actions" / "flow.yaml").read_text(encoding="utf-8")
+
+    assert "name: mcp-dry-run-wait" in wait_text
+    assert "kind: wait" in wait_text
+    assert "kind: write_file" in wait_text
+    assert "name: mcp-dry-run-actions" in actions_text
+    assert "kind: type" in actions_text
+    assert "kind: key" in actions_text
+    assert "kind: app" not in wait_text
+    assert "kind: verify" not in actions_text
 
 
 def test_mcp_pilot_example_references_compact_envelope() -> None:

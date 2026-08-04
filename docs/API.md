@@ -125,6 +125,13 @@ Stable error codes used by MCP tools include:
 - `expect_one: true` for deterministic targeting (multiple matches return `ambiguous_target`)
 - `selector` for deterministic candidate choice when multiple matches are allowed (`first`, `top_most`, `left_most`, `right_most`, `highest_confidence`)
 
+Without `selector` or `expect_one`, multi-match click/fill fails closed with
+`ambiguous_target`. Recognition defaults to token/phrase matching; use
+`match_mode: "substring"` only when legacy containment is intentional.
+
+Coordinates for click/fill are resolved through the shared scale-aware selector
+so Session, flow runner, CLI, and MCP stay aligned on Retina displays.
+
 ## Choosing SDK vs MCP
 
 - Use `Session` when your automation lives in Python code in the same process.
