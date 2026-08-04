@@ -449,30 +449,35 @@ def _capture_scoped_frame(*, scope_to_window: bool) -> tuple[Frame, bool]:
 
 
 def _capture_frontmost_window_frame() -> Frame | None:
-    """Capture the frontmost app window image (not a full-screen crop)."""
-    state = frontmost_window()
-    if state is None or state.width <= 0 or state.height <= 0:
-        return None
+    """Capture the frontmost app window image (not a full-screen crop).
 
-    windows = list_windows()
-    candidates = [
-        item
-        for item in windows
-        if str(item.get("owner", "")) == state.app
-    ]
-    if not candidates:
-        return None
-
-    selected = None
-    if state.title:
-        for item in candidates:
-            if str(item.get("title", "")) == state.title:
-                selected = item
-                break
-    if selected is None:
-        selected = candidates[0]
-
+    Returns None when window capture is unavailable (non-macOS, permission
+    gaps, or no matching window) so callers can fall back to screen capture
+    plus geometric window filtering.
+    """
     try:
+        state = frontmost_window()
+        if state is None or state.width <= 0 or state.height <= 0:
+            return None
+
+        windows = list_windows()
+        candidates = [
+            item
+            for item in windows
+            if str(item.get("owner", "")) == state.app
+        ]
+        if not candidates:
+            return None
+
+        selected = None
+        if state.title:
+            for item in candidates:
+                if str(item.get("title", "")) == state.title:
+                    selected = item
+                    break
+        if selected is None:
+            selected = candidates[0]
+
         return window(window_id=int(selected["id"]))
     except (CaptureError, KeyError, TypeError, ValueError):
         return None
