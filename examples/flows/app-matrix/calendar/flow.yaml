@@ -1,0 +1,32 @@
+name: app-matrix-calendar
+description: >
+  Non-destructive Calendar probe — activate Calendar, find Today,
+  verify frontmost app. No create/delete events.
+steps:
+  - id: focus-calendar
+    kind: app
+    name: "Calendar"
+
+  - id: wait-settle
+    kind: wait
+    ms: 1500
+
+  - id: find-today
+    kind: find
+    query: "Today"
+    timeout_ms: 10000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Calendar"
+
+  - id: verify-calendar
+    kind: verify
+    timeout_ms: 6000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Calendar"
+    specs:
+      - 'window-app:"Calendar"'
+      - 'text-appeared:"Today"'
