@@ -242,3 +242,39 @@ def test_mcp_pilot_example_references_compact_envelope() -> None:
     assert "REQUIRED_KEYS" in pilot_text
     assert '"tool"' in pilot_text
     assert '"artifacts"' in pilot_text
+
+
+def test_app_matrix_flows_are_present_and_non_destructive() -> None:
+    base = Path(__file__).resolve().parent.parent / "examples" / "flows" / "app-matrix"
+    expected = (
+        "finder",
+        "safari",
+        "mail",
+        "system-settings",
+        "notes",
+        "calendar",
+    )
+    for app_id in expected:
+        flow_path = base / app_id / "flow.yaml"
+        text = flow_path.read_text(encoding="utf-8")
+        assert f"name: app-matrix-{app_id}" in text or (
+            app_id == "system-settings" and "name: app-matrix-system-settings" in text
+        )
+        assert "kind: app" in text or "kind: navigate" in text
+        assert "kind: find" in text
+        assert "kind: verify" in text
+        # Non-destructive: no real click / type / fill / key actuation.
+        assert "kind: click" not in text
+        assert "kind: type" not in text
+        assert "kind: fill" not in text
+        assert "kind: key" not in text
+
+    readme = (base / "README.md").read_text(encoding="utf-8")
+    assert "app_matrix_gate.sh" in readme
+    assert "defect-list.md" in readme
+
+    gate = (
+        Path(__file__).resolve().parent.parent / "scripts" / "app_matrix_gate.sh"
+    ).read_text(encoding="utf-8")
+    assert "OPENFRAME_APP_MATRIX_STRICT" in gate
+    assert "defect-list.md" in gate

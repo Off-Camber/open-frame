@@ -1,0 +1,32 @@
+name: app-matrix-system-settings
+description: >
+  Non-destructive System Settings probe — activate Settings, find General,
+  verify frontmost app. No preference writes.
+steps:
+  - id: focus-settings
+    kind: app
+    name: "System Settings"
+
+  - id: wait-settle
+    kind: wait
+    ms: 1500
+
+  - id: find-general
+    kind: find
+    query: "General"
+    timeout_ms: 10000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "System Settings"
+
+  - id: verify-settings
+    kind: verify
+    timeout_ms: 6000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "System Settings"
+    specs:
+      - 'window-app:"System Settings"'
+      - 'text-appeared:"General"'

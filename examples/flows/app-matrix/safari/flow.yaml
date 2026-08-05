@@ -1,0 +1,40 @@
+name: app-matrix-safari
+description: >
+  Non-destructive Safari probe — open example.com, find Example Domain,
+  verify text. No clicks that navigate away.
+steps:
+  - id: open-example
+    kind: navigate
+    url: "https://example.com/"
+
+  - id: wait-page
+    kind: wait
+    ms: 2500
+
+  - id: focus-safari
+    kind: app
+    name: "Safari"
+
+  - id: wait-settle
+    kind: wait
+    ms: 800
+
+  - id: find-example-domain
+    kind: find
+    query: "Example Domain"
+    timeout_ms: 12000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Safari"
+
+  - id: verify-example
+    kind: verify
+    timeout_ms: 8000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Safari"
+    specs:
+      - 'window-app:"Safari"'
+      - 'text-appeared:"Example Domain"'

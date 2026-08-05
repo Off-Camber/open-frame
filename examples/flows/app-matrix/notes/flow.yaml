@@ -1,0 +1,32 @@
+name: app-matrix-notes
+description: >
+  Non-destructive Notes probe — activate Notes, find Notes chrome label,
+  verify frontmost app. No create/delete.
+steps:
+  - id: focus-notes
+    kind: app
+    name: "Notes"
+
+  - id: wait-settle
+    kind: wait
+    ms: 1200
+
+  - id: find-notes-label
+    kind: find
+    query: "Notes"
+    timeout_ms: 10000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Notes"
+
+  - id: verify-notes
+    kind: verify
+    timeout_ms: 6000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Notes"
+    specs:
+      - 'window-app:"Notes"'
+      - 'text-appeared:"Notes"'

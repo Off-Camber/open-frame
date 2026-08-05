@@ -1,0 +1,32 @@
+name: app-matrix-mail
+description: >
+  Non-destructive Mail probe — activate Mail, find Inbox (or Mailboxes),
+  verify frontmost app. No compose/send.
+steps:
+  - id: focus-mail
+    kind: app
+    name: "Mail"
+
+  - id: wait-settle
+    kind: wait
+    ms: 1500
+
+  - id: find-inbox
+    kind: find
+    query: "Inbox"
+    timeout_ms: 10000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Mail"
+
+  - id: verify-mail
+    kind: verify
+    timeout_ms: 6000
+    poll_ms: 300
+    scope: window
+    window:
+      app: "Mail"
+    specs:
+      - 'window-app:"Mail"'
+      - 'text-appeared:"Inbox"'

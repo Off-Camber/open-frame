@@ -64,8 +64,13 @@ Before a status/version decision, also record:
    `examples/flows/mcp-dry-run-actions/flow.yaml`
    (`docs/MCP_BENCHMARK.md`)
 3. macOS live gate above (including MCP stdio smoke)
-4. Bounded read-only agent acceptance (`docs/AGENT_ACCEPTANCE.md`) when API credentials are available
-5. Fresh-user walkthrough: install → `open-frame doctor` → MCP client config → first dry-run tool call (under ten minutes)
+4. **App validation matrix** (`./scripts/app_matrix_gate.sh`) for Finder,
+   Safari, Mail, System Settings, Notes, and Calendar — see
+   [examples/flows/app-matrix/README.md](../examples/flows/app-matrix/README.md).
+   App failures seed the robustness burn-down list; they do not by themselves
+   block the harness unless `OPENFRAME_APP_MATRIX_STRICT=1`.
+5. Bounded read-only agent acceptance (`docs/AGENT_ACCEPTANCE.md`) when API credentials are available
+6. Fresh-user walkthrough: install → `open-frame doctor` → MCP client config → first dry-run tool call (under ten minutes)
 
 ## Release posture
 
