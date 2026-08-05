@@ -118,3 +118,57 @@ def test_wait_for_frame_change_detects_change() -> None:
     changed = actuator.wait_for_frame_change(capture_frame=capture, timeout_ms=50, poll_ms=1)
 
     assert changed is True
+
+
+def test_scroll_uses_pyautogui(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[tuple, dict]] = []
+
+    class StubPyAuto:
+        def scroll(self, *args, **kwargs):
+            calls.append((args, kwargs))
+
+    monkeypatch.setitem(sys.modules, "pyautogui", StubPyAuto())
+    Actuator(dry_run=False).scroll(-3, x=100, y=200)
+    assert calls[0][0][0] == -3
+    assert calls[0][1]["x"] == 100
+    assert calls[0][1]["y"] == 200
+
+
+def test_scroll_dry_run_skips_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Boom:
+        def scroll(self, *args, **kwargs):
+            raise AssertionError("should not scroll in dry_run")
+
+    monkeypatch.setitem(sys.modules, "pyautogui", Boom())
+    Actuator(dry_run=True).scroll(-5)
+
+
+def test_drag_uses_pyautogui(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, tuple, dict]] = []
+
+    class StubPyAuto:
+        def moveTo(self, *args, **kwargs):
+            calls.append(("moveTo", args, kwargs))
+
+        def dragTo(self, *args, **kwargs):
+            calls.append(("dragTo", args, kwargs))
+
+    monkeypatch.setitem(sys.modules, "pyautogui", StubPyAuto())
+    Actuator(dry_run=False).drag(10, 20, 30, 40, duration=0.1, button="left")
+    assert calls[0][0] == "moveTo"
+    assert calls[0][1][:2] == (10, 20)
+    assert calls[1][0] == "dragTo"
+    assert calls[1][1][:2] == (30, 40)
+    assert calls[1][2]["duration"] == 0.1
+
+
+def test_drag_dry_run_skips_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Boom:
+        def moveTo(self, *args, **kwargs):
+            raise AssertionError("should not move in dry_run")
+
+        def dragTo(self, *args, **kwargs):
+            raise AssertionError("should not drag in dry_run")
+
+    monkeypatch.setitem(sys.modules, "pyautogui", Boom())
+    Actuator(dry_run=True).drag(1, 2, 3, 4)

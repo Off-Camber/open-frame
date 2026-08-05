@@ -23,6 +23,7 @@ EXPECTED_TOOLS = {
     "click",
     "type",
     "key",
+    "scroll",
     "run_flow",
     "get_run_artifacts",
 }
@@ -39,7 +40,7 @@ def _schema_enums(schema: dict[str, Any]) -> set[str]:
     return values
 
 
-def test_create_mcp_server_lists_seven_tools_with_schemas() -> None:
+def test_create_mcp_server_lists_tools_with_schemas() -> None:
     server = create_mcp_server()
 
     async def _check() -> None:
@@ -61,6 +62,9 @@ def test_create_mcp_server_lists_seven_tools_with_schemas() -> None:
             assert {"screen", "window", "region"}.issubset(
                 _schema_enums(by_name["capture"].inputSchema["properties"]["mode"])
             )
+            scroll_schema = by_name["scroll"].inputSchema
+            assert "clicks" in scroll_schema["required"]
+            assert scroll_schema["properties"]["clicks"]["type"] == "integer"
             assert MCP_CONTRACT_VERSION in (server.instructions or "")
 
     _run(_check())

@@ -113,7 +113,10 @@ class Actuator:
         pyautogui.press(key)
 
     def scroll(self, clicks: int, *, x: int | None = None, y: int | None = None) -> None:
-        """Scroll at a point (or current cursor position)."""
+        """Scroll at a point (or current cursor position).
+
+        Positive ``clicks`` scroll up; negative scroll down (pyautogui convention).
+        """
         if self.dry_run:
             return
         pyautogui = _load_pyautogui()
@@ -121,6 +124,25 @@ class Actuator:
             pyautogui.scroll(clicks, x=x, y=y)
             return
         pyautogui.scroll(clicks)
+
+    def drag(
+        self,
+        start_x: int,
+        start_y: int,
+        end_x: int,
+        end_y: int,
+        *,
+        duration: float = 0.2,
+        button: Literal["left", "middle", "right"] = "left",
+    ) -> None:
+        """Drag from one screen point to another in logical coordinates."""
+        if duration < 0:
+            raise ValueError("duration must be >= 0")
+        if self.dry_run:
+            return
+        pyautogui = _load_pyautogui()
+        pyautogui.moveTo(start_x, start_y)
+        pyautogui.dragTo(end_x, end_y, duration=duration, button=button)
 
     def wait_ms(self, milliseconds: int) -> None:
         """Wait for a fixed duration."""

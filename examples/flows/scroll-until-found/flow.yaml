@@ -1,0 +1,37 @@
+name: scroll-until-found-probe
+description: >
+  Open the local scroll-probe HTML in Safari and find OFSCROLLMARKER below
+  the fold via bounded scroll_until_found. Prefer scripts/run_scroll_probe.sh
+  so page_url is resolved for this machine.
+variables:
+  # Overridden by scripts/run_scroll_probe.sh; edit for a one-off manual run.
+  page_url: "file:///ABSOLUTE/PATH/TO/open-frame/examples/demo/scroll-probe/index.html"
+steps:
+  - id: open-page
+    kind: navigate
+    url: "{{page_url}}"
+
+  - id: wait-load
+    kind: wait
+    ms: 2000
+
+  - id: focus-safari
+    kind: app
+    name: "Safari"
+
+  - id: wait-settle
+    kind: wait
+    ms: 600
+
+  - id: find-marker
+    kind: find
+    query: "OFSCROLLMARKER"
+    scroll_until_found: true
+    max_scroll_attempts: 12
+    scroll_clicks: -5
+    scroll_poll_ms: 250
+    timeout_ms: 1200
+    poll_ms: 200
+    scope: window
+    window:
+      app: "Safari"

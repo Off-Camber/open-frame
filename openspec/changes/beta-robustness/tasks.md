@@ -34,14 +34,14 @@ artifacts; matrix tooling merges even if some apps fail.
 
 Branch: `feat/template-recognizer`  
 Spec: `specs/template-recognizer/spec.md`  
-Status: **in progress**
+Status: **done** (merged to main)
 
 - [x] Add `template` optional extra (Pillow + numpy) and `src/openframe/recognize/template/`
 - [x] Implement `Recognizer` with normalized cross-correlation; Retina/`scale_factor` parity
 - [x] Opt-in `template` path param through Locator / runner / CLI / MCP (default path unchanged)
 - [x] Fail closed on zero/ambiguous matches unless explicit selector
 - [x] Fixture tests at 1x and 2x; live icon-only target probe (OCR miss, template hit)
-- [ ] Open PR; merge; delete branch
+- [x] Open PR; merge; delete branch
 
 **Acceptance:** icon-only target found via template; a11y+OCR-only callers unchanged.
 
@@ -49,12 +49,12 @@ Status: **in progress**
 
 Branch: `feat/scroll-drag-steps`  
 Spec: `specs/scroll-drag-steps/spec.md`  
-Status: **planned** — after PR 1 (parallel with PR 2 OK)
+Status: **in progress**
 
-- [ ] Expose `scroll` flow step; add `Actuator.drag` + `drag` flow step
-- [ ] Add bounded `scroll_until_found` params on `find` / `click`
-- [ ] Add MCP `scroll` tool to adapter + stdio server (schemas + tests)
-- [ ] Unit tests with monkeypatched actuator; live Safari below-fold probe
+- [x] Expose `scroll` flow step; add `Actuator.drag` + `drag` flow step
+- [x] Add bounded `scroll_until_found` params on `find` / `click`
+- [x] Add MCP `scroll` tool to adapter + stdio server (schemas + tests)
+- [x] Unit tests with monkeypatched actuator; live Safari below-fold probe
 - [ ] Open PR; merge; delete branch
 
 **Acceptance:** a below-fold Safari target is reachable via scroll_until_found;
