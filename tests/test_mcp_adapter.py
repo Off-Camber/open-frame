@@ -11,7 +11,7 @@ def test_list_mcp_tools_contains_expected_names() -> None:
     tools = list_mcp_tools()
     names = {item["name"] for item in tools}
     assert {"capture", "find", "click", "type", "key", "scroll", "run_flow", "get_run_artifacts"}.issubset(names)
-    assert all(item["contract_version"] == "v0.2.0" for item in tools)
+    assert all(item["contract_version"] == "v0.2.1" for item in tools)
     assert all("required_args" in item and "optional_args" in item and "error_codes" in item for item in tools)
 
 
@@ -61,6 +61,70 @@ def test_run_flow_failure_maps_to_flow_failed(monkeypatch) -> None:
     assert result["error"]["code"] == "flow_failed"
     assert result["run_id"] == "r1"
     assert result["artifacts"]["run_dir"].endswith("runs/r1")
+    assert result["data"]["step_details"] == "summary"
+    assert result["data"]["steps"][0] == {
+        "step_id": "one",
+        "success": False,
+        "duration_ms": 1,
+        "error": "boom",
+    }
+
+
+def test_run_flow_include_step_details(monkeypatch) -> None:
+    class FakeFlow:
+        name = "demo"
+
+    class FakeRunner:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def run(self, flow, *, run_id: str):
+            _ = flow, run_id
+
+            class SessionObj:
+                results: ClassVar[list] = [
+                    StepResult(
+                        step_id="one",
+                        success=True,
+                        duration_ms=1,
+                        details={"kind": "wait"},
+                    )
+                ]
+
+            return SessionObj()
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.load_flow", lambda _path: FakeFlow())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.FlowRunner", FakeRunner)
+
+    result = call_mcp_tool(
+        "run_flow",
+        {"flow_path": "flow.yaml", "run_id": "r1", "include_step_details": True},
+    )
+    assert result["ok"] is True
+    assert result["data"]["step_details"] == "full"
+    assert result["data"]["steps"][0]["details"] == {"kind": "wait"}
+
+
+def test_mcp_tool_timeout(monkeypatch) -> None:
+    import time
+
+    import pytest
+
+    from openframe.integrations.mcp.adapter import MCPToolError, _invoke_with_timeout
+
+    monkeypatch.setenv("OPENFRAME_MCP_TOOL_TIMEOUT_SEC", "0.05")
+
+    def slow_handler(_args):
+        time.sleep(1.0)
+        return {}, None, {}
+
+    with pytest.raises(MCPToolError) as exc_info:
+        _invoke_with_timeout(tool="type", handler=slow_handler, payload={})
+    assert exc_info.value.code == "timeout"
+
+    result = call_mcp_tool("type", {"text": "x", "dry_run": True})
+    # Normal type remains fast / successful under the same env when handler is real.
+    assert result["ok"] is True
 
 
 def test_get_run_artifacts_lists_step_files(tmp_path: Path, monkeypatch) -> None:

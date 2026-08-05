@@ -1,0 +1,175 @@
+{
+  "benchmark": "mcp_repeatability",
+  "timestamp_utc": "20260805T040800Z",
+  "mode": "dry-run",
+  "repetitions_per_flow": 5,
+  "flows": [
+    "examples/flows/mcp-dry-run-wait/flow.yaml",
+    "examples/flows/mcp-dry-run-actions/flow.yaml"
+  ],
+  "summary": {
+    "total_runs": 10,
+    "passes": 10,
+    "pass_rate_percent": 100.0,
+    "median_elapsed_ms": 1465,
+    "p95_elapsed_ms": 1802
+  },
+  "by_flow": {
+    "examples/flows/mcp-dry-run-wait/flow.yaml": {
+      "runs": 5,
+      "passes": 5,
+      "pass_rate_percent": 100.0,
+      "median_elapsed_ms": 1173,
+      "p95_elapsed_ms": 1210
+    },
+    "examples/flows/mcp-dry-run-actions/flow.yaml": {
+      "runs": 5,
+      "passes": 5,
+      "pass_rate_percent": 100.0,
+      "median_elapsed_ms": 1746,
+      "p95_elapsed_ms": 1802
+    }
+  },
+  "samples": [
+    {
+      "flow_path": "examples/flows/mcp-dry-run-wait/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-wait-20260805T040800Z-01",
+      "repetition": 1,
+      "elapsed_ms": 1210,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-wait-20260805T040800Z-01"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-wait/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-wait-20260805T040800Z-02",
+      "repetition": 2,
+      "elapsed_ms": 1177,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-wait-20260805T040800Z-02"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-wait/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-wait-20260805T040800Z-03",
+      "repetition": 3,
+      "elapsed_ms": 1157,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-wait-20260805T040800Z-03"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-wait/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-wait-20260805T040800Z-04",
+      "repetition": 4,
+      "elapsed_ms": 1173,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-wait-20260805T040800Z-04"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-wait/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-wait-20260805T040800Z-05",
+      "repetition": 5,
+      "elapsed_ms": 1170,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-wait-20260805T040800Z-05"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-actions/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-actions-20260805T040800Z-01",
+      "repetition": 1,
+      "elapsed_ms": 1802,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-actions-20260805T040800Z-01"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-actions/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-actions-20260805T040800Z-02",
+      "repetition": 2,
+      "elapsed_ms": 1746,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-actions-20260805T040800Z-02"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-actions/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-actions-20260805T040800Z-03",
+      "repetition": 3,
+      "elapsed_ms": 1720,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-actions-20260805T040800Z-03"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-actions/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-actions-20260805T040800Z-04",
+      "repetition": 4,
+      "elapsed_ms": 1742,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-actions-20260805T040800Z-04"
+      }
+    },
+    {
+      "flow_path": "examples/flows/mcp-dry-run-actions/flow.yaml",
+      "run_id": "mcp-bench-mcp-dry-run-actions-20260805T040800Z-05",
+      "repetition": 5,
+      "elapsed_ms": 1755,
+      "exit_code": 0,
+      "ok": true,
+      "success": true,
+      "error_code": null,
+      "error_message": null,
+      "artifacts": {
+        "run_dir": "runs/mcp-bench-mcp-dry-run-actions-20260805T040800Z-05"
+      }
+    }
+  ]
+}

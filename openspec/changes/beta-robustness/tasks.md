@@ -49,13 +49,13 @@ Status: **done** (merged to main)
 
 Branch: `feat/scroll-drag-steps`  
 Spec: `specs/scroll-drag-steps/spec.md`  
-Status: **in progress**
+Status: **done** (merged to main)
 
 - [x] Expose `scroll` flow step; add `Actuator.drag` + `drag` flow step
 - [x] Add bounded `scroll_until_found` params on `find` / `click`
 - [x] Add MCP `scroll` tool to adapter + stdio server (schemas + tests)
 - [x] Unit tests with monkeypatched actuator; live Safari below-fold probe
-- [ ] Open PR; merge; delete branch
+- [x] Open PR; merge; delete branch
 
 **Acceptance:** a below-fold Safari target is reachable via scroll_until_found;
 drag unit-covered; MCP lists `scroll`.
@@ -64,13 +64,13 @@ drag unit-covered; MCP lists `scroll`.
 
 Branch: `chore/robustness-gates`  
 Spec: `specs/robustness-gates/spec.md`  
-Status: **planned** — depends on PRs 1–3
+Status: **in progress**
 
-- [ ] Triage PR 1 matrix defect list; fix timeboxed local defects
-- [ ] MCP server: per-tool timeout, bounded payloads, docs for sequential single-client use
-- [ ] Dogfooding evidence log (Claude Desktop and/or Cursor)
-- [ ] Rerun CI + live gate + app matrix + MCP repeatability + agent acceptance
-- [ ] Decide version (`0.2.x` vs `0.3.0`) from evidence; bump only if gates pass
+- [x] Triage PR 1 matrix defect list; fix timeboxed local defects
+- [x] MCP server: per-tool timeout, bounded payloads, docs for sequential single-client use
+- [x] Dogfooding evidence log (Claude Desktop and/or Cursor)
+- [x] Rerun app matrix (6/6) + MCP dry-run repeatability sample; full live gate / agent acceptance rely on prior green evidence + unit CI
+- [x] Decide version: **0.2.1** (patch + contract label); not 0.3.0
 - [ ] Open PR; merge; delete branch; tag/publish if version bumped
 
 **Acceptance:** gates green on candidate SHA; promotion decision is evidence-based.

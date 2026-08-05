@@ -884,35 +884,120 @@ def _window_bounds_as_match_bounds() -> MatchBounds | None:
 
 
 def _focus_app(name: str) -> None:
-    import subprocess
     import sys
 
     if sys.platform != "darwin":
         raise RuntimeError("app step is currently supported on macOS only.")
 
-    # Bound AppleEvent waits — default osascript timeouts can hang for ~120s.
+    # Launch via LaunchServices first so cold-start apps exist before AppleEvents
+    # (Calendar and similar raise -600 when activate races a not-yet-running process).
+    _launch_app_via_open(name)
+    sleep(0.4)
+
+    last_error = "unknown error"
+    for attempt in range(1, 5):
+        activate_error = _activate_app_via_applescript(name)
+        if activate_error is not None:
+            last_error = activate_error
+            if _is_app_not_running_error(activate_error):
+                _launch_app_via_open(name)
+            sleep(0.35 * attempt)
+            continue
+
+        sleep(0.3 * attempt)
+        frontmost = _frontmost_app_name()
+        if _app_names_match(name, frontmost):
+            return
+
+        # Soft nudge via System Events when activate returned OK but focus stuck.
+        nudge_error = _set_frontmost_via_system_events(name)
+        sleep(0.25 * attempt)
+        frontmost = _frontmost_app_name()
+        if _app_names_match(name, frontmost):
+            return
+
+        if frontmost is None:
+            if nudge_error:
+                last_error = (
+                    "could not read frontmost app "
+                    f"(System Events query failed / nudge: {nudge_error})."
+                )
+            else:
+                last_error = "could not read frontmost app (System Events query failed)."
+        else:
+            last_error = f"frontmost app is '{frontmost}'."
+        sleep(0.25 * attempt)
+
+    raise RuntimeError(f"Could not focus app '{name}': {last_error}")
+
+
+def _launch_app_via_open(name: str) -> None:
+    import subprocess
+
+    subprocess.run(
+        ["open", "-a", name],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _activate_app_via_applescript(name: str) -> str | None:
+    """Activate an app; return stderr on failure, else None."""
+    import subprocess
+
     script = (
         f"with timeout of 5 seconds\n"
         f'  tell application "{name}" to activate\n'
         f"end timeout"
     )
-    command = ["osascript", "-e", script]
-    last_error = "unknown error"
-    for attempt in range(1, 4):
-        completed = subprocess.run(command, check=False, capture_output=True, text=True)
-        if completed.returncode != 0:
-            last_error = completed.stderr.strip() or "unknown error"
-            sleep(0.35 * attempt)
-            continue
-        # Give macOS a short moment to settle focus transitions.
-        sleep(0.25 * attempt)
-        frontmost = _frontmost_app_name()
-        if frontmost == name:
-            return
-        last_error = f"frontmost app is '{frontmost}'."
-        sleep(0.25 * attempt)
+    completed = subprocess.run(
+        ["osascript", "-e", script], check=False, capture_output=True, text=True
+    )
+    if completed.returncode == 0:
+        return None
+    return completed.stderr.strip() or "unknown error"
 
-    raise RuntimeError(f"Could not focus app '{name}': {last_error}")
+
+def _set_frontmost_via_system_events(name: str) -> str | None:
+    """Best-effort set frontmost via System Events; return stderr on failure."""
+    import subprocess
+
+    escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+    script = f"""
+with timeout of 3 seconds
+  tell application "System Events"
+    if exists (process "{escaped}") then
+      set frontmost of process "{escaped}" to true
+    end if
+  end tell
+end timeout
+""".strip()
+    completed = subprocess.run(
+        ["osascript", "-e", script], check=False, capture_output=True, text=True
+    )
+    if completed.returncode == 0:
+        return None
+    return completed.stderr.strip() or "unknown error"
+
+
+def _is_app_not_running_error(message: str) -> bool:
+    lowered = message.casefold()
+    return "-600" in message or "isn't running" in lowered or "is not running" in lowered
+
+
+def _app_names_match(expected: str, actual: str | None) -> bool:
+    if actual is None:
+        return False
+    left = expected.strip().casefold()
+    right = actual.strip().casefold()
+    if left == right:
+        return True
+    aliases = {
+        "system settings": {"system preferences"},
+        "system preferences": {"system settings"},
+    }
+    return right in aliases.get(left, set())
 
 
 def _textedit_set_front_document_text(text: str, *, font_size: int | None = None) -> None:
