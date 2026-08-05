@@ -11,11 +11,10 @@ from openframe.capture import screen
 from openframe.recognize import (
     Locator,
     LocatorStrategy,
-    MacOSA11yRecognizer,
     Recognizer,
-    TesseractRecognizer,
 )
 from openframe.recognize.coords import select_target
+from openframe.recognize.defaults import build_default_locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.types import Frame, StepResult, Target
 
@@ -115,5 +114,5 @@ class Session:
 
     def _ensure_locator(self) -> Locator:
         if self._locator is None:
-            self._locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
+            self._locator = build_default_locator()
         return self._locator

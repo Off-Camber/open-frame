@@ -15,11 +15,10 @@ from openframe.flow import load_flow
 from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
 from openframe.recognize import (
     Locator,
-    MacOSA11yRecognizer,
-    TesseractRecognizer,
     draw_debug_overlay,
 )
 from openframe.recognize.coords import select_target
+from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
 from openframe.types import Frame
@@ -57,6 +56,17 @@ def build_parser() -> argparse.ArgumentParser:
     find_parser.add_argument("--frame", type=Path, help="Use an existing PNG frame path")
     find_parser.add_argument("--strategy", choices=("first", "all"), default="first")
     find_parser.add_argument(
+        "--template",
+        type=Path,
+        help="Optional template image crop for icon/image matching (requires .[template])",
+    )
+    find_parser.add_argument(
+        "--template-threshold",
+        type=float,
+        default=None,
+        help="Match threshold for template NCC (default 0.88)",
+    )
+    find_parser.add_argument(
         "--overlay-out", type=Path, help="Write debug overlay image with matched boxes"
     )
     find_parser.add_argument("--json", action="store_true", help="Output JSON")
@@ -65,6 +75,17 @@ def build_parser() -> argparse.ArgumentParser:
     click_parser.add_argument("query", type=str, help="Text query to find before clicking")
     click_parser.add_argument(
         "--frame", type=Path, help="Use an existing frame path for recognition"
+    )
+    click_parser.add_argument(
+        "--template",
+        type=Path,
+        help="Optional template image crop for icon/image matching (requires .[template])",
+    )
+    click_parser.add_argument(
+        "--template-threshold",
+        type=float,
+        default=None,
+        help="Match threshold for template NCC (default 0.88)",
     )
     click_parser.add_argument(
         "--anchor",
@@ -197,8 +218,16 @@ def main() -> int:
     if args.command == "find":
         try:
             frame = _resolve_find_frame(args.frame)
-            locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
-            targets = locator.find(frame=frame, query=args.query, strategy=args.strategy)
+            locator = build_default_locator()
+            find_params: dict[str, object] = {}
+            if args.template:
+                find_params["template"] = str(args.template)
+            if getattr(args, "template_threshold", None) is not None:
+                find_params["template_threshold"] = args.template_threshold
+            options = recognition_options_from_mapping(find_params or None)
+            targets = locator.find(
+                frame=frame, query=args.query, strategy=args.strategy, options=options
+            )
             overlay_path = _maybe_write_overlay(
                 frame=frame, targets=targets, out_path=args.overlay_out
             )
@@ -227,8 +256,16 @@ def main() -> int:
     if args.command == "click":
         try:
             frame = _resolve_find_frame(args.frame)
-            locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
-            targets = locator.find(frame=frame, query=args.query, strategy="all")
+            locator = build_default_locator()
+            click_params: dict[str, object] = {}
+            if getattr(args, "template", None):
+                click_params["template"] = str(args.template)
+            if getattr(args, "template_threshold", None) is not None:
+                click_params["template_threshold"] = args.template_threshold
+            options = recognition_options_from_mapping(click_params or None)
+            targets = locator.find(
+                frame=frame, query=args.query, strategy="all", options=options
+            )
             selector = explicit_selector(getattr(args, "selector", None))
             expect_one = bool(getattr(args, "expect_one", False))
             ensure_actionable_match_count(

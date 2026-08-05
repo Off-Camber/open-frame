@@ -10,8 +10,9 @@ from typing import Any
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, region, screen, window
 from openframe.flow import load_flow
-from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
 from openframe.recognize.coords import select_target
+from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
+from openframe.recognize.locator import Locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
 from openframe.types import Frame
@@ -40,7 +41,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "find",
         "description": "Find targets by query on a frame",
         "required_args": ["query"],
-        "optional_args": ["strategy", "frame_path"],
+        "optional_args": ["strategy", "frame_path", "template", "template_threshold"],
         "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
     },
     {
@@ -55,6 +56,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "frame_path",
             "expect_one",
             "selector",
+            "template",
+            "template_threshold",
         ],
         "error_codes": [
             "not_found",
@@ -207,7 +210,8 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
 
     frame = _resolve_frame(_optional_string(args.get("frame_path")))
     locator = _build_locator()
-    targets = locator.find(frame=frame, query=query, strategy=strategy)
+    options = recognition_options_from_mapping(args)
+    targets = locator.find(frame=frame, query=query, strategy=strategy, options=options)
 
     data: dict[str, Any] = {
         "query": query,
@@ -216,6 +220,8 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
         "count": len(targets),
         "targets": [asdict(item) for item in targets],
     }
+    if options and options.get("template"):
+        data["template"] = options["template"]
     return data, None, {}
 
 
@@ -230,7 +236,8 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
 
     frame = _resolve_frame(_optional_string(args.get("frame_path")))
     locator = _build_locator()
-    targets = locator.find(frame=frame, query=query, strategy="all")
+    options = recognition_options_from_mapping(args)
+    targets = locator.find(frame=frame, query=query, strategy="all", options=options)
     try:
         ensure_actionable_match_count(
             query=query,
@@ -365,7 +372,7 @@ def _tool_get_run_artifacts(
 
 
 def _build_locator() -> Locator:
-    return Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
+    return build_default_locator()
 
 
 def _resolve_frame(frame_path: str | None) -> Frame:

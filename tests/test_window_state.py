@@ -93,10 +93,10 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
     clicked: dict[str, int] = {}
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [outside, inside]
 
@@ -113,10 +113,8 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     # Force geometric window filtering (the path under test), not native window capture.
     monkeypatch.setattr("openframe.runner._capture_frontmost_window_frame", lambda: None)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
     monkeypatch.setattr(
         "openframe.runner.frontmost_window",
