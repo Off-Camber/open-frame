@@ -455,6 +455,81 @@ PY
     "${OUT_DIR}/intentional-failure-summary.json"
 }
 
+check_mcp_stdio() {
+  local base="${OUT_DIR}/mcp-stdio"
+  if ! "${PYTHON_BIN}" - <<'PY' >"${base}.out" 2>"${base}.err"
+import asyncio
+import json
+import os
+import sys
+from pathlib import Path
+
+try:
+    from mcp import ClientSession
+    from mcp.client.stdio import StdioServerParameters, stdio_client
+except ImportError as exc:
+    raise SystemExit(f"mcp extra missing: {exc}") from exc
+
+out_dir = Path(os.environ["OF_LIVE_GATE_OUT"])
+python_bin = os.environ["OF_PYTHON_BIN"]
+expected = {
+    "capture",
+    "find",
+    "click",
+    "type",
+    "key",
+    "run_flow",
+    "get_run_artifacts",
+}
+server = StdioServerParameters(
+    command=python_bin,
+    args=["-m", "openframe.cli", "mcp", "serve"],
+    cwd=str(Path.cwd()),
+)
+
+
+async def main() -> dict:
+    async with stdio_client(server) as (read, write):
+        async with ClientSession(read, write) as session:
+            init = await session.initialize()
+            listed = await session.list_tools()
+            names = {item.name for item in listed.tools}
+            if names != expected:
+                raise SystemExit(f"tool set mismatch: {sorted(names)}")
+
+            result = await session.call_tool(
+                "type",
+                {"text": "live-gate", "dry_run": True},
+            )
+            envelope = result.structuredContent
+            if envelope is None:
+                envelope = json.loads(result.content[0].text)
+            if result.isError:
+                raise SystemExit("protocol-level error for dry-run type")
+            if envelope.get("ok") is not True:
+                raise SystemExit(f"unexpected envelope: {envelope}")
+            if envelope.get("data", {}).get("dry_run") is not True:
+                raise SystemExit(f"dry_run missing in data: {envelope}")
+            return {
+                "server": getattr(init.serverInfo, "name", None),
+                "tools": sorted(names),
+                "type_dry_run_ok": True,
+            }
+
+
+summary = asyncio.run(main())
+(out_dir / "mcp-stdio-summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+print(json.dumps(summary))
+PY
+  then
+    record_check "mcp_stdio" "fail" "stdio handshake or dry-run tool call failed" \
+      "${base}.err"
+    return 1
+  fi
+  record_check "mcp_stdio" "pass" "handshake + type dry_run" \
+    "${OUT_DIR}/mcp-stdio-summary.json"
+}
+
 finalize() {
   python3 - <<'PY'
 import json
@@ -520,6 +595,7 @@ run_check check_a11y_bounds
 run_check check_safe_matching
 run_check check_calibration
 run_check check_intentional_failure
+run_check check_mcp_stdio
 finalize
 FINAL_CODE=$?
 set -e

@@ -26,7 +26,11 @@ Open Frame is the deterministic execution layer behind AI agents, not the agent 
 
 ## Status
 
-Active development / **internal alpha**. `v0.1.2` is live on PyPI as [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/). Public stability claims and version bumps wait on the [release gates](docs/RELEASE_GATES.md) checklist (CI + local macOS live gate). See the [changelog](CHANGELOG.md) for release history.
+**Beta** (`v0.2.0`) — macOS-first. Available on PyPI as
+[`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
+Evidence for this release comes from CI plus a local macOS live gate (including
+MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Who this is for
 
@@ -34,36 +38,58 @@ Active development / **internal alpha**. `v0.1.2` is live on PyPI as [`off-cambe
 - Teams who want agent-callable UI execution without bloating context windows.
 - Contributors building recognizers, flows, or integrations.
 
-## 60-second start
+## Quickstart (beta funnel)
+
+### 1. Install
 
 ```bash
-pip install off-camber-open-frame
-open-frame capture --out screen.png
-open-frame find "Submit" --frame screen.png --json
-open-frame mcp list-tools --json
-```
-
-If `open-frame` is not on your PATH yet, run through Python directly:
-
-```bash
-python -m openframe.cli mcp list-tools --json
-```
-
-On macOS, OCR features also require the system `tesseract` binary:
-
-```bash
+pip install "off-camber-open-frame[mcp,ocr,act,flow]"
 brew install tesseract
+```
+
+On macOS, grant your terminal or IDE host **Screen Recording** and
+**Accessibility** (System Settings → Privacy & Security), then restart that app.
+
+### 2. Diagnose
+
+```bash
+open-frame doctor
+```
+
+All required checks should report `pass` (`overall: ok`). Optional extras that
+are not installed show as `skip` and do not fail the report.
+
+### 3. Connect an MCP client
+
+Point Claude Desktop or Cursor at the stdio server:
+
+```bash
+open-frame mcp serve
+```
+
+Copy-paste client config: [MCP server setup](docs/MCP_SERVER.md).
+
+### 4. Run a first flow
+
+```bash
+open-frame find "Submit" --json
+open-frame run examples/flows/mcp-dry-run-wait/flow.yaml --dry-run --json
+```
+
+If `open-frame` is not on your PATH yet:
+
+```bash
+python -m openframe.cli doctor
 ```
 
 ## Local development (repo clone)
 
-Use this when developing or testing from source. No extra env variable is required.
-
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,ocr,act,flow]"
-python -m openframe.cli mcp list-tools --json
+pip install -e ".[dev,ocr,act,flow,mcp]"
+open-frame doctor
+open-frame mcp list-tools --json
 ```
 
 If `python3.11` is not available on a fresh macOS machine:
@@ -72,13 +98,9 @@ If `python3.11` is not available on a fresh macOS machine:
 brew install python@3.11
 ```
 
-For live capture and action execution on macOS, grant your terminal or IDE host:
-
-- **Screen Recording** permission
-- **Accessibility** permission
-
 ## Next steps
 
+- [MCP server setup](docs/MCP_SERVER.md) — Claude Desktop / Cursor config.
 - [Flow setup](docs/FLOW_SETUP.md) — define and run YAML flows.
 - [API](docs/API.md) — use `Session` and MCP-oriented integration guidance.
 - [Act setup](docs/ACT_SETUP.md) and [Verify setup](docs/VERIFY_SETUP.md) — run safely with evidence.

@@ -17,7 +17,7 @@ from openframe.runner import FlowRunner
 from openframe.types import Frame
 from openframe.verify import write_step_artifacts
 
-MCP_CONTRACT_VERSION = "v0.2.0-checkpoint-1"
+MCP_CONTRACT_VERSION = "v0.2.0"
 
 MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {

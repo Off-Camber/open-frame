@@ -11,7 +11,7 @@ def test_list_mcp_tools_contains_expected_names() -> None:
     tools = list_mcp_tools()
     names = {item["name"] for item in tools}
     assert {"capture", "find", "click", "type", "key", "run_flow", "get_run_artifacts"}.issubset(names)
-    assert all(item["contract_version"] == "v0.2.0-checkpoint-1" for item in tools)
+    assert all(item["contract_version"] == "v0.2.0" for item in tools)
     assert all("required_args" in item and "optional_args" in item and "error_codes" in item for item in tools)
 
 
