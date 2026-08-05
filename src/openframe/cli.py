@@ -117,6 +117,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="{}",
         help="JSON object for tool arguments",
     )
+    mcp_subparsers.add_parser(
+        "serve",
+        help="Run the MCP stdio server (requires the mcp extra)",
+    )
 
     return parser
 
@@ -343,6 +347,21 @@ def main() -> int:
             result = call_mcp_tool(args.tool, payload)
             print(json.dumps(result, indent=2))
             return 0 if result.get("ok") else 1
+
+        if args.mcp_command == "serve":
+            try:
+                from openframe.integrations.mcp.server import run_stdio_server
+            except ImportError as error:
+                parser.error(
+                    "MCP server requires the mcp extra. "
+                    "Install with: pip install -e '.[mcp]' "
+                    f"({error})"
+                )
+            try:
+                run_stdio_server()
+            except RuntimeError as error:
+                parser.error(str(error))
+            return 0
 
         parser.error("Unknown mcp command")
         return 2
