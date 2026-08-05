@@ -412,14 +412,18 @@ def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
 
 
 def test_focus_app_raises_when_frontmost_differs(monkeypatch) -> None:
-    calls = {"count": 0}
+    calls: list[list[str]] = []
 
     def fake_run(command, check, capture_output, text):
-        _ = command, check, capture_output, text
-        calls["count"] += 1
-        if calls["count"] == 1:
+        _ = check, capture_output, text
+        calls.append(list(command))
+        # open -a succeeds; activate succeeds; frontmost stays Terminal.
+        if command[:2] == ["open", "-a"]:
             return SimpleNamespace(returncode=0, stdout="", stderr="")
-        return SimpleNamespace(returncode=0, stdout="Terminal\n", stderr="")
+        joined = " ".join(command)
+        if "whose frontmost is true" in joined:
+            return SimpleNamespace(returncode=0, stdout="Terminal\n", stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr("sys.platform", "darwin")
     monkeypatch.setattr("subprocess.run", fake_run)
@@ -430,6 +434,40 @@ def test_focus_app_raises_when_frontmost_differs(monkeypatch) -> None:
         assert False, "Expected _focus_app to raise when frontmost app mismatches."
     except RuntimeError as error:
         assert "frontmost app is 'Terminal'" in str(error)
+    assert any(cmd[:2] == ["open", "-a"] for cmd in calls)
+
+
+def test_focus_app_retries_on_not_running_then_succeeds(monkeypatch) -> None:
+    state = {"activate": 0, "frontmost": 0}
+
+    def fake_run(command, check, capture_output, text):
+        _ = check, capture_output, text
+        if command[:2] == ["open", "-a"]:
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        joined = " ".join(command)
+        if "whose frontmost is true" in joined:
+            state["frontmost"] += 1
+            if state["activate"] >= 2:
+                return SimpleNamespace(returncode=0, stdout="Calendar\n", stderr="")
+            return SimpleNamespace(returncode=0, stdout="Finder\n", stderr="")
+        if 'tell application "Calendar" to activate' in joined:
+            state["activate"] += 1
+            if state["activate"] == 1:
+                return SimpleNamespace(
+                    returncode=1,
+                    stdout="",
+                    stderr="Calendar got an error: Application isn’t running. (-600)",
+                )
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        # System Events frontmost nudge
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
+
+    _focus_app("Calendar")
+    assert state["activate"] >= 2
 
 
 def test_runner_click_point_uses_logical_coordinates(monkeypatch) -> None:

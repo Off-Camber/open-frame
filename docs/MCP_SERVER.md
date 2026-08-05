@@ -11,8 +11,8 @@ This is a thin protocol shim over the existing tool adapter. Tool results use
 the Open Frame envelope (`ok`, `tool`, `run_id`, `data`, `error`, `artifacts`).
 Failures stay in-band (`ok: false` + `error.code`), not as MCP protocol errors.
 
-Contract version: **`v0.2.0`** (envelope shape unchanged from the earlier
-checkpoint label).
+Contract version: **`v0.2.1`** (envelope keys unchanged; adds `timeout` error
+code, summarized `run_flow` steps by default, and wall-clock tool timeouts).
 
 ## Prerequisites
 
@@ -80,6 +80,23 @@ Add an MCP server entry in Cursor settings (MCP servers JSON), for example:
 
 Restart Cursor / reload MCP servers, then verify the tools are listed (including `scroll`).
 
+## Sequential single-client use
+
+The stdio server is intended for **one client, one tool call at a time**. Do not
+overlap tool calls on the same server process. Long flows are bounded by a
+wall-clock timeout (`OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC`, default 300s; other
+tools use `OPENFRAME_MCP_TOOL_TIMEOUT_SEC`, default 60s). A timeout returns
+`ok: false` with `error.code: "timeout"`; the worker may still finish in the
+background, so start a fresh server session if a timeout fires mid-flow.
+
+## Payload bounds
+
+- `run_flow` returns **summarized** steps by default (`step_id`, `success`,
+  `duration_ms`, `error`). Pass `include_step_details: true` only when you need
+  full inline details; prefer `get_run_artifacts` + `artifacts.run_dir` for
+  large runs.
+- `find` inlines at most 50 targets (`targets_truncated: true` when capped).
+
 ## First dry-run call
 
 From any MCP client, prefer a non-actuating call first:
@@ -96,6 +113,8 @@ From any MCP client, prefer a non-actuating call first:
 | Client shows no tools | Confirm `command` points at the venv Python; restart the client |
 | Capture / find failures | Run `open-frame doctor` and fix Screen Recording / Accessibility / tesseract |
 | Permission prompts never appear | Grant permissions to the **client host** process, not only Terminal |
+| Tool returns `timeout` | Raise `OPENFRAME_MCP_*_TIMEOUT_SEC`, shorten the flow, or avoid overlapping calls |
+| Huge `run_flow` payloads | Default is summarized steps; use `get_run_artifacts` or opt into `include_step_details` |
 
 See also [Contributing](CONTRIBUTING.md) for permission setup details and
 [Release gates](RELEASE_GATES.md) for the local live gate that includes an MCP

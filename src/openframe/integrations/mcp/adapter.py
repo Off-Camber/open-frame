@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,10 +18,15 @@ from openframe.recognize.defaults import build_default_locator, recognition_opti
 from openframe.recognize.locator import Locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
-from openframe.types import Frame
+from openframe.types import Frame, StepResult
 from openframe.verify import write_step_artifacts
 
-MCP_CONTRACT_VERSION = "v0.2.0"
+MCP_CONTRACT_VERSION = "v0.2.1"
+
+# Wall-clock defaults (seconds). Override via env for long flows.
+DEFAULT_TOOL_TIMEOUT_SEC = 60.0
+DEFAULT_RUN_FLOW_TIMEOUT_SEC = 300.0
+MAX_FIND_TARGETS_INLINE = 50
 
 MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
@@ -35,14 +43,26 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "height",
             "out_path",
         ],
-        "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "validation_error",
+            "capture_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
     {
         "name": "find",
         "description": "Find targets by query on a frame",
         "required_args": ["query"],
         "optional_args": ["strategy", "frame_path", "template", "template_threshold"],
-        "error_codes": ["validation_error", "capture_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "validation_error",
+            "capture_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
     {
         "name": "click",
@@ -66,6 +86,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "capture_error",
             "action_error",
             "runtime_error",
+            "timeout",
             "internal_error",
         ],
     },
@@ -74,33 +95,52 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": "Type text at current focus",
         "required_args": [],
         "optional_args": ["text", "interval", "dry_run"],
-        "error_codes": ["action_error", "validation_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "action_error",
+            "validation_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
     {
         "name": "key",
         "description": "Press a key or key combo",
         "required_args": [],
         "optional_args": ["key", "combo", "dry_run"],
-        "error_codes": ["validation_error", "action_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "validation_error",
+            "action_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
     {
         "name": "scroll",
         "description": "Scroll the mouse wheel at an optional point",
         "required_args": ["clicks"],
         "optional_args": ["x", "y", "dry_run"],
-        "error_codes": ["validation_error", "action_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "validation_error",
+            "action_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
     {
         "name": "run_flow",
         "description": "Run a YAML flow file",
         "required_args": ["flow_path"],
-        "optional_args": ["dry_run", "run_id"],
+        "optional_args": ["dry_run", "run_id", "include_step_details"],
         "error_codes": [
             "flow_failed",
             "validation_error",
             "capture_error",
             "action_error",
             "runtime_error",
+            "timeout",
             "internal_error",
         ],
     },
@@ -109,7 +149,13 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": "List run artifact files for a run id",
         "required_args": ["run_id"],
         "optional_args": [],
-        "error_codes": ["not_found", "validation_error", "runtime_error", "internal_error"],
+        "error_codes": [
+            "not_found",
+            "validation_error",
+            "runtime_error",
+            "timeout",
+            "internal_error",
+        ],
     },
 )
 
@@ -140,7 +186,12 @@ def list_mcp_tools() -> list[dict[str, Any]]:
 
 
 def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Call one deterministic tool and return a stable response envelope."""
+    """Call one deterministic tool and return a stable response envelope.
+
+    Each tool runs under a wall-clock timeout (see ``_tool_timeout_sec``). Timed-out
+    workers may continue in the background; clients should treat the session as
+    single-client sequential and avoid overlapping calls.
+    """
     payload = args or {}
     dispatch = {
         "capture": _tool_capture,
@@ -158,7 +209,7 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
         return _response_error(tool=tool, code="unknown_tool", message=f"Unsupported tool: {tool}")
 
     try:
-        data, run_id, artifacts = handler(payload)
+        data, run_id, artifacts = _invoke_with_timeout(tool=tool, handler=handler, payload=payload)
         return _response_ok(tool=tool, data=data, run_id=run_id, artifacts=artifacts)
     except MCPToolError as error:
         return _response_error(
@@ -179,6 +230,53 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
         return _response_error(tool=tool, code="runtime_error", message=str(error))
     except Exception as error:  # noqa: BLE001
         return _response_error(tool=tool, code="internal_error", message=str(error))
+
+
+def _tool_timeout_sec(tool: str) -> float:
+    if tool == "run_flow":
+        raw = os.environ.get("OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC")
+        if raw:
+            return max(0.05, float(raw))
+        return DEFAULT_RUN_FLOW_TIMEOUT_SEC
+    raw = os.environ.get("OPENFRAME_MCP_TOOL_TIMEOUT_SEC")
+    if raw:
+        return max(0.05, float(raw))
+    return DEFAULT_TOOL_TIMEOUT_SEC
+
+
+def _invoke_with_timeout(
+    *,
+    tool: str,
+    handler: Any,
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
+    timeout_sec = _tool_timeout_sec(tool)
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        future = pool.submit(handler, payload)
+        try:
+            return future.result(timeout=timeout_sec)
+        except FuturesTimeoutError as exc:
+            future.cancel()
+            raise MCPToolError(
+                code="timeout",
+                message=(
+                    f'Tool "{tool}" exceeded wall-clock timeout of {timeout_sec:g}s. '
+                    "Use get_run_artifacts for partial run output when available, "
+                    "and avoid overlapping MCP calls on one stdio server."
+                ),
+            ) from exc
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
+def _summarize_step_result(step: StepResult) -> dict[str, Any]:
+    return {
+        "step_id": step.step_id,
+        "success": step.success,
+        "duration_ms": step.duration_ms,
+        "error": step.error,
+    }
 
 
 def _tool_capture(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
@@ -220,14 +318,19 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
     locator = _build_locator()
     options = recognition_options_from_mapping(args)
     targets = locator.find(frame=frame, query=query, strategy=strategy, options=options)
+    truncated = len(targets) > MAX_FIND_TARGETS_INLINE
+    inline_targets = targets[:MAX_FIND_TARGETS_INLINE]
 
     data: dict[str, Any] = {
         "query": query,
         "strategy": strategy,
         "source": frame.source,
         "count": len(targets),
-        "targets": [asdict(item) for item in targets],
+        "targets": [asdict(item) for item in inline_targets],
     }
+    if truncated:
+        data["targets_truncated"] = True
+        data["targets_inline_limit"] = MAX_FIND_TARGETS_INLINE
     if options and options.get("template"):
         data["template"] = options["template"]
     return data, None, {}
@@ -338,17 +441,23 @@ def _tool_scroll(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict
 def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     flow_path = _required_string(args, "flow_path")
     dry_run = _as_bool(args.get("dry_run", False))
+    include_step_details = _as_bool(args.get("include_step_details", False))
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
 
     flow = load_flow(flow_path)
     session = FlowRunner(dry_run=dry_run).run(flow, run_id=run_id)
     failed = any(not item.success for item in session.results)
+    if include_step_details:
+        steps_payload: list[dict[str, Any]] = [asdict(item) for item in session.results]
+    else:
+        steps_payload = [_summarize_step_result(item) for item in session.results]
     data = {
         "flow": flow.name,
         "run_id": run_id,
         "dry_run": dry_run,
         "success": not failed,
-        "steps": [asdict(item) for item in session.results],
+        "steps": steps_payload,
+        "step_details": "full" if include_step_details else "summary",
     }
     artifacts = {"run_dir": f"runs/{run_id}"}
     if failed:

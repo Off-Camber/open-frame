@@ -29,6 +29,23 @@ Guidelines:
 - Keep bullets concise and specific.
 - Link PRs/issues when available.
 
+## v0.2.1 - 2026-08-05
+
+### Added
+- Flow `scroll` / `drag` steps and bounded `scroll_until_found` on find/click.
+- Opt-in template/image matching recognizer (`.[template]`).
+- MCP wall-clock tool timeouts (`timeout` error code) and summarized `run_flow` step payloads by default.
+
+### Changed
+- MCP contract label `v0.2.1` (envelope keys unchanged).
+- `_focus_app` launches via `open -a`, retries AppleEvent `-600`, and nudges System Events frontmost.
+
+### Fixed
+- Calendar cold-start focus failures and intermittent frontmost stickiness/`None` reads on the app matrix.
+
+### Docs
+- Robustness triage, dogfooding log, MCP sequential-use / payload-bound guidance.
+
 ## v0.2.0 - 2026-08-05
 
 ### Added

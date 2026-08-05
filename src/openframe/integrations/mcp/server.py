@@ -181,10 +181,16 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         flow_path: str,
         dry_run: bool = False,
         run_id: str | None = None,
+        include_step_details: bool = False,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "run_flow",
-            _tool_args(flow_path=flow_path, dry_run=dry_run, run_id=run_id),
+            _tool_args(
+                flow_path=flow_path,
+                dry_run=dry_run,
+                run_id=run_id,
+                include_step_details=include_step_details,
+            ),
         )
 
     @server.tool(

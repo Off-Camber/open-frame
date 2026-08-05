@@ -21,6 +21,8 @@ Primary docs for the project.
 - **[Agent acceptance](AGENT_ACCEPTANCE.md)** — A.7 acceptance checks and pass criteria
 - **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
 - **[Release gates](RELEASE_GATES.md)** — CI matrix + local macOS live gate checklist
+- **[Robustness triage](ROBUSTNESS_TRIAGE.md)** — app-matrix defect burn-down (PR 4)
+- **[Dogfooding](DOGFOODING.md)** — short real-client MCP evidence log
 
 ## Product/planning docs
 
