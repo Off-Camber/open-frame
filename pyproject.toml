@@ -48,6 +48,9 @@ flow = [
 agent = [
   "anthropic",
 ]
+mcp = [
+  "mcp>=1.0,<2",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
