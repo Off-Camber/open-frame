@@ -29,6 +29,20 @@ Guidelines:
 - Keep bullets concise and specific.
 - Link PRs/issues when available.
 
+## v0.2.0 - 2026-08-05
+
+### Added
+- MCP stdio server via `open-frame mcp serve` (optional `.[mcp]` extra) so Claude Desktop / Cursor can call the seven Open Frame tools over the MCP protocol ([#20](https://github.com/Off-Camber/open-frame/pull/20)).
+- `open-frame doctor` diagnostics for platform, extras, tesseract, Screen Recording, and Accessibility ([#21](https://github.com/Off-Camber/open-frame/pull/21)).
+- Live gate MCP stdio smoke check (handshake + dry-run tool call).
+
+### Changed
+- Package status promoted to **Beta**; MCP contract label is now `v0.2.0` (envelope unchanged).
+
+### Docs
+- README quickstart reworked as install → doctor → connect MCP client → first flow.
+- New [MCP server setup](docs/MCP_SERVER.md) with Claude Desktop and Cursor config.
+
 ## v0.1.2 - 2026-06-22
 
 ### Added

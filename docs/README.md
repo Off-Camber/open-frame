@@ -4,6 +4,7 @@ Primary docs for the project.
 
 ## User guides
 
+- **[MCP server setup](MCP_SERVER.md)** — run `open-frame mcp serve` with Claude Desktop / Cursor
 - **[Flow setup](FLOW_SETUP.md)** — define and run YAML flows
 - **[API](API.md)** — programmatic `Session` API and integration guidance
 - **[Agent setup](AGENT_SETUP.md)** — run model-driven tasks via deterministic MCP tools

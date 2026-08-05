@@ -17,7 +17,8 @@ Permission-dependent capture, accessibility, safe click, and OCR calibration
 must be rerun on a real Mac against a known candidate SHA:
 
 ```bash
-pip install -e ".[dev,ocr,act,flow]"
+pip install -e ".[dev,ocr,act,flow,mcp]"
+open-frame doctor
 ./scripts/macos_live_gate.sh
 # optional explicit evidence directory:
 ./scripts/macos_live_gate.sh /tmp/open-frame-live-gate
@@ -30,6 +31,8 @@ pip install -e ".[dev,ocr,act,flow]"
   Privacy & Security). Cursor/IDE helpers and Terminal.app are different hosts.
 - TextEdit available (calibration flows use it)
 - System `tesseract` on `PATH` (`brew install tesseract`)
+- Optional but required for the MCP stdio check: `pip install -e '.[mcp]'`
+  (and a green `open-frame doctor`)
 
 If `a11y_bounds` reports an empty accessibility tree, re-run from a host that
 already has Accessibility enabled rather than treating OCR-only success as enough.
@@ -44,6 +47,7 @@ already has Accessibility enabled rather than treating OCR-only success as enoug
 | Safe token matching | `AC` does not match `actuation`; dry-run click stays fail-closed |
 | Calibration | `examples/flows/calibration-token/flow.yaml` passes **5/5** (override with `OPENFRAME_LIVE_GATE_CALIBRATION_RUNS` only for debugging) |
 | Intentional failure | `examples/flows/calibration-token-miss/flow.yaml` exits nonzero with artifacts |
+| MCP stdio | `open-frame mcp serve` handshake succeeds; dry-run `type` returns `ok: true` envelope |
 
 Outputs:
 
@@ -59,11 +63,12 @@ Before a status/version decision, also record:
    `examples/flows/mcp-dry-run-wait/flow.yaml` and
    `examples/flows/mcp-dry-run-actions/flow.yaml`
    (`docs/MCP_BENCHMARK.md`)
-3. macOS live gate above
+3. macOS live gate above (including MCP stdio smoke)
 4. Bounded read-only agent acceptance (`docs/AGENT_ACCEPTANCE.md`) when API credentials are available
+5. Fresh-user walkthrough: install → `open-frame doctor` → MCP client config → first dry-run tool call (under ten minutes)
 
 ## Release posture
 
-Remain **internal alpha** until the automated matrix and local live gate are
-green on the candidate SHA. Do not bump package version or MCP contract version
-from green unit tests alone.
+Remain **beta** for macOS-first releases once the automated matrix and local live
+gate are green on the candidate SHA. Do not bump package version or MCP contract
+version from green unit tests alone.
