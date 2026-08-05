@@ -10,7 +10,7 @@ Primary docs for the project.
 - **[Agent setup](AGENT_SETUP.md)** — run model-driven tasks via deterministic MCP tools
 - **[Act setup](ACT_SETUP.md)** — configure and safely run input actions
 - **[Verify setup](VERIFY_SETUP.md)** — verify outcomes and inspect run artifacts
-- **[OCR setup](OCR_SETUP.md)** / **[A11Y setup](A11Y_SETUP.md)** — recognizer prerequisites
+- **[OCR setup](OCR_SETUP.md)** / **[A11Y setup](A11Y_SETUP.md)** / **[Template setup](TEMPLATE_SETUP.md)** — recognizer prerequisites
 
 ## Developer docs
 

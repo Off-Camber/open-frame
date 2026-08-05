@@ -21,6 +21,7 @@ _EXTRA_CHECKS: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("extra_flow", ("yaml",), "pip install -e '.[flow]'"),
     ("extra_agent", ("anthropic",), "pip install -e '.[agent]'"),
     ("extra_mcp", ("mcp",), "pip install -e '.[mcp]'"),
+    ("extra_template", ("PIL", "numpy"), "pip install -e '.[template]'"),
 )
 
 

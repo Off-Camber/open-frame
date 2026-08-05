@@ -12,8 +12,9 @@ from openframe.act import Actuator
 from openframe.capture import list_windows, screen, window
 from openframe.capture.macos import CaptureError
 from openframe.flow import Flow, FlowStep
-from openframe.recognize import Locator, MacOSA11yRecognizer, TesseractRecognizer
+from openframe.recognize import Locator
 from openframe.recognize.coords import select_target, target_logical_bounds
+from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.session import Session
 from openframe.types import Frame, StepResult, Target
@@ -43,7 +44,7 @@ class FlowRunner:
 
     def run(self, flow: Flow, *, run_id: str) -> Session:
         session = Session(run_id=run_id)
-        locator = Locator([MacOSA11yRecognizer(), TesseractRecognizer()])
+        locator = build_default_locator()
         actuator = Actuator(dry_run=self.dry_run)
         run_dir = f"runs/{run_id}"
         substitution_base = {
@@ -146,6 +147,7 @@ class FlowRunner:
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
+                options=recognition_options_from_mapping(step.params),
             )
             try:
                 ensure_actionable_match_count(
@@ -182,6 +184,7 @@ class FlowRunner:
                 "selector": selector or "first",
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
+                "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
 
         if kind == "click_point":
@@ -224,6 +227,7 @@ class FlowRunner:
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
+                options=recognition_options_from_mapping(step.params),
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' did not find query '{query}'.")
@@ -233,6 +237,7 @@ class FlowRunner:
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
                 "scope_to_window": scope_to_window,
+                "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
 
         if kind == "capture":
@@ -305,6 +310,7 @@ class FlowRunner:
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
+                options=recognition_options_from_mapping(step.params),
             )
             try:
                 ensure_actionable_match_count(
@@ -336,6 +342,7 @@ class FlowRunner:
                 "selector": selector or "first",
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
+                "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
 
         if kind == "attach":
@@ -491,6 +498,7 @@ def _find_targets_with_retry(
     timeout_ms: int,
     poll_ms: int,
     scope_to_window: bool = False,
+    options: dict[str, Any] | None = None,
 ) -> tuple[list[Target], float]:
     """Find targets, returning them with the scale factor of the source frame.
 
@@ -501,7 +509,7 @@ def _find_targets_with_retry(
     deadline = monotonic() + (timeout_ms / 1000.0)
     while True:
         frame, used_window_capture = _capture_scoped_frame(scope_to_window=scope_to_window)
-        targets = locator.find(frame, query, strategy=strategy)
+        targets = locator.find(frame, query, strategy=strategy, options=options)
         if scope_to_window and not used_window_capture:
             targets = _filter_targets_to_window(targets=targets, scale_factor=frame.scale_factor)
         if targets:

@@ -43,7 +43,7 @@ MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
 ### 1. Install
 
 ```bash
-pip install "off-camber-open-frame[mcp,ocr,act,flow]"
+pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
 brew install tesseract
 ```
 
@@ -87,7 +87,7 @@ python -m openframe.cli doctor
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,ocr,act,flow,mcp]"
+pip install -e ".[dev,ocr,act,flow,mcp,template]"
 open-frame doctor
 open-frame mcp list-tools --json
 ```
@@ -102,6 +102,7 @@ brew install python@3.11
 
 - [MCP server setup](docs/MCP_SERVER.md) — Claude Desktop / Cursor config.
 - [Flow setup](docs/FLOW_SETUP.md) — define and run YAML flows.
+- [Template setup](docs/TEMPLATE_SETUP.md) — optional icon/image matching.
 - [API](docs/API.md) — use `Session` and MCP-oriented integration guidance.
 - [Act setup](docs/ACT_SETUP.md) and [Verify setup](docs/VERIFY_SETUP.md) — run safely with evidence.
 - [Full docs index](docs/README.md) — contributor and planning docs.

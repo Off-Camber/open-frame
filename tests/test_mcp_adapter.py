@@ -91,7 +91,7 @@ def test_click_expect_one_returns_ambiguous_target(monkeypatch) -> None:
     frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
 
     class FakeLocator:
-        def find(self, frame, query, strategy):
+        def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
                 Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
@@ -112,7 +112,7 @@ def test_click_fails_closed_without_selector(monkeypatch) -> None:
     clicked = {"count": 0}
 
     class FakeLocator:
-        def find(self, frame, query, strategy):
+        def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
                 Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
@@ -142,7 +142,7 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     clicked = {}
 
     class FakeLocator:
-        def find(self, frame, query, strategy):
+        def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
                 Target(x=30, y=200, width=20, height=10, confidence=0.9, source="ocr", text="Create"),

@@ -148,18 +148,17 @@ def test_find_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
     frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str) -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             assert frame.source == "screen:1"
             assert query == "Submit"
             assert strategy == "first"
             return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
-    monkeypatch.setattr("openframe.cli.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.cli.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("sys.argv", ["open-frame", "find", "Submit", "--json"])
 
     exit_code = main()
@@ -178,15 +177,14 @@ def test_find_with_overlay_writes_overlay_path(
     overlay_path = tmp_path / "overlay.png"
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str) -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
-    monkeypatch.setattr("openframe.cli.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.cli.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.draw_debug_overlay", lambda **_kwargs: overlay_path)
     monkeypatch.setattr(
         "sys.argv",
@@ -206,10 +204,10 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
     target = Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Submit")
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str) -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             assert query == "Submit"
             assert strategy == "all"
             return [target]
@@ -225,9 +223,7 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
             return (25, 40)
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
-    monkeypatch.setattr("openframe.cli.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.cli.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.cli.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.Actuator", FakeActuator)
     monkeypatch.setattr("sys.argv", ["open-frame", "click", "Submit", "--dry-run", "--json"])
 
@@ -247,10 +243,10 @@ def test_click_with_failed_verification_returns_nonzero(
     target = Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Submit")
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str) -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             return [target]
 
     class FakeActuator:
@@ -269,9 +265,7 @@ def test_click_with_failed_verification_returns_nonzero(
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
     monkeypatch.setattr("openframe.cli.screen", lambda: frame)
-    monkeypatch.setattr("openframe.cli.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.cli.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.cli.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.cli._run_verification_specs", lambda **_kwargs: FakeVerifierResult())
     monkeypatch.setattr("openframe.cli.write_step_artifacts", lambda **_kwargs: Path("runs/r1/click"))

@@ -78,16 +78,24 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="find",
-        description="Find targets by query using a11y + OCR (envelope response).",
+        description="Find targets by query using a11y + OCR + optional template (envelope response).",
     )
     def find(
         query: str,
         strategy: FindStrategy = "first",
         frame_path: str | None = None,
+        template: str | None = None,
+        template_threshold: float | None = None,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "find",
-            _tool_args(query=query, strategy=strategy, frame_path=frame_path),
+            _tool_args(
+                query=query,
+                strategy=strategy,
+                frame_path=frame_path,
+                template=template,
+                template_threshold=template_threshold,
+            ),
         )
 
     @server.tool(
@@ -103,6 +111,8 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         frame_path: str | None = None,
         expect_one: bool = False,
         selector: TargetSelector | None = None,
+        template: str | None = None,
+        template_threshold: float | None = None,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "click",
@@ -115,6 +125,8 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
                 frame_path=frame_path,
                 expect_one=expect_one,
                 selector=selector,
+                template=template,
+                template_threshold=template_threshold,
             ),
         )
 

@@ -125,7 +125,7 @@ def test_runner_and_mcp_select_same_target_for_spatial_selectors(
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return list(targets)
 
@@ -146,10 +146,8 @@ def test_runner_and_mcp_select_same_target_for_spatial_selectors(
             ],
         )
         monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-        monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+        monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
         monkeypatch.setattr("openframe.runner.Actuator", _spy_actuator(clicked))
-        monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-        monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
         monkeypatch.setattr(
             "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
         )

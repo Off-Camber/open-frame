@@ -101,17 +101,15 @@ def test_runner_supports_phase5_step_kinds_in_dry_run(monkeypatch) -> None:
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Submit")]
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -175,10 +173,10 @@ def test_runner_retries_click_until_target_found(monkeypatch) -> None:
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             self.calls = 0
 
-        def find(self, frame: Frame, query: str, strategy: str = "first") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             _ = frame, query, strategy
             self.calls += 1
             if self.calls < 2:
@@ -187,9 +185,7 @@ def test_runner_retries_click_until_target_found(monkeypatch) -> None:
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -205,10 +201,10 @@ def test_runner_click_expect_one_fails_on_multiple_matches(monkeypatch) -> None:
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Create"),
@@ -216,9 +212,7 @@ def test_runner_click_expect_one_fails_on_multiple_matches(monkeypatch) -> None:
             ]
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -236,10 +230,10 @@ def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
     clicked = {"count": 0}
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Create"),
@@ -255,10 +249,8 @@ def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
             return (0, 0)
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -277,10 +269,10 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     clicked: dict[str, int] = {}
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=40, y=200, width=10, height=10, confidence=0.9, source="stub", text="Create"),
@@ -299,10 +291,8 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
             return (target.x, target.y)
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -353,10 +343,10 @@ def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             self.calls = 0
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             self.calls += 1
             if self.calls < 3:
@@ -365,9 +355,7 @@ def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -396,10 +384,10 @@ def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
     artifact_calls: list[dict[str, object]] = []
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return []
 
@@ -409,9 +397,7 @@ def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", fake_artifacts)
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r-miss")
@@ -463,9 +449,7 @@ def test_runner_click_point_uses_logical_coordinates(monkeypatch) -> None:
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.Locator", lambda *_args, **_kwargs: object())
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -489,10 +473,10 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
     clicked: dict[str, int] = {}
 
     class FakeLocator:
-        def __init__(self, _recognizers: list[object]) -> None:
+        def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all") -> list[Target]:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=100, y=50, width=10, height=10, confidence=0.9, source="stub", text="Subject"),
@@ -515,10 +499,8 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
             _ = text, interval
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.Locator", FakeLocator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -554,9 +536,7 @@ def test_runner_type_via_applescript_sets_textedit_document(monkeypatch) -> None
     monkeypatch.setattr("openframe.runner._textedit_set_front_document_text", fake_set)
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
-    monkeypatch.setattr("openframe.runner.Locator", lambda *_a, **_k: object())
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
 
     session = FlowRunner(dry_run=False).run(flow, run_id="r1")
 
@@ -589,9 +569,7 @@ def test_runner_type_via_applescript_close_closes_documents(monkeypatch) -> None
     monkeypatch.setattr("openframe.runner._textedit_close_all_documents", fake_close)
     monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
-    monkeypatch.setattr("openframe.runner.Locator", lambda *_a, **_k: object())
-    monkeypatch.setattr("openframe.runner.MacOSA11yRecognizer", lambda: object())
-    monkeypatch.setattr("openframe.runner.TesseractRecognizer", lambda: object())
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
 
     session = FlowRunner(dry_run=False).run(flow, run_id="r1")
 

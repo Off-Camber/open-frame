@@ -51,6 +51,10 @@ agent = [
 mcp = [
   "mcp>=1.0,<2",
 ]
+template = [
+  "Pillow",
+  "numpy",
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
