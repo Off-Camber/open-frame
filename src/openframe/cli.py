@@ -10,6 +10,7 @@ from pathlib import Path
 
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, list_displays, list_windows, region, screen, window
+from openframe.doctor import doctor_ok, format_doctor_json, format_doctor_text, run_doctor
 from openframe.flow import load_flow
 from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
 from openframe.recognize import (
@@ -121,6 +122,12 @@ def build_parser() -> argparse.ArgumentParser:
         "serve",
         help="Run the MCP stdio server (requires the mcp extra)",
     )
+
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Diagnose environment prerequisites for first-run setup",
+    )
+    doctor_parser.add_argument("--json", action="store_true", help="Output JSON")
 
     return parser
 
@@ -365,6 +372,14 @@ def main() -> int:
 
         parser.error("Unknown mcp command")
         return 2
+
+    if args.command == "doctor":
+        checks = run_doctor()
+        if args.json:
+            print(json.dumps(format_doctor_json(checks), indent=2))
+        else:
+            print(format_doctor_text(checks))
+        return 0 if doctor_ok(checks) else 1
 
     parser.error("Unknown command")
     return 2
