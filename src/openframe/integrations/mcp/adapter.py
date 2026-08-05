@@ -84,6 +84,13 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "error_codes": ["validation_error", "action_error", "runtime_error", "internal_error"],
     },
     {
+        "name": "scroll",
+        "description": "Scroll the mouse wheel at an optional point",
+        "required_args": ["clicks"],
+        "optional_args": ["x", "y", "dry_run"],
+        "error_codes": ["validation_error", "action_error", "runtime_error", "internal_error"],
+    },
+    {
         "name": "run_flow",
         "description": "Run a YAML flow file",
         "required_args": ["flow_path"],
@@ -141,6 +148,7 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
         "click": _tool_click,
         "type": _tool_type,
         "key": _tool_key,
+        "scroll": _tool_scroll,
         "run_flow": _tool_run_flow,
         "get_run_artifacts": _tool_get_run_artifacts,
     }
@@ -311,6 +319,20 @@ def _tool_key(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[st
     key = _required_string(args, "key")
     actuator.press_key(key)
     return {"key": key, "dry_run": dry_run}, None, {}
+
+
+def _tool_scroll(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
+    if "clicks" not in args or args.get("clicks") is None:
+        raise ValueError("clicks is required.")
+    clicks = int(args["clicks"])
+    dry_run = _as_bool(args.get("dry_run", False))
+    x = int(args["x"]) if args.get("x") is not None else None
+    y = int(args["y"]) if args.get("y") is not None else None
+    if (x is None) ^ (y is None):
+        raise ValueError("scroll requires both x and y, or neither.")
+    actuator = Actuator(dry_run=dry_run)
+    actuator.scroll(clicks, x=x, y=y)
+    return {"clicks": clicks, "x": x, "y": y, "dry_run": dry_run}, None, {}
 
 
 def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:

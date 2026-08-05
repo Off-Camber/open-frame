@@ -61,7 +61,7 @@ Edit Claude Desktop MCP config (macOS path typically
 
 Use the Python interpreter from the virtualenv where Open Frame is installed.
 After saving, restart Claude Desktop and confirm the Open Frame tools appear
-(`capture`, `find`, `click`, `type`, `key`, `run_flow`, `get_run_artifacts`).
+(`capture`, `find`, `click`, `type`, `key`, `scroll`, `run_flow`, `get_run_artifacts`).
 
 ## Cursor
 
@@ -78,7 +78,7 @@ Add an MCP server entry in Cursor settings (MCP servers JSON), for example:
 }
 ```
 
-Restart Cursor / reload MCP servers, then verify the seven tools are listed.
+Restart Cursor / reload MCP servers, then verify the tools are listed (including `scroll`).
 
 ## First dry-run call
 

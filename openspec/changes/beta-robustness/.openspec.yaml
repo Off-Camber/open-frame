@@ -12,8 +12,8 @@ progress:
   pr1_app_validation_matrix: merged
   pr1_github: https://github.com/Off-Camber/open-frame/pull/23
   pr1_main_sha: bda8eaa
-  pr2_template_recognizer: in_progress
-  pr3_scroll_drag_steps: planned
+  pr2_template_recognizer: done
+  pr3_scroll_drag_steps: in_progress
   pr4_robustness_gates: planned
-  next: pr2_or_pr3
+  next: pr3
 release_posture: beta_0_2_0_hold_promotion_until_matrix_green

@@ -95,6 +95,8 @@ def test_runner_supports_phase5_step_kinds_in_dry_run(monkeypatch) -> None:
             FlowStep(id="verify", kind="verify", params={"spec": 'text-appeared:"Submit"'}),
             FlowStep(id="wait", kind="wait", params={"ms": 0}),
             FlowStep(id="capture", kind="capture", params={}),
+            FlowStep(id="scroll", kind="scroll", params={"clicks": -3}),
+            FlowStep(id="drag", kind="drag", params={"from_x": 10, "from_y": 20, "to_x": 30, "to_y": 40}),
         ],
     )
 
@@ -576,3 +578,174 @@ def test_runner_type_via_applescript_close_closes_documents(monkeypatch) -> None
     assert session.results[0].success is True
     assert closed["count"] == 1
     assert session.results[0].details["via"] == "applescript-close"
+
+
+def test_runner_scroll_step_records_details(monkeypatch) -> None:
+    scrolled: list[dict[str, object]] = []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            self.dry_run = dry_run
+
+        def scroll(self, clicks: int, *, x=None, y=None) -> None:
+            scrolled.append({"clicks": clicks, "x": x, "y": y, "dry_run": self.dry_run})
+
+        def wait_ms(self, milliseconds: int) -> None:
+            _ = milliseconds
+
+    flow = Flow(
+        name="scroll-demo",
+        steps=[FlowStep(id="down", kind="scroll", params={"clicks": -4, "x": 50, "y": 60})],
+    )
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r1")
+    assert session.results[0].success is True
+    assert scrolled == [{"clicks": -4, "x": 50, "y": 60, "dry_run": True}]
+    assert session.results[0].details["clicks"] == -4
+
+
+def test_runner_drag_step_point_to_point(monkeypatch) -> None:
+    dragged: list[dict[str, object]] = []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            self.dry_run = dry_run
+
+        def drag(self, start_x, start_y, end_x, end_y, *, duration=0.2, button="left") -> None:
+            dragged.append(
+                {
+                    "from": (start_x, start_y),
+                    "to": (end_x, end_y),
+                    "duration": duration,
+                    "button": button,
+                }
+            )
+
+        def wait_ms(self, milliseconds: int) -> None:
+            _ = milliseconds
+
+    flow = Flow(
+        name="drag-demo",
+        steps=[
+            FlowStep(
+                id="move",
+                kind="drag",
+                params={"from_x": 1, "from_y": 2, "to_x": 3, "to_y": 4, "duration": 0.5},
+            )
+        ],
+    )
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r1")
+    assert session.results[0].success is True
+    assert dragged[0]["from"] == (1, 2)
+    assert dragged[0]["to"] == (3, 4)
+
+
+def test_runner_scroll_until_found_scrolls_then_succeeds(monkeypatch) -> None:
+    calls = {"find": 0, "scroll": 0}
+    target = Target(x=10, y=20, width=30, height=10, confidence=0.9, source="stub", text="BelowFold")
+
+    class FakeLocator:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+            _ = frame, query, strategy, options
+            calls["find"] += 1
+            if calls["scroll"] >= 2:
+                return [target]
+            return []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def scroll(self, clicks: int, *, x=None, y=None) -> None:
+            _ = clicks, x, y
+            calls["scroll"] += 1
+
+        def wait_ms(self, milliseconds: int) -> None:
+            _ = milliseconds
+
+    flow = Flow(
+        name="scroll-find",
+        steps=[
+            FlowStep(
+                id="find-below",
+                kind="find",
+                params={
+                    "query": "BelowFold",
+                    "scroll_until_found": True,
+                    "max_scroll_attempts": 5,
+                    "scroll_clicks": -3,
+                    "scroll_poll_ms": 0,
+                    "timeout_ms": 50,
+                    "poll_ms": 1,
+                },
+            )
+        ],
+    )
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x"))
+    monkeypatch.setattr("openframe.runner.sleep", lambda *_: None)
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r1")
+    assert session.results[0].success is True
+    assert calls["scroll"] == 2
+    assert session.results[0].details["scroll_attempts"] == 2
+    assert session.results[0].details["scroll_until_found"] is True
+
+
+def test_runner_scroll_until_found_fails_closed(monkeypatch) -> None:
+    scrolls = {"count": 0}
+
+    class FakeLocator:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+            _ = frame, query, strategy, options
+            return []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def scroll(self, clicks: int, *, x=None, y=None) -> None:
+            _ = clicks, x, y
+            scrolls["count"] += 1
+
+        def wait_ms(self, milliseconds: int) -> None:
+            _ = milliseconds
+
+    flow = Flow(
+        name="scroll-miss",
+        steps=[
+            FlowStep(
+                id="find-miss",
+                kind="find",
+                params={
+                    "query": "Never",
+                    "scroll_until_found": True,
+                    "max_scroll_attempts": 3,
+                    "scroll_poll_ms": 0,
+                    "timeout_ms": 10,
+                    "poll_ms": 1,
+                },
+            )
+        ],
+    )
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x"))
+    monkeypatch.setattr("openframe.runner.sleep", lambda *_: None)
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r1")
+    assert session.results[0].success is False
+    assert scrolls["count"] == 3
+    assert "did not find" in (session.results[0].error or "")

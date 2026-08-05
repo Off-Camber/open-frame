@@ -27,17 +27,19 @@ open-frame run flow.yaml --dry-run --json
 ## Supported step kinds (current)
 
 - `app` (`name`)
-- `click` (`query`, optional `anchor`, `click_kind`, `expect_one`, `selector`, `timeout_ms`, `poll_ms`)
+- `click` (`query`, optional `anchor`, `click_kind`, `expect_one`, `selector`, `timeout_ms`, `poll_ms`, `scroll_until_found`, `max_scroll_attempts`, `scroll_clicks`, `scroll_poll_ms`)
 - `click_point` (`x_ratio`+`y_ratio` or `x`+`y`, optional `click_kind`)
 - `type` (`text`, optional `interval`)
 - `key` (`key` or `combo`)
+- `scroll` (`clicks`, optional `x`+`y`) — positive clicks scroll up, negative down
+- `drag` (`from_x`+`from_y` or `from_query`, and `to_x`+`to_y` or `to_query`; optional `duration`, `button`)
 - `fill` (`query`, `text`, optional `clear`, `expect_one`, `selector`, `timeout_ms`, `poll_ms`)
 - `attach` (`path`, optional `submit_key`)
 - `write_file` (`path`, `content`)  
 - `navigate` (`url`)
 - `wait` (`ms`)
 - `verify` (`spec` or `specs`, optional `timeout_ms`, `poll_ms`, `match_bounds`)
-- `find` (`query`, optional `timeout_ms`, `poll_ms`)
+- `find` (`query`, optional `timeout_ms`, `poll_ms`, `scroll_until_found`, `max_scroll_attempts`, `scroll_clicks`, `scroll_poll_ms`)
 - `capture` (optional `out`)
 
 `click_point` clicks a position when there is no text target to match (for
@@ -59,6 +61,24 @@ match_bounds:
 ```
 
 `timeout_ms` and `poll_ms` let query/verify steps retry briefly for dynamic UI updates before failing.
+
+### Scroll until found
+
+When a target may be below the fold, enable bounded scrolling on `find` / `click`:
+
+```yaml
+- id: find-footer
+  kind: find
+  query: "OFSCROLLMARKER"
+  scroll_until_found: true
+  max_scroll_attempts: 8      # hard-capped (engine max 50)
+  scroll_clicks: -4          # negative = down (pyautogui)
+  scroll_poll_ms: 200
+  timeout_ms: 1500
+```
+
+The step fails closed after exhausting attempts (never loops forever). Step
+details include `scroll_attempts` when scroll-until-found is used.
 
 ## Flow authoring strategy (for unknown app flows)
 

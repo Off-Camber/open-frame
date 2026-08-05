@@ -34,7 +34,7 @@ def _tool_args(**kwargs: Any) -> dict[str, Any]:
 
 
 def create_mcp_server():  # type: ignore[no-untyped-def]
-    """Build a FastMCP server with the seven Open Frame tools registered."""
+    """Build a FastMCP server with the Open Frame tools registered."""
     FastMCP = _require_fastmcp()
     server = FastMCP(
         name="open-frame",
@@ -156,6 +156,21 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         return call_mcp_tool(
             "key",
             _tool_args(key=key, combo=combo, dry_run=dry_run),
+        )
+
+    @server.tool(
+        name="scroll",
+        description="Scroll the mouse wheel (positive=up, negative=down; envelope response).",
+    )
+    def scroll(
+        clicks: int,
+        x: int | None = None,
+        y: int | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return call_mcp_tool(
+            "scroll",
+            _tool_args(clicks=clicks, x=x, y=y, dry_run=dry_run),
         )
 
     @server.tool(

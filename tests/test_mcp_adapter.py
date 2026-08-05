@@ -10,7 +10,7 @@ from openframe.types import Frame, StepResult, Target
 def test_list_mcp_tools_contains_expected_names() -> None:
     tools = list_mcp_tools()
     names = {item["name"] for item in tools}
-    assert {"capture", "find", "click", "type", "key", "run_flow", "get_run_artifacts"}.issubset(names)
+    assert {"capture", "find", "click", "type", "key", "scroll", "run_flow", "get_run_artifacts"}.issubset(names)
     assert all(item["contract_version"] == "v0.2.0" for item in tools)
     assert all("required_args" in item and "optional_args" in item and "error_codes" in item for item in tools)
 
@@ -170,4 +170,27 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     result = call_mcp_tool("click", {"query": "Create", "selector": "top_most", "dry_run": True, "run_id": "r1"})
     assert result["ok"] is True
     assert clicked == {"x": 10, "y": 100}
+
+
+def test_scroll_tool_dry_run(monkeypatch) -> None:
+    scrolled: list[dict[str, object]] = []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            self.dry_run = dry_run
+
+        def scroll(self, clicks: int, *, x=None, y=None) -> None:
+            scrolled.append({"clicks": clicks, "x": x, "y": y, "dry_run": self.dry_run})
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    result = call_mcp_tool("scroll", {"clicks": -5, "x": 10, "y": 20, "dry_run": True})
+    assert result["ok"] is True
+    assert result["data"]["clicks"] == -5
+    assert scrolled == [{"clicks": -5, "x": 10, "y": 20, "dry_run": True}]
+
+
+def test_scroll_tool_requires_clicks() -> None:
+    result = call_mcp_tool("scroll", {"dry_run": True})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "validation_error"
 

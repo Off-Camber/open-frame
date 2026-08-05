@@ -131,6 +131,42 @@ class FlowRunner:
                 "bytes_written": len(content.encode("utf-8")),
             }
 
+        if kind == "scroll":
+            if "clicks" not in step.params:
+                raise ValueError(f"Step '{step.id}' scroll requires 'clicks'.")
+            clicks = int(step.params["clicks"])
+            x = int(step.params["x"]) if "x" in step.params else None
+            y = int(step.params["y"]) if "y" in step.params else None
+            if (x is None) ^ (y is None):
+                raise ValueError(f"Step '{step.id}' scroll requires both x and y, or neither.")
+            actuator.scroll(clicks, x=x, y=y)
+            return {"clicks": clicks, "x": x, "y": y, "dry_run": self.dry_run}
+
+        if kind == "drag":
+            start, end, meta = _resolve_drag_endpoints(
+                step=step, locator=locator, actuator=actuator
+            )
+            duration = float(step.params.get("duration", 0.2))
+            button = str(step.params.get("button", "left")).strip().lower()
+            if button not in {"left", "middle", "right"}:
+                raise ValueError(f"Step '{step.id}' has invalid drag button '{button}'.")
+            actuator.drag(
+                start[0],
+                start[1],
+                end[0],
+                end[1],
+                duration=duration,
+                button=button,  # type: ignore[arg-type]
+            )
+            return {
+                "from": {"x": start[0], "y": start[1]},
+                "to": {"x": end[0], "y": end[1]},
+                "duration": duration,
+                "button": button,
+                "dry_run": self.dry_run,
+                **meta,
+            }
+
         if kind == "click":
             query = str(step.params.get("query", "")).strip()
             if not query:
@@ -140,14 +176,17 @@ class FlowRunner:
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
-            targets, scale_factor = _find_targets_with_retry(
+            scroll_cfg = _parse_scroll_until_found(step=step)
+            targets, scale_factor, scroll_meta = _find_targets_maybe_scrolling(
                 locator=locator,
+                actuator=actuator,
                 query=query,
                 strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
                 options=recognition_options_from_mapping(step.params),
+                scroll_cfg=scroll_cfg,
             )
             try:
                 ensure_actionable_match_count(
@@ -176,7 +215,7 @@ class FlowRunner:
             actuator.click_target(
                 selected_target, anchor=anchor, kind=click_kind, scale_factor=scale_factor
             )
-            return {
+            details = {
                 "query": query,
                 "click_kind": click_kind,
                 "anchor": anchor,
@@ -186,6 +225,9 @@ class FlowRunner:
                 "poll_ms": poll_ms,
                 "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
+            if scroll_meta:
+                details.update(scroll_meta)
+            return details
 
         if kind == "click_point":
             frame = screen()
@@ -220,18 +262,21 @@ class FlowRunner:
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
-            targets, _scale_factor = _find_targets_with_retry(
+            scroll_cfg = _parse_scroll_until_found(step=step)
+            targets, _scale_factor, scroll_meta = _find_targets_maybe_scrolling(
                 locator=locator,
+                actuator=actuator,
                 query=query,
                 strategy="all",
                 timeout_ms=timeout_ms,
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
                 options=recognition_options_from_mapping(step.params),
+                scroll_cfg=scroll_cfg,
             )
             if not targets:
                 raise ValueError(f"Step '{step.id}' did not find query '{query}'.")
-            return {
+            details = {
                 "query": query,
                 "matches": len(targets),
                 "timeout_ms": timeout_ms,
@@ -239,6 +284,9 @@ class FlowRunner:
                 "scope_to_window": scope_to_window,
                 "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
+            if scroll_meta:
+                details.update(scroll_meta)
+            return details
 
         if kind == "capture":
             out_path = step.params.get("out")
@@ -517,6 +565,200 @@ def _find_targets_with_retry(
         if monotonic() >= deadline:
             return [], frame.scale_factor
         sleep(poll_ms / 1000.0)
+
+
+DEFAULT_MAX_SCROLL_ATTEMPTS = 5
+HARD_MAX_SCROLL_ATTEMPTS = 50
+DEFAULT_SCROLL_CLICKS = -3
+DEFAULT_SCROLL_POLL_MS = 200
+
+
+def _parse_scroll_until_found(*, step: FlowStep) -> dict[str, Any] | None:
+    """Return scroll-until-found config when enabled, else None."""
+    enabled = _coerce_bool(step.params.get("scroll_until_found", False))
+    if not enabled:
+        return None
+    max_attempts = int(step.params.get("max_scroll_attempts", DEFAULT_MAX_SCROLL_ATTEMPTS))
+    if max_attempts < 0:
+        raise ValueError(f"Step '{step.id}' max_scroll_attempts must be >= 0.")
+    if max_attempts > HARD_MAX_SCROLL_ATTEMPTS:
+        raise ValueError(
+            f"Step '{step.id}' max_scroll_attempts exceeds hard limit "
+            f"({HARD_MAX_SCROLL_ATTEMPTS})."
+        )
+    scroll_clicks = int(step.params.get("scroll_clicks", DEFAULT_SCROLL_CLICKS))
+    scroll_poll_ms = int(step.params.get("scroll_poll_ms", DEFAULT_SCROLL_POLL_MS))
+    if scroll_poll_ms < 0:
+        raise ValueError(f"Step '{step.id}' scroll_poll_ms must be >= 0.")
+    x = int(step.params["scroll_x"]) if "scroll_x" in step.params else None
+    y = int(step.params["scroll_y"]) if "scroll_y" in step.params else None
+    if (x is None) ^ (y is None):
+        raise ValueError(f"Step '{step.id}' scroll_until_found requires both scroll_x and scroll_y.")
+    return {
+        "max_attempts": max_attempts,
+        "scroll_clicks": scroll_clicks,
+        "scroll_poll_ms": scroll_poll_ms,
+        "scroll_x": x,
+        "scroll_y": y,
+    }
+
+
+def _find_targets_maybe_scrolling(
+    *,
+    locator: Locator,
+    actuator: Actuator,
+    query: str,
+    strategy: str,
+    timeout_ms: int,
+    poll_ms: int,
+    scope_to_window: bool,
+    options: dict[str, Any] | None,
+    scroll_cfg: dict[str, Any] | None,
+) -> tuple[list[Target], float, dict[str, Any]]:
+    """Find targets, optionally scrolling between bounded attempts."""
+    if scroll_cfg is None:
+        targets, scale_factor = _find_targets_with_retry(
+            locator=locator,
+            query=query,
+            strategy=strategy,
+            timeout_ms=timeout_ms,
+            poll_ms=poll_ms,
+            scope_to_window=scope_to_window,
+            options=options,
+        )
+        return targets, scale_factor, {}
+
+    max_attempts = int(scroll_cfg["max_attempts"])
+    scroll_clicks = int(scroll_cfg["scroll_clicks"])
+    scroll_poll_ms = int(scroll_cfg["scroll_poll_ms"])
+    scroll_x = scroll_cfg.get("scroll_x")
+    scroll_y = scroll_cfg.get("scroll_y")
+    # Per attempt use a short recognition window; overall bound is max_attempts.
+    attempt_timeout_ms = min(timeout_ms, max(poll_ms, 300))
+    scroll_attempts = 0
+    scale_factor = 1.0
+    for attempt in range(max_attempts + 1):
+        targets, scale_factor = _find_targets_with_retry(
+            locator=locator,
+            query=query,
+            strategy=strategy,
+            timeout_ms=attempt_timeout_ms,
+            poll_ms=poll_ms,
+            scope_to_window=scope_to_window,
+            options=options,
+        )
+        if targets:
+            return (
+                targets,
+                scale_factor,
+                {
+                    "scroll_until_found": True,
+                    "scroll_attempts": scroll_attempts,
+                    "max_scroll_attempts": max_attempts,
+                    "scroll_clicks": scroll_clicks,
+                },
+            )
+        if attempt >= max_attempts:
+            break
+        actuator.scroll(scroll_clicks, x=scroll_x, y=scroll_y)
+        scroll_attempts += 1
+        if scroll_poll_ms > 0:
+            sleep(scroll_poll_ms / 1000.0)
+
+    return (
+        [],
+        scale_factor,
+        {
+            "scroll_until_found": True,
+            "scroll_attempts": scroll_attempts,
+            "max_scroll_attempts": max_attempts,
+            "scroll_clicks": scroll_clicks,
+        },
+    )
+
+
+def _resolve_drag_endpoints(
+    *,
+    step: FlowStep,
+    locator: Locator,
+    actuator: Actuator,
+) -> tuple[tuple[int, int], tuple[int, int], dict[str, Any]]:
+    """Resolve drag from/to points from coordinates and/or query targets."""
+    meta: dict[str, Any] = {}
+    start = _resolve_point_param(
+        step=step,
+        locator=locator,
+        actuator=actuator,
+        x_key="from_x",
+        y_key="from_y",
+        query_key="from_query",
+        selector_key="from_selector",
+        label="from",
+        meta=meta,
+    )
+    end = _resolve_point_param(
+        step=step,
+        locator=locator,
+        actuator=actuator,
+        x_key="to_x",
+        y_key="to_y",
+        query_key="to_query",
+        selector_key="to_selector",
+        label="to",
+        meta=meta,
+    )
+    return start, end, meta
+
+
+def _resolve_point_param(
+    *,
+    step: FlowStep,
+    locator: Locator,
+    actuator: Actuator,
+    x_key: str,
+    y_key: str,
+    query_key: str,
+    selector_key: str,
+    label: str,
+    meta: dict[str, Any],
+) -> tuple[int, int]:
+    if x_key in step.params and y_key in step.params:
+        return int(step.params[x_key]), int(step.params[y_key])
+
+    query = str(step.params.get(query_key, "")).strip()
+    if not query:
+        raise ValueError(
+            f"Step '{step.id}' drag requires {x_key}/{y_key} or {query_key} for '{label}'."
+        )
+    timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
+    poll_ms = _coerce_poll_ms(step=step, default_ms=200)
+    scope_to_window = _wants_window_scope(step)
+    selector = explicit_selector(step.params.get(selector_key))
+    targets, scale_factor = _find_targets_with_retry(
+        locator=locator,
+        query=query,
+        strategy="all",
+        timeout_ms=timeout_ms,
+        poll_ms=poll_ms,
+        scope_to_window=scope_to_window,
+        options=recognition_options_from_mapping(step.params),
+    )
+    try:
+        ensure_actionable_match_count(
+            query=query,
+            match_count=len(targets),
+            selector=selector,
+            expect_one=False,
+        )
+    except ValueError as exc:
+        raise ValueError(f"Step '{step.id}' drag {label}: {exc}") from exc
+    selected = _select_target(
+        targets=targets, selector=selector or "first", scale_factor=scale_factor
+    )
+    point = actuator.point_for_target(selected, anchor="center", scale_factor=scale_factor)
+    meta[f"{label}_query"] = query
+    meta[f"{label}_selector"] = selector or "first"
+    return point
 
 
 def _wants_window_scope(step: FlowStep) -> bool:
