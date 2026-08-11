@@ -49,7 +49,7 @@ agent = [
   "anthropic",
 ]
 mcp = [
-  "mcp>=1.0,<2",
+  "mcp>=1.0,<3",
 ]
 template = [
   "Pillow",
