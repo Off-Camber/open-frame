@@ -194,6 +194,74 @@ def test_load_scenario_yaml() -> None:
     assert scenario["mode"] == "openframe-only"
 
 
+def test_median_and_ab_verdict_rules() -> None:
+    assert harness.median([]) is None
+    assert harness.median([3, 1, 2]) == 2
+    assert harness.median([1, 2, 3, 4]) == 2.5
+
+    browser_fail = harness.summarize_arm_trials(
+        [
+            {"status": "fail", "metrics": {"wall_seconds": 1, "total_tokens": 100, "cost_usd": 0.01}},
+            {"status": "fail", "metrics": {"wall_seconds": 2, "total_tokens": 120, "cost_usd": 0.02}},
+            {"status": "blocked", "notes": "no key", "metrics": {"wall_seconds": 0}},
+        ]
+    )
+    assert browser_fail["n_blocked"] == 1
+    assert browser_fail["pass_rate"] == 0.0
+    assert browser_fail["median_total_tokens"] == 110
+
+    hybrid_pass = harness.summarize_arm_trials(
+        [
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 3, "total_tokens": 90, "cost_usd": 0.005, "steps": 4},
+            },
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 4, "total_tokens": 80, "cost_usd": 0.004, "steps": 3},
+            },
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 5, "total_tokens": 70, "cost_usd": 0.003, "steps": 5},
+            },
+        ]
+    )
+    cap = harness.compare_ab_verdict("capability", browser_fail, hybrid_pass)
+    assert cap["kind"] == "capability"
+    assert "cheaper" not in cap["summary"].casefold()
+
+    browser_pass = harness.summarize_arm_trials(
+        [
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 2, "total_tokens": 200, "cost_usd": 0.02, "steps": 2},
+            },
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 2, "total_tokens": 220, "cost_usd": 0.03, "steps": 2},
+            },
+            {
+                "status": "pass",
+                "metrics": {"wall_seconds": 2, "total_tokens": 180, "cost_usd": 0.025, "steps": 2},
+            },
+        ]
+    )
+    eff = harness.compare_ab_verdict("efficiency", browser_pass, hybrid_pass)
+    assert eff["kind"] == "efficiency"
+    assert "cheaper" in eff["summary"].casefold()
+
+    cheaper_browser = harness.compare_ab_verdict("efficiency", browser_pass, browser_fail)
+    assert cheaper_browser["kind"] == "inconclusive"
+
+
+def test_load_ab_pair_yaml() -> None:
+    pair = harness._load_scenario(EXAMPLES / "scenarios" / "ab" / "ab1.yaml")
+    assert pair["thesis"] == "efficiency"
+    assert {arm["id"] for arm in pair["arms"]} == {"browser-only", "hybrid"}
+    cap = harness._load_scenario(EXAMPLES / "scenarios" / "ab" / "ab2.yaml")
+    assert cap["thesis"] == "capability"
+
+
 @pytest.mark.skipif(not LIVE_MACOS, reason="live macOS Screen Recording required")
 def test_live_find_template_fixture() -> None:
     envelope = of_tools.call_openframe(

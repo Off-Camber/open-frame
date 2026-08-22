@@ -1,0 +1,26 @@
+id: ab1
+name: Efficiency — web heading extraction
+thesis: efficiency
+profiles: [P1]
+max_steps: 8
+prepare: handoff_html
+job: >
+  Open {{handoff_html}} in the browser and report the exact H1 heading text
+  on the page. Include the heading in your final answer.
+arms:
+  - id: browser-only
+    mode: browser-only
+    prompt_suffix: >
+      Use only browser tools. Do not use desktop_* tools.
+    pass_checks:
+      - type: openframe_unused
+      - type: agent_final_regex
+        pattern: "Open Frame handoff"
+  - id: hybrid
+    mode: hybrid
+    prompt_suffix: >
+      Desktop_* tools are available, but this heading is on the web page —
+      prefer browser tools. Do not click native UI.
+    pass_checks:
+      - type: agent_final_regex
+        pattern: "Open Frame handoff"

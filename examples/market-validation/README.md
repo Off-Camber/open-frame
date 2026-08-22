@@ -32,6 +32,7 @@ python examples/market-validation/run_scenario.py --scenario s5
 # Includes browser-use agent scenarios when keys are set
 python examples/market-validation/run_scenario.py --scenario s1
 python examples/market-validation/run_scenario.py --scenario s3
+python examples/market-validation/run_scenario.py --ab ab1 --ab ab2 --repeats 3
 ```
 
 Outputs land in `docs/market-validation-runs/<stamp>/` (`scorecard.md` + per-scenario files).
@@ -49,6 +50,19 @@ Each scenario JSON includes `result.metrics`:
 
 Agent runs use `calculate_cost=True` and `use_judge=False` (opt in with `OPENFRAME_MARKET_VALIDATION_USE_JUDGE=1`).
 
+## A/B cost comparison
+
+```bash
+python examples/market-validation/run_scenario.py --ab ab1 --ab ab2 --repeats 3
+# optional: --warmup 1 discards one cold Chromium launch per arm
+```
+
+- **AB1** (`efficiency`): both arms extract the handoff page H1.
+- **AB2** (`capability`): native Notes find — browser-only should fail; hybrid should pass. Do not read AB2 as “cheaper.”
+
+Each pair writes `ab-comparison.md` / `.json` with pass rate, medians, deltas
+(`hybrid - browser-only`), and a mechanical verdict.
+
 ## Policy
 
 - Clicks from the harness use **dry_run** unless a scenario explicitly needs actuation
@@ -63,4 +77,5 @@ Agent runs use `calculate_cost=True` and `use_judge=False` (opt in with `OPENFRA
 | `browser_use_openframe_tools.py` | `desktop_*` custom tools → `call_mcp_tool` |
 | `run_scenario.py` | Loader, scorer, agent/deterministic runners |
 | `scenarios/s*.yaml` | Scenario metadata + pass checks |
-| `fixtures/handoff.html` | Hybrid browser fixture for S3 |
+| `scenarios/ab/*.yaml` | Paired browser-only vs hybrid jobs (AB1 efficiency, AB2 capability) |
+| `fixtures/handoff.html` | Hybrid browser fixture for S3 / AB pairs |

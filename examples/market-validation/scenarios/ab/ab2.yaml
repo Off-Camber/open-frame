@@ -1,0 +1,38 @@
+id: ab2
+name: Capability — native Notes find
+thesis: capability
+profiles: [P1, P2]
+max_steps: 14
+prepare: handoff_html
+app: Notes
+job: >
+  Complete BOTH parts.
+  1) Open {{handoff_html}} and confirm the heading mentions "Open Frame handoff".
+  2) Find the native Notes app chrome: call desktop_capture then desktop_find
+  with query "Notes". Do not click. Report both the page heading and the
+  Open Frame find result.
+arms:
+  - id: browser-only
+    mode: browser-only
+    prompt_suffix: >
+      You have only browser DOM tools. If you cannot inspect native desktop
+      UI, say so in the final answer rather than guessing.
+    pass_checks:
+      - type: envelope_ok
+        tool: desktop_find
+      - type: count_gte
+        tool: desktop_find
+        value: 1
+  - id: hybrid
+    mode: hybrid
+    prompt_suffix: >
+      Available custom tools include desktop_capture and desktop_find — you
+      MUST call them for part 2 (do not claim they are missing).
+    pass_checks:
+      - type: envelope_ok
+        tool: desktop_find
+      - type: count_gte
+        tool: desktop_find
+        value: 1
+      - type: agent_final_regex
+        pattern: "handoff|Notes|Open Frame"

@@ -1,0 +1,71 @@
+{
+  "scenario": {
+    "id": "ab1-hybrid-t2",
+    "name": "Efficiency \u2014 web heading extraction",
+    "profiles": [
+      "P1"
+    ],
+    "mode": "hybrid",
+    "max_steps": 8,
+    "prompt": "Open {{handoff_html}} in the browser and report the exact H1 heading text on the page. Include the heading in your final answer.\nDesktop_* tools are available, but this heading is on the web page \u2014 prefer browser tools. Do not click native UI.",
+    "setup": {
+      "prepare": "handoff_html"
+    },
+    "pass_checks": [
+      {
+        "type": "agent_final_regex",
+        "pattern": "Open Frame handoff"
+      }
+    ],
+    "thesis": "efficiency",
+    "arm": "hybrid",
+    "pair": "ab1"
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:19:06.577059+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-5t2u7o9m.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      }
+    ],
+    "agent_final": "Successfully opened http://127.0.0.1:49700/handoff.html and extracted the H1 heading text.\n\nThe exact H1 heading on the page is:\n**Open Frame handoff**",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:49700/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49700/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Waited for 2 seconds', extracted_content='Waited for 2 seconds', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:19:06.577059+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-5t2u7o9m.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:19:06.577059+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-5t2u7o9m.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='<url>\\nhttp://127.0.0.1:49700/handoff.html\\n</url>\\n<query>\\nH1 heading text on the page\\n</query>\\n<result>\\nH1 heading text on the page:\\n\\n**Open Frame handoff**\\n</result>', extracted_content='<url>\\nhttp://127.0.0.1:49700/handoff.html\\n</url>\\n<query>\\nH1 heading text on the page\\n</query>\\n<result>\\nH1 heading text on the page:\\n\\n**Open Frame handoff**\\n</result>', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - Successfully opened http://127.0.0.1:49700/handoff.html and extracted the H1 heading text.\\n\\nThe exac - 51 more characters', extracted_content='Successfully opened http://127.0.0.1:49700/handoff.html and extracted the H1 heading text.\\n\\nThe exact H1 heading on the page is:\\n**Open Frame handoff**', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:49700/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'wait': {'seconds': 2}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'extract': {'query': 'H1 heading text on the page', 'extract_links': False, 'extract_images': False, 'start_from_char': 0, 'already_collected': []}, 'interacted_element': None}, {'done': {'text': 'Successfully opened http://127.0.0.1:49700/handoff.html and extracted the H1 heading text.\\n\\nThe exact H1 heading on the page is:\\n**Open Frame handoff**', 'success': True, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 11.909,
+      "steps": 5,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 28858,
+      "completion_tokens": 757,
+      "total_tokens": 29615,
+      "cached_tokens": 28396,
+      "cost_usd": 0.0118091,
+      "usage_complete": true
+    }
+  }
+}

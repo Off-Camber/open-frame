@@ -1,0 +1,40 @@
+{
+  "pair": "ab1",
+  "thesis": "efficiency",
+  "verdict": {
+    "kind": "efficiency",
+    "summary": "Hybrid is cheaper on median cost_usd with pass rate at least as high as browser-only."
+  },
+  "arms": {
+    "browser-only": {
+      "n": 3,
+      "n_blocked": 0,
+      "n_pass": 3,
+      "n_fail": 0,
+      "pass_rate": 1.0,
+      "median_wall_seconds": 15.031,
+      "median_total_tokens": 39322.0,
+      "median_cost_usd": 0.02594035,
+      "median_steps": 6.0,
+      "blocked_notes": []
+    },
+    "hybrid": {
+      "n": 3,
+      "n_blocked": 0,
+      "n_pass": 3,
+      "n_fail": 0,
+      "pass_rate": 1.0,
+      "median_wall_seconds": 11.909,
+      "median_total_tokens": 29615.0,
+      "median_cost_usd": 0.015947250000000003,
+      "median_steps": 5.0,
+      "blocked_notes": []
+    }
+  },
+  "delta_hybrid_minus_browser": {
+    "wall_seconds": -3.122,
+    "total_tokens": -9707.0,
+    "cost_usd": -0.009993099999999998,
+    "steps": -1.0
+  }
+}

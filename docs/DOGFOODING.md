@@ -7,7 +7,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-08-05 | Cursor (this workspace) | `open-frame mcp list-tools --json`; dry-run `type`; template icon probe; scroll probe via `./scripts/run_scroll_probe.sh` | Tools listed including `scroll`; dry-run ok; scroll marker found after 5 scrolls |
 | 2026-08-05 | Local CLI | App matrix `./scripts/app_matrix_gate.sh` → `…20260805T040506Z` | **6/6 pass** (Finder + Calendar recovered after focus hardening) |
 | 2026-08-05 | Local CLI | MCP dry-run repeatability (5× wait + 5× actions) → `docs/benchmarks/mcp-repeatability-20260805T040800Z.md` | **10/10 (100%)** |
-| 2026-08-05 | Local CLI / browser-use | Market validation harness (`docs/market-validation-runs/20260805Tmarket-v0`) | **S1–S6 pass** (hybrid thesis held on this Mac) |
+| 2026-08-22 | Local CLI / browser-use | A/B cost harness (`docs/market-validation-runs/20260822Tab-v0`) | AB1 **efficiency** (hybrid cheaper median `$`, 3/3); AB2 **capability** (hybrid 3/3, browser-only 0/3) |
 
 ## Notes
 

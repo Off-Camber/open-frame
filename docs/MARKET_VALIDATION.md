@@ -130,5 +130,23 @@ python examples/market-validation/run_scenario.py --scenario s2
 python examples/market-validation/run_scenario.py --all
 ```
 
+### Token / cost A/B comparison
+
+Same job, two arms (`browser-only` vs `hybrid`), N≥3 repeats. Metrics come from
+`result.metrics` (wall clock + browser-use usage). Blocked trials are listed
+separately and excluded from pass rate and medians.
+
+```bash
+python examples/market-validation/run_scenario.py --ab ab1 --ab ab2 --repeats 3
+```
+
+| Pair | Thesis | How to read the verdict |
+|---|---|---|
+| AB1 | efficiency | Both arms can pass (web heading). Claim “cheaper” only if hybrid median `$` is lower **and** pass rate is at least as high. |
+| AB2 | capability | Browser-only is expected to fail the native Notes find. A hybrid pass is **not** a cost saving. |
+
+Verdict kinds: `capability` / `efficiency` / `inconclusive`. Never treat AB2 as
+an efficiency win. Reports land in `docs/market-validation-runs/<stamp>/ab*/ab-comparison.md`.
+
 See [`examples/market-validation/README.md`](../examples/market-validation/README.md)
-for permissions, dry-run policy, and scorecard layout.
+for permissions, dry-run policy, scorecard layout, and metric fields.
