@@ -36,6 +36,19 @@ python examples/market-validation/run_scenario.py --scenario s3
 
 Outputs land in `docs/market-validation-runs/<stamp>/` (`scorecard.md` + per-scenario files).
 
+Each scenario JSON includes `result.metrics`:
+
+| Field | Meaning |
+|---|---|
+| `wall_seconds` | Wall clock for the scenario body (`agent.run` or Open Frame steps) |
+| `steps` | Agent history length, or Open Frame envelope count |
+| `model` | LLM id when an agent ran; `null` for `openframe-only` |
+| `prompt_tokens` / `completion_tokens` / `total_tokens` / `cached_tokens` | From browser-use `history.usage` |
+| `cost_usd` | Estimated $ from browser-use pricing when available |
+| `usage_complete` | `true` only when usage was returned; never invent zeros for missing LLM stats |
+
+Agent runs use `calculate_cost=True` and `use_judge=False` (opt in with `OPENFRAME_MARKET_VALIDATION_USE_JUDGE=1`).
+
 ## Policy
 
 - Clicks from the harness use **dry_run** unless a scenario explicitly needs actuation

@@ -17,6 +17,7 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -127,6 +128,7 @@ def _apply_vars(value: Any, vars_: dict[str, str]) -> Any:
 
 def _run_deterministic(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, Any]:
     """Execute scenario['steps'] via Open Frame tools; score pass_checks."""
+    started = time.perf_counter()
     vars_ = _prepare_scenario(scenario, work_dir=work_dir)
     scenario = _apply_vars(scenario, vars_)
     setup = scenario.get("setup") or {}
@@ -139,6 +141,9 @@ def _run_deterministic(scenario: dict[str, Any], *, work_dir: Path) -> dict[str,
                 "status": "blocked",
                 "notes": f"Could not focus app '{app}': {exc}",
                 "envelopes": [],
+                "metrics": metrics_from_usage(
+                    None, wall_seconds=time.perf_counter() - started, steps=0
+                ),
             }
 
     envelopes: list[dict[str, Any]] = []
@@ -158,7 +163,17 @@ def _run_deterministic(scenario: dict[str, Any], *, work_dir: Path) -> dict[str,
         envelopes.append({"step_tool": tool, "mcp_tool": mcp_tool, "envelope": envelope})
 
     status, notes = _score(scenario, envelopes=envelopes, agent_final=None)
-    return {"status": status, "notes": notes, "envelopes": envelopes, "agent_final": None}
+    return {
+        "status": status,
+        "notes": notes,
+        "envelopes": envelopes,
+        "agent_final": None,
+        "metrics": metrics_from_usage(
+            None,
+            wall_seconds=time.perf_counter() - started,
+            steps=len(envelopes),
+        ),
+    }
 
 
 def _score(
@@ -235,6 +250,81 @@ def _score(
     return "pass", "all checks passed"
 
 
+def metrics_from_usage(
+    usage: Any,
+    *,
+    wall_seconds: float,
+    steps: int | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """Map browser-use usage (or None) into a stable metrics dict.
+
+    Missing usage is explicit: token/cost fields stay null and
+    ``usage_complete`` is False. Never zero-fill LLM stats.
+    """
+    metrics: dict[str, Any] = {
+        "wall_seconds": round(float(wall_seconds), 3),
+        "steps": steps,
+        "model": model,
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "total_tokens": None,
+        "cached_tokens": None,
+        "cost_usd": None,
+        "usage_complete": False,
+    }
+    data: dict[str, Any] | None = None
+    if usage is None:
+        return metrics
+    if hasattr(usage, "model_dump"):
+        dumped = usage.model_dump()
+        if isinstance(dumped, dict):
+            data = dumped
+    elif isinstance(usage, dict):
+        data = usage
+    if not data:
+        return metrics
+    prompt = data.get("total_prompt_tokens")
+    completion = data.get("total_completion_tokens")
+    total = data.get("total_tokens")
+    if prompt is None and completion is None and total is None:
+        return metrics
+    metrics["prompt_tokens"] = prompt
+    metrics["completion_tokens"] = completion
+    metrics["total_tokens"] = total
+    metrics["cached_tokens"] = data.get("total_prompt_cached_tokens")
+    metrics["cost_usd"] = data.get("total_cost")
+    metrics["usage_complete"] = True
+    return metrics
+
+
+def _history_step_count(history: Any) -> int | None:
+    if history is None:
+        return None
+    items = getattr(history, "history", None)
+    if items is not None:
+        return len(items)
+    outputs = getattr(history, "all_model_outputs", None)
+    if outputs is not None:
+        return len(outputs)
+    return None
+
+
+def _model_name(llm: Any) -> str | None:
+    if llm is None:
+        return None
+    name = getattr(llm, "model", None)
+    return str(name) if name else None
+
+
+def _use_judge() -> bool:
+    return os.environ.get("OPENFRAME_MARKET_VALIDATION_USE_JUDGE", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
 def _build_llm():  # type: ignore[no-untyped-def]
     """Prefer Anthropic when configured; otherwise OpenAI."""
     if os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get(
@@ -301,27 +391,28 @@ def _resolve_browser_executable() -> str | None:
 
 async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, Any]:
     """Run browser-use Agent for browser-only / hybrid scenarios."""
+    started = time.perf_counter()
+
+    def _blocked(notes: str, envelopes: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return {
+            "status": "blocked",
+            "notes": notes,
+            "envelopes": envelopes or [],
+            "agent_final": None,
+            "metrics": metrics_from_usage(None, wall_seconds=time.perf_counter() - started),
+        }
+
     try:
         from browser_use import Agent, Browser, Tools
     except ImportError as exc:
-        return {
-            "status": "blocked",
-            "notes": f"browser-use not installed: {exc}",
-            "envelopes": [],
-            "agent_final": None,
-        }
+        return _blocked(f"browser-use not installed: {exc}")
 
     if not (
         os.environ.get("OPENAI_API_KEY")
         or os.environ.get("ANTHROPIC_API_KEY")
         or os.environ.get("BROWSER_USE_API_KEY")
     ):
-        return {
-            "status": "blocked",
-            "notes": "Set OPENAI_API_KEY or ANTHROPIC_API_KEY for agent scenarios",
-            "envelopes": [],
-            "agent_final": None,
-        }
+        return _blocked("Set OPENAI_API_KEY or ANTHROPIC_API_KEY for agent scenarios")
 
     vars_ = _prepare_scenario(scenario, work_dir=work_dir)
     scenario = _apply_vars(scenario, vars_)
@@ -387,12 +478,7 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
                 import browser_use_openframe_tools as of_tools
 
                 of_tools.call_openframe = original  # type: ignore[attr-defined]
-            return {
-                "status": "blocked",
-                "notes": f"Could not focus app '{setup['app']}': {exc}",
-                "envelopes": of_envelopes,
-                "agent_final": None,
-            }
+            return _blocked(f"Could not focus app '{setup['app']}': {exc}", of_envelopes)
 
     llm = _build_llm()
     task = str(scenario.get("prompt") or "").strip()
@@ -401,12 +487,7 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
             import browser_use_openframe_tools as of_tools
 
             of_tools.call_openframe = original  # type: ignore[attr-defined]
-        return {
-            "status": "blocked",
-            "notes": "scenario prompt is empty",
-            "envelopes": of_envelopes,
-            "agent_final": None,
-        }
+        return _blocked("scenario prompt is empty", of_envelopes)
 
     browser_kwargs: dict[str, Any] = {"headless": True}
     executable = _resolve_browser_executable()
@@ -422,8 +503,10 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
         max_failures=3,
         use_vision=False,
         flash_mode=True,
-        use_judge=False,
+        use_judge=_use_judge(),
+        calculate_cost=True,
     )
+    history = None
     try:
         history = await agent.run(max_steps=int(scenario.get("max_steps", 12)))
     except Exception as exc:  # noqa: BLE001
@@ -432,6 +515,12 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
 
             of_tools.call_openframe = original  # type: ignore[attr-defined]
         message = str(exc)
+        metrics = metrics_from_usage(
+            getattr(history, "usage", None) if history is not None else None,
+            wall_seconds=time.perf_counter() - started,
+            steps=_history_step_count(history),
+            model=_model_name(llm),
+        )
         if "uvx" in message or "BrowserLaunch" in message or "playwright" in message.casefold():
             hint = (
                 f" Detected executable candidate: {executable}."
@@ -449,12 +538,14 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
                 ),
                 "envelopes": of_envelopes,
                 "agent_final": None,
+                "metrics": metrics,
             }
         return {
             "status": "fail",
             "notes": f"agent run raised {type(exc).__name__}: {message}",
             "envelopes": of_envelopes,
             "agent_final": None,
+            "metrics": metrics,
         }
     finally:
         if original is not None:
@@ -475,6 +566,12 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
         "envelopes": of_envelopes,
         "agent_final": final,
         "history": str(history),
+        "metrics": metrics_from_usage(
+            getattr(history, "usage", None),
+            wall_seconds=time.perf_counter() - started,
+            steps=_history_step_count(history),
+            model=_model_name(llm),
+        ),
     }
 
 
@@ -490,6 +587,7 @@ def _write_run_artifacts(
     raw_path.write_text(json.dumps({"scenario": scenario, "result": result}, indent=2, default=str), encoding="utf-8")
 
     md_path = out_dir / f"{scenario_id}.md"
+    metrics = result.get("metrics") or {}
     md_path.write_text(
         "\n".join(
             [
@@ -499,6 +597,18 @@ def _write_run_artifacts(
                 f"- Mode: `{scenario.get('mode')}`",
                 f"- Profiles: {', '.join(scenario.get('profiles') or [])}",
                 f"- Notes: {result.get('notes')}",
+                "",
+                "## Metrics",
+                "",
+                f"- wall_seconds: {metrics.get('wall_seconds')}",
+                f"- steps: {metrics.get('steps')}",
+                f"- model: {metrics.get('model')}",
+                f"- prompt_tokens: {metrics.get('prompt_tokens')}",
+                f"- completion_tokens: {metrics.get('completion_tokens')}",
+                f"- total_tokens: {metrics.get('total_tokens')}",
+                f"- cached_tokens: {metrics.get('cached_tokens')}",
+                f"- cost_usd: {metrics.get('cost_usd')}",
+                f"- usage_complete: {metrics.get('usage_complete')}",
                 "",
                 "## Agent final",
                 "",
@@ -598,6 +708,7 @@ def main(argv: list[str] | None = None) -> int:
                     "notes": "skipped (--deterministic-only)",
                     "envelopes": [],
                     "agent_final": None,
+                    "metrics": metrics_from_usage(None, wall_seconds=0.0, steps=0),
                 }
             elif mode == "openframe-only":
                 result = _run_deterministic(scenario, work_dir=work_dir)
