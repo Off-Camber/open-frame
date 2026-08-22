@@ -7,6 +7,7 @@ Supports:
 Examples:
   python examples/market-validation/run_scenario.py --scenario s2
   python examples/market-validation/run_scenario.py --all --deterministic-only
+  python examples/market-validation/run_scenario.py --ab ab1 --ab ab2 --repeats 3
 """
 
 from __future__ import annotations
@@ -26,7 +27,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
+AB_DIR = SCENARIOS_DIR / "ab"
 RUNS_DIR = ROOT / "docs" / "market-validation-runs"
+PASS_RATE_THRESHOLD = 2 / 3
 
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
@@ -662,10 +665,318 @@ def _write_scorecard(out_dir: Path, rows: list[dict[str, Any]]) -> Path:
     return path
 
 
+def median(values: list[Any]) -> float | None:
+    nums = [float(v) for v in values if v is not None]
+    if not nums:
+        return None
+    nums.sort()
+    n = len(nums)
+    mid = n // 2
+    if n % 2:
+        return nums[mid]
+    return (nums[mid - 1] + nums[mid]) / 2
+
+
+def summarize_arm_trials(trials: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate one arm. Blocked trials are listed but excluded from pass_rate/medians."""
+    blocked = [t for t in trials if t.get("status") == "blocked"]
+    scored = [t for t in trials if t.get("status") != "blocked"]
+    passed = [t for t in scored if t.get("status") == "pass"]
+    failed = [t for t in scored if t.get("status") == "fail"]
+    denom = len(passed) + len(failed)
+    pass_rate = (len(passed) / denom) if denom else 0.0
+
+    def _vals(key: str) -> list[Any]:
+        out: list[Any] = []
+        for trial in scored:
+            metrics = trial.get("metrics") or {}
+            value = metrics.get(key)
+            if value is not None:
+                out.append(value)
+        return out
+
+    return {
+        "n": len(trials),
+        "n_blocked": len(blocked),
+        "n_pass": len(passed),
+        "n_fail": len(failed),
+        "pass_rate": pass_rate,
+        "median_wall_seconds": median(_vals("wall_seconds")),
+        "median_total_tokens": median(_vals("total_tokens")),
+        "median_cost_usd": median(_vals("cost_usd")),
+        "median_steps": median(_vals("steps")),
+        "blocked_notes": [t.get("notes") for t in blocked],
+    }
+
+
+def compare_ab_verdict(
+    thesis: str, browser_only: dict[str, Any], hybrid: dict[str, Any]
+) -> dict[str, str]:
+    """Mechanical verdict. Never claims cheaper from a capability-only pair."""
+    if thesis == "capability":
+        if hybrid["pass_rate"] >= PASS_RATE_THRESHOLD and browser_only["pass_rate"] == 0:
+            return {
+                "kind": "capability",
+                "summary": (
+                    "Open Frame required: hybrid met the pass threshold; "
+                    "browser-only did not pass. Not an efficiency claim."
+                ),
+            }
+        return {
+            "kind": "inconclusive",
+            "summary": (
+                "Capability pair did not show a clean hybrid-only pass vs browser-only fail."
+            ),
+        }
+    if thesis == "efficiency":
+        if (
+            browser_only["pass_rate"] >= PASS_RATE_THRESHOLD
+            and hybrid["pass_rate"] >= PASS_RATE_THRESHOLD
+        ):
+            hybrid_cost = hybrid.get("median_cost_usd")
+            browser_cost = browser_only.get("median_cost_usd")
+            if (
+                hybrid_cost is not None
+                and browser_cost is not None
+                and hybrid["pass_rate"] >= browser_only["pass_rate"]
+            ):
+                if hybrid_cost < browser_cost:
+                    return {
+                        "kind": "efficiency",
+                        "summary": (
+                            "Hybrid is cheaper on median cost_usd with pass rate "
+                            "at least as high as browser-only."
+                        ),
+                    }
+                if browser_cost < hybrid_cost:
+                    return {
+                        "kind": "efficiency",
+                        "summary": "Browser-only is cheaper on median cost_usd; both arms passed.",
+                    }
+            hybrid_tokens = hybrid.get("median_total_tokens")
+            browser_tokens = browser_only.get("median_total_tokens")
+            if hybrid_tokens is not None and browser_tokens is not None:
+                if hybrid_tokens < browser_tokens:
+                    return {
+                        "kind": "efficiency",
+                        "summary": (
+                            "Hybrid used fewer median tokens; dollar cost was missing or tied."
+                        ),
+                    }
+                if browser_tokens < hybrid_tokens:
+                    return {
+                        "kind": "efficiency",
+                        "summary": (
+                            "Browser-only used fewer median tokens; dollar cost was missing or tied."
+                        ),
+                    }
+            return {
+                "kind": "inconclusive",
+                "summary": "Both arms passed but cost/token medians are missing or tied.",
+            }
+        return {
+            "kind": "inconclusive",
+            "summary": "Efficiency pair did not reach the pass-rate threshold on both arms.",
+        }
+    return {"kind": "inconclusive", "summary": f"Unknown thesis {thesis!r}."}
+
+
+def _delta(hybrid_val: Any, browser_val: Any) -> float | None:
+    if hybrid_val is None or browser_val is None:
+        return None
+    return float(hybrid_val) - float(browser_val)
+
+
+def _arm_to_scenario(pair: dict[str, Any], arm: dict[str, Any]) -> dict[str, Any]:
+    suffix = str(arm.get("prompt_suffix") or "").strip()
+    job = str(pair.get("job") or "").strip()
+    prompt = f"{job}\n{suffix}".strip() if suffix else job
+    setup: dict[str, Any] = {}
+    if pair.get("prepare"):
+        setup["prepare"] = pair["prepare"]
+    if pair.get("app"):
+        setup["app"] = pair["app"]
+    return {
+        "id": f"{pair['id']}-{arm['id']}",
+        "name": pair.get("name", pair["id"]),
+        "profiles": pair.get("profiles") or [],
+        "mode": arm["mode"],
+        "max_steps": int(pair.get("max_steps") or 12),
+        "prompt": prompt,
+        "setup": setup,
+        "pass_checks": arm.get("pass_checks") or [],
+        "thesis": pair.get("thesis"),
+        "arm": arm["id"],
+        "pair": pair["id"],
+    }
+
+
+def _list_ab_pairs() -> list[Path]:
+    return sorted(AB_DIR.glob("ab*.yaml"))
+
+
+def _write_ab_comparison(
+    out_dir: Path,
+    pair: dict[str, Any],
+    arms: dict[str, dict[str, Any]],
+    verdict: dict[str, str],
+) -> Path:
+    browser = arms["browser-only"]
+    hybrid = arms["hybrid"]
+    payload = {
+        "pair": pair["id"],
+        "thesis": pair.get("thesis"),
+        "verdict": verdict,
+        "arms": arms,
+        "delta_hybrid_minus_browser": {
+            "wall_seconds": _delta(hybrid["median_wall_seconds"], browser["median_wall_seconds"]),
+            "total_tokens": _delta(hybrid["median_total_tokens"], browser["median_total_tokens"]),
+            "cost_usd": _delta(hybrid["median_cost_usd"], browser["median_cost_usd"]),
+            "steps": _delta(hybrid["median_steps"], browser["median_steps"]),
+        },
+    }
+    json_path = out_dir / "ab-comparison.json"
+    json_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+
+    def _fmt(value: Any) -> str:
+        if value is None:
+            return "—"
+        if isinstance(value, float):
+            return f"{value:.4g}"
+        return str(value)
+
+    lines = [
+        f"# A/B comparison — {pair['id']} ({pair.get('name', '')})",
+        "",
+        f"- Thesis: `{pair.get('thesis')}`",
+        f"- Verdict: **{verdict['kind']}** — {verdict['summary']}",
+        "",
+        "| Arm | pass_rate | n_pass | n_fail | n_blocked | median wall_s | median tokens | median $ | median steps |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for arm_id, stats in arms.items():
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    f"`{arm_id}`",
+                    _fmt(stats["pass_rate"]),
+                    str(stats["n_pass"]),
+                    str(stats["n_fail"]),
+                    str(stats["n_blocked"]),
+                    _fmt(stats["median_wall_seconds"]),
+                    _fmt(stats["median_total_tokens"]),
+                    _fmt(stats["median_cost_usd"]),
+                    _fmt(stats["median_steps"]),
+                ]
+            )
+            + " |"
+        )
+    delta = payload["delta_hybrid_minus_browser"]
+    lines.extend(
+        [
+            "",
+            "Deltas are `hybrid - browser-only` (negative means hybrid cheaper/faster/fewer).",
+            "",
+            f"- Δ wall_seconds: {_fmt(delta['wall_seconds'])}",
+            f"- Δ total_tokens: {_fmt(delta['total_tokens'])}",
+            f"- Δ cost_usd: {_fmt(delta['cost_usd'])}",
+            f"- Δ steps: {_fmt(delta['steps'])}",
+            "",
+        ]
+    )
+    if browser.get("blocked_notes") or hybrid.get("blocked_notes"):
+        lines.append("## Blocked trials")
+        lines.append("")
+        for arm_id, stats in arms.items():
+            for note in stats.get("blocked_notes") or []:
+                lines.append(f"- `{arm_id}`: {note}")
+        lines.append("")
+    md_path = out_dir / "ab-comparison.md"
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return md_path
+
+
+def _run_ab_pair(
+    pair: dict[str, Any],
+    *,
+    out_dir: Path,
+    repeats: int,
+    warmup: int,
+) -> tuple[dict[str, dict[str, Any]], dict[str, str], int]:
+    """Run warmup + N trials per arm. Returns (arm_stats, verdict, exit_hint)."""
+    arm_trials: dict[str, list[dict[str, Any]]] = {}
+    for arm in pair.get("arms") or []:
+        arm_id = str(arm["id"])
+        arm_trials[arm_id] = []
+        scenario = _arm_to_scenario(pair, arm)
+        mode = scenario["mode"]
+        total_runs = warmup + repeats
+        for index in range(total_runs):
+            is_warmup = index < warmup
+            label = "warmup" if is_warmup else f"t{index - warmup + 1}"
+            print(f"==> {pair['id']} {arm_id} {label} ({mode})")
+            work_dir = out_dir / "_work" / pair["id"] / arm_id / label
+            if mode == "openframe-only":
+                result = _run_deterministic(scenario, work_dir=work_dir)
+            else:
+                result = asyncio.run(_run_agent(scenario, work_dir=work_dir))
+            trial_id = f"{pair['id']}-{arm_id}-{label}"
+            scenario_copy = dict(scenario)
+            scenario_copy["id"] = trial_id
+            if not is_warmup:
+                _write_run_artifacts(scenario=scenario_copy, result=result, out_dir=out_dir)
+                arm_trials[arm_id].append(
+                    {
+                        "status": result.get("status"),
+                        "notes": result.get("notes"),
+                        "metrics": result.get("metrics"),
+                        "trial": trial_id,
+                    }
+                )
+            print(f"    {result.get('status')}: {result.get('notes')}")
+            _stop_http_servers()
+
+    stats = {arm_id: summarize_arm_trials(trials) for arm_id, trials in arm_trials.items()}
+    verdict = compare_ab_verdict(
+        str(pair.get("thesis") or ""),
+        stats.get("browser-only") or summarize_arm_trials([]),
+        stats.get("hybrid") or summarize_arm_trials([]),
+    )
+    _write_ab_comparison(out_dir, pair, stats, verdict)
+    thesis = str(pair.get("thesis") or "")
+    exit_fail = 0
+    hybrid_fail = (stats.get("hybrid") or {}).get("n_fail", 0)
+    browser_fail = (stats.get("browser-only") or {}).get("n_fail", 0)
+    if thesis == "capability":
+        if hybrid_fail:
+            exit_fail = 1
+    elif browser_fail or hybrid_fail:
+        exit_fail = 1
+    return stats, verdict, exit_fail
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scenario", action="append", help="Scenario id (e.g. s1). Repeatable.")
     parser.add_argument("--all", action="store_true", help="Run all scenarios in scenarios/")
+    parser.add_argument(
+        "--ab",
+        action="append",
+        help="A/B pair id (e.g. ab1). Repeatable. Loads scenarios/ab/*.yaml",
+    )
+    parser.add_argument(
+        "--repeats",
+        type=int,
+        default=3,
+        help="Trials per arm for --ab (default 3)",
+    )
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=0,
+        help="Discarded warmup trials per arm before scoring --ab repeats",
+    )
     parser.add_argument(
         "--deterministic-only",
         action="store_true",
@@ -677,6 +988,33 @@ def main(argv: list[str] | None = None) -> int:
         help="Output directory (default docs/market-validation-runs/<stamp>)",
     )
     args = parser.parse_args(argv)
+
+    if args.ab:
+        if args.repeats < 1:
+            parser.error("--repeats must be >= 1")
+        if args.warmup < 0:
+            parser.error("--warmup must be >= 0")
+        wanted = {str(item).lower() for item in args.ab}
+        pairs = [
+            _load_scenario(path)
+            for path in _list_ab_pairs()
+            if path.stem.lower() in wanted or path.stem.lower().removeprefix("ab") in wanted
+        ]
+        if not pairs:
+            parser.error(f"no A/B pairs matched {args.ab}")
+        stamp_dir = args.out_dir or (RUNS_DIR / _stamp())
+        any_fail = 0
+        try:
+            for pair in pairs:
+                pair_dir = stamp_dir / pair["id"]
+                _stats, verdict, fail = _run_ab_pair(
+                    pair, out_dir=pair_dir, repeats=args.repeats, warmup=args.warmup
+                )
+                print(f"Wrote {pair_dir / 'ab-comparison.md'} ({verdict['kind']})")
+                any_fail = any_fail or fail
+        finally:
+            _stop_http_servers()
+        return any_fail
 
     paths = _list_scenarios()
     if not args.all:
