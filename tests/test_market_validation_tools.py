@@ -109,6 +109,53 @@ def test_score_agent_final_regex_and_target_source() -> None:
     assert "agent_final_regex" in notes
 
 
+def test_metrics_from_usage_maps_complete_payload() -> None:
+    usage = {
+        "total_prompt_tokens": 1200,
+        "total_completion_tokens": 80,
+        "total_tokens": 1280,
+        "total_prompt_cached_tokens": 400,
+        "total_cost": 0.0123,
+    }
+    metrics = harness.metrics_from_usage(
+        usage, wall_seconds=1.2345, steps=3, model="claude-haiku-4-5-20251001"
+    )
+    assert metrics["wall_seconds"] == 1.234
+    assert metrics["steps"] == 3
+    assert metrics["model"] == "claude-haiku-4-5-20251001"
+    assert metrics["prompt_tokens"] == 1200
+    assert metrics["completion_tokens"] == 80
+    assert metrics["total_tokens"] == 1280
+    assert metrics["cached_tokens"] == 400
+    assert metrics["cost_usd"] == 0.0123
+    assert metrics["usage_complete"] is True
+
+
+def test_metrics_from_usage_missing_is_explicit() -> None:
+    metrics = harness.metrics_from_usage(None, wall_seconds=0.5, steps=2)
+    assert metrics["wall_seconds"] == 0.5
+    assert metrics["steps"] == 2
+    assert metrics["prompt_tokens"] is None
+    assert metrics["completion_tokens"] is None
+    assert metrics["total_tokens"] is None
+    assert metrics["cost_usd"] is None
+    assert metrics["usage_complete"] is False
+
+
+def test_metrics_from_usage_accepts_model_dump() -> None:
+    class FakeUsage:
+        def model_dump(self) -> dict[str, int]:
+            return {
+                "total_prompt_tokens": 10,
+                "total_completion_tokens": 2,
+                "total_tokens": 12,
+            }
+
+    metrics = harness.metrics_from_usage(FakeUsage(), wall_seconds=2.0)
+    assert metrics["usage_complete"] is True
+    assert metrics["total_tokens"] == 12
+
+
 def test_score_details_truthy_walks_steps() -> None:
     scenario = {"pass_checks": [{"type": "details_truthy", "tool": "run_flow", "key": "found"}]}
     envelopes = [
