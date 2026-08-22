@@ -1,0 +1,131 @@
+{
+  "scenario": {
+    "id": "s3",
+    "name": "Hybrid handoff",
+    "profiles": [
+      "P1",
+      "P2"
+    ],
+    "mode": "hybrid",
+    "max_steps": 14,
+    "prompt": "Complete BOTH parts. Available custom tools include desktop_capture and desktop_find \u2014 you MUST call them for part 2 (do not claim they are missing).\n1) Open {{handoff_html}} in the browser and confirm the page heading mentions \"Open Frame handoff\". 2) Call desktop_capture, then desktop_find with query \"Notes\". Do not click. Report both the page heading and the Open Frame find result in your final answer.\n",
+    "setup": {
+      "app": "Notes",
+      "prepare": "handoff_html"
+    },
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      },
+      {
+        "type": "agent_final_regex",
+        "pattern": "handoff|Notes|Open Frame"
+      }
+    ]
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-05T14:30:20.927762+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-mdlt72px.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      }
+    ],
+    "agent_final": "TASK COMPLETED:\n\n1) Page Heading Confirmed:\n\u2713 Successfully navigated to http://127.0.0.1:57720/handoff.html\n\u2713 Page heading confirms: \"Open Frame handoff\"\n\u2713 Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\n\n2) Open Frame Operations Completed:\n\u2713 desktop_capture: Successfully called (openframe:capture ok)\n\u2713 desktop_find: Successfully called with query \"Notes\" (openframe:find ok)\n\nBoth parts of the task have been completed as requested. The browser successfully loaded the handoff page and confirmed the heading text, and the Open Frame tools (desktop_capture and desktop_find) were invoked to find the Notes element on the desktop.",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:57720/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:57720/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-05T14:30:20.927762+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-mdlt72px.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-05T14:30:20.927762+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-mdlt72px.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - TASK COMPLETED:\\n\\n1) Page Heading Confirmed:\\n\u2713 Successfully navigated to http://127.0.0.1:57720/hando - 592 more characters', extracted_content='TASK COMPLETED:\\n\\n1) Page Heading Confirmed:\\n\u2713 Successfully navigated to http://127.0.0.1:57720/handoff.html\\n\u2713 Page heading confirms: \"Open Frame handoff\"\\n\u2713 Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\n2) Open Frame Operations Completed:\\n\u2713 desktop_capture: Successfully called (openframe:capture ok)\\n\u2713 desktop_find: Successfully called with query \"Notes\" (openframe:find ok)\\n\\nBoth parts of the task have been completed as requested. The browser successfully loaded the handoff page and confirmed the heading text, and the Open Frame tools (desktop_capture and desktop_find) were invoked to find the Notes element on the desktop.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:57720/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'done': {'text': 'TASK COMPLETED:\\n\\n1) Page Heading Confirmed:\\n\u2713 Successfully navigated to http://127.0.0.1:57720/handoff.html\\n\u2713 Page heading confirms: \"Open Frame handoff\"\\n\u2713 Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\n2) Open Frame Operations Completed:\\n\u2713 desktop_capture: Successfully called (openframe:capture ok)\\n\u2713 desktop_find: Successfully called with query \"Notes\" (openframe:find ok)\\n\\nBoth parts of the task have been completed as requested. The browser successfully loaded the handoff page and confirmed the heading text, and the Open Frame tools (desktop_capture and desktop_find) were invoked to find the Notes element on the desktop.', 'success': True, 'files_to_display': []}, 'interacted_element': None}])"
+  }
+}

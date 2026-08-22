@@ -1,0 +1,630 @@
+"""Run one or more market-validation scenarios and write a scorecard.
+
+Supports:
+- ``browser-only`` / ``hybrid`` — browser-use Agent + Open Frame custom tools
+- ``openframe-only`` — deterministic Open Frame tool sequence (no LLM required)
+
+Examples:
+  python examples/market-validation/run_scenario.py --scenario s2
+  python examples/market-validation/run_scenario.py --all --deterministic-only
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import re
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[2]
+SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
+RUNS_DIR = ROOT / "docs" / "market-validation-runs"
+
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from browser_use_openframe_tools import call_openframe, register_openframe_tools
+
+_http_servers: list[Any] = []
+
+
+def _start_static_http_server(directory: Path) -> str:
+    """Serve ``directory`` on an ephemeral localhost port; return base URL."""
+    import threading
+    from functools import partial
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    handler = partial(SimpleHTTPRequestHandler, directory=str(directory))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    _http_servers.append(server)
+    host, port = server.server_address[:2]
+    return f"http://{host}:{port}"
+
+
+def _stop_http_servers() -> None:
+    while _http_servers:
+        server = _http_servers.pop()
+        try:
+            server.shutdown()
+        except Exception as exc:  # noqa: BLE001
+            print(f"warning: http server shutdown failed: {exc}", file=sys.stderr)
+        try:
+            server.server_close()
+        except Exception as exc:  # noqa: BLE001
+            print(f"warning: http server close failed: {exc}", file=sys.stderr)
+
+
+def _load_scenario(path: Path) -> dict[str, Any]:
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or "id" not in payload:
+        raise ValueError(f"Invalid scenario file: {path}")
+    return payload
+
+
+def _list_scenarios() -> list[Path]:
+    return sorted(SCENARIOS_DIR.glob("s*.yaml"))
+
+
+def _stamp() -> str:
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _focus_app(name: str) -> None:
+    from openframe.runner import _focus_app as focus
+
+    focus(name)
+
+
+def _prepare_scenario(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, str]:
+    """Run setup.prepare hooks; return template vars for prompts/steps."""
+    vars_: dict[str, str] = {}
+    prepare = (scenario.get("setup") or {}).get("prepare")
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    if prepare == "handoff_html":
+        fixtures = ROOT / "examples" / "market-validation" / "fixtures"
+        # browser-use blocks file:// (no hostname); serve over localhost HTTP.
+        base = _start_static_http_server(fixtures)
+        vars_["handoff_html"] = f"{base}/handoff.html"
+    elif prepare == "scroll_probe_flow":
+        page = (ROOT / "examples" / "demo" / "scroll-probe" / "index.html").resolve()
+        src = (ROOT / "examples" / "flows" / "scroll-until-found" / "flow.yaml").read_text(
+            encoding="utf-8"
+        )
+        src = src.replace(
+            "file:///ABSOLUTE/PATH/TO/open-frame/examples/demo/scroll-probe/index.html",
+            page.as_uri(),
+        )
+        dest = work_dir / "scroll-until-found.flow.yaml"
+        dest.write_text(src, encoding="utf-8")
+        vars_["scroll_flow_path"] = str(dest)
+    return vars_
+
+
+def _apply_vars(value: Any, vars_: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        out = value
+        for key, replacement in vars_.items():
+            out = out.replace("{{" + key + "}}", replacement)
+        return out
+    if isinstance(value, list):
+        return [_apply_vars(item, vars_) for item in value]
+    if isinstance(value, dict):
+        return {key: _apply_vars(item, vars_) for key, item in value.items()}
+    return value
+
+
+def _run_deterministic(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, Any]:
+    """Execute scenario['steps'] via Open Frame tools; score pass_checks."""
+    vars_ = _prepare_scenario(scenario, work_dir=work_dir)
+    scenario = _apply_vars(scenario, vars_)
+    setup = scenario.get("setup") or {}
+    app = setup.get("app")
+    if app:
+        try:
+            _focus_app(str(app))
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "status": "blocked",
+                "notes": f"Could not focus app '{app}': {exc}",
+                "envelopes": [],
+            }
+
+    envelopes: list[dict[str, Any]] = []
+    for step in scenario.get("steps") or []:
+        tool = str(step.get("tool", "")).strip()
+        args = dict(step.get("args") or {})
+        mcp_tool = {
+            "desktop_capture": "capture",
+            "desktop_find": "find",
+            "desktop_click_dry_run": "click",
+            "desktop_scroll": "scroll",
+            "desktop_run_flow": "run_flow",
+        }.get(tool, tool)
+        if mcp_tool == "click":
+            args.setdefault("dry_run", True)
+        envelope = call_openframe(mcp_tool, args)
+        envelopes.append({"step_tool": tool, "mcp_tool": mcp_tool, "envelope": envelope})
+
+    status, notes = _score(scenario, envelopes=envelopes, agent_final=None)
+    return {"status": status, "notes": notes, "envelopes": envelopes, "agent_final": None}
+
+
+def _score(
+    scenario: dict[str, Any],
+    *,
+    envelopes: list[dict[str, Any]],
+    agent_final: str | None,
+) -> tuple[str, str]:
+    checks = scenario.get("pass_checks") or []
+    failures: list[str] = []
+    by_tool: dict[str, list[dict[str, Any]]] = {}
+    for item in envelopes:
+        by_tool.setdefault(item["step_tool"], []).append(item["envelope"])
+        by_tool.setdefault(item["mcp_tool"], []).append(item["envelope"])
+
+    for check in checks:
+        kind = check.get("type")
+        if kind == "envelope_ok":
+            tool = check["tool"]
+            found = by_tool.get(tool) or []
+            if not found or not found[-1].get("ok"):
+                failures.append(f"envelope_ok failed for {tool}")
+        elif kind == "envelope_error_code":
+            tool = check["tool"]
+            code = check["code"]
+            found = by_tool.get(tool) or []
+            actual = ((found[-1].get("error") or {}) if found else {}).get("code")
+            if actual != code:
+                failures.append(f"expected error.code={code} for {tool}, got {actual!r}")
+        elif kind == "count_gte":
+            tool = check["tool"]
+            value = int(check["value"])
+            found = by_tool.get(tool) or []
+            count = int(((found[-1].get("data") or {}) if found else {}).get("count") or 0)
+            if count < value:
+                failures.append(f"count_gte {value} failed for {tool} (count={count})")
+        elif kind == "target_source_contains":
+            tool = check["tool"]
+            needle = str(check["value"])
+            found = by_tool.get(tool) or []
+            targets = ((found[-1].get("data") or {}) if found else {}).get("targets") or []
+            sources = [str(t.get("source", "")) for t in targets]
+            if not any(needle in s for s in sources):
+                failures.append(f"no target source containing {needle!r} (got {sources})")
+        elif kind == "agent_final_regex":
+            pattern = str(check["pattern"])
+            if not agent_final or not re.search(pattern, agent_final, re.IGNORECASE):
+                failures.append(f"agent_final_regex {pattern!r} did not match {agent_final!r}")
+        elif kind == "openframe_unused":
+            if envelopes:
+                failures.append("openframe_unused failed: Open Frame tools were called")
+        elif kind == "details_truthy":
+            tool = check["tool"]
+            key = check["key"]
+            found = by_tool.get(tool) or []
+            data = (found[-1].get("data") or {}) if found else {}
+            hit = data.get(key)
+            if hit is None:
+                for step in data.get("steps") or []:
+                    if isinstance(step, dict) and step.get(key):
+                        hit = step.get(key)
+                        break
+                    details = step.get("details") if isinstance(step, dict) else None
+                    if isinstance(details, dict) and details.get(key):
+                        hit = details.get(key)
+                        break
+            if not hit:
+                failures.append(f"details_truthy {key} missing for {tool}")
+        else:
+            failures.append(f"unknown check type {kind!r}")
+
+    if failures:
+        return "fail", "; ".join(failures)
+    return "pass", "all checks passed"
+
+
+def _build_llm():  # type: ignore[no-untyped-def]
+    """Prefer Anthropic when configured; otherwise OpenAI."""
+    if os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get(
+        "OPENFRAME_MARKET_VALIDATION_FORCE_OPENAI"
+    ):
+        from browser_use import ChatAnthropic
+
+        model = os.environ.get(
+            "OPENFRAME_MARKET_VALIDATION_MODEL", "claude-haiku-4-5-20251001"
+        )
+        return ChatAnthropic(model=model)
+    from browser_use import ChatOpenAI
+
+    model = os.environ.get("OPENFRAME_MARKET_VALIDATION_MODEL", "gpt-4.1-mini")
+    return ChatOpenAI(model=model)
+
+
+def _resolve_browser_executable() -> str | None:
+    """Locate a Chromium/Chrome binary for browser-use.
+
+    browser-use's default discovery still looks for ``Chromium.app`` under
+    ``ms-playwright``, while modern Playwright ships ``Google Chrome for Testing``.
+    Prefer an explicit override, then known Playwright layouts, then system Chrome.
+    """
+    override = os.environ.get("OPENFRAME_BROWSER_EXECUTABLE")
+    if override and Path(override).is_file():
+        return override
+
+    roots: list[Path] = []
+    env_root = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+    if env_root:
+        roots.append(Path(env_root))
+    roots.append(Path.home() / "Library" / "Caches" / "ms-playwright")
+    roots.append(Path.home() / ".cache" / "ms-playwright")
+
+    patterns = (
+        "chromium-*/chrome-mac*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "chromium-*/chrome-mac*/Chromium.app/Contents/MacOS/Chromium",
+        "chromium-*/chrome-linux*/chrome",
+        "chromium-*/chrome-win/chrome.exe",
+    )
+    matches: list[Path] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for pattern in patterns:
+            matches.extend(sorted(root.glob(pattern)))
+    for candidate in reversed(matches):
+        if candidate.is_file():
+            return str(candidate.resolve())
+
+    for system_path in (
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+    ):
+        path = Path(system_path)
+        if path.is_file():
+            return str(path)
+    return None
+
+
+async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, Any]:
+    """Run browser-use Agent for browser-only / hybrid scenarios."""
+    try:
+        from browser_use import Agent, Browser, Tools
+    except ImportError as exc:
+        return {
+            "status": "blocked",
+            "notes": f"browser-use not installed: {exc}",
+            "envelopes": [],
+            "agent_final": None,
+        }
+
+    if not (
+        os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("ANTHROPIC_API_KEY")
+        or os.environ.get("BROWSER_USE_API_KEY")
+    ):
+        return {
+            "status": "blocked",
+            "notes": "Set OPENAI_API_KEY or ANTHROPIC_API_KEY for agent scenarios",
+            "envelopes": [],
+            "agent_final": None,
+        }
+
+    vars_ = _prepare_scenario(scenario, work_dir=work_dir)
+    scenario = _apply_vars(scenario, vars_)
+
+    mode = scenario.get("mode", "hybrid")
+    # Hybrid schemas get large; trim unused browser actions so the LLM keeps
+    # navigate/done + Open Frame desktop_* tools in a reliable output format.
+    exclude: list[str] | None = None
+    if mode == "hybrid":
+        exclude = [
+            "click",
+            "close",
+            "dropdown_options",
+            "evaluate",
+            "find_elements",
+            "find_text",
+            "go_back",
+            "input",
+            "read_file",
+            "replace_file",
+            "save_as_pdf",
+            "scroll",
+            "search",
+            "search_page",
+            "select_dropdown",
+            "send_keys",
+            "switch",
+            "upload_file",
+            "write_file",
+        ]
+    tools = Tools(exclude_actions=exclude)
+    of_envelopes: list[dict[str, Any]] = []
+    original = None
+
+    if mode in {"hybrid", "openframe-only"}:
+        import browser_use_openframe_tools as of_tools
+
+        original = of_tools.call_openframe
+
+        def recording_call(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
+            envelope = original(tool, args)
+            mapped = {
+                "capture": "desktop_capture",
+                "find": "desktop_find",
+                "click": "desktop_click_dry_run",
+                "scroll": "desktop_scroll",
+                "run_flow": "desktop_run_flow",
+            }.get(tool, tool)
+            of_envelopes.append(
+                {"step_tool": mapped, "mcp_tool": tool, "envelope": envelope}
+            )
+            return envelope
+
+        of_tools.call_openframe = recording_call  # type: ignore[attr-defined]
+        register_openframe_tools(tools)
+
+    setup = scenario.get("setup") or {}
+    if setup.get("app"):
+        try:
+            _focus_app(str(setup["app"]))
+        except Exception as exc:  # noqa: BLE001
+            if original is not None:
+                import browser_use_openframe_tools as of_tools
+
+                of_tools.call_openframe = original  # type: ignore[attr-defined]
+            return {
+                "status": "blocked",
+                "notes": f"Could not focus app '{setup['app']}': {exc}",
+                "envelopes": of_envelopes,
+                "agent_final": None,
+            }
+
+    llm = _build_llm()
+    task = str(scenario.get("prompt") or "").strip()
+    if not task:
+        if original is not None:
+            import browser_use_openframe_tools as of_tools
+
+            of_tools.call_openframe = original  # type: ignore[attr-defined]
+        return {
+            "status": "blocked",
+            "notes": "scenario prompt is empty",
+            "envelopes": of_envelopes,
+            "agent_final": None,
+        }
+
+    browser_kwargs: dict[str, Any] = {"headless": True}
+    executable = _resolve_browser_executable()
+    if executable:
+        browser_kwargs["executable_path"] = executable
+    browser = Browser(**browser_kwargs)
+
+    agent = Agent(
+        task=task,
+        llm=llm,
+        tools=tools,
+        browser=browser,
+        max_failures=3,
+        use_vision=False,
+        flash_mode=True,
+        use_judge=False,
+    )
+    try:
+        history = await agent.run(max_steps=int(scenario.get("max_steps", 12)))
+    except Exception as exc:  # noqa: BLE001
+        if original is not None:
+            import browser_use_openframe_tools as of_tools
+
+            of_tools.call_openframe = original  # type: ignore[attr-defined]
+        message = str(exc)
+        if "uvx" in message or "BrowserLaunch" in message or "playwright" in message.casefold():
+            hint = (
+                f" Detected executable candidate: {executable}."
+                if executable
+                else " No local Chromium/Chrome executable was discovered."
+            )
+            return {
+                "status": "blocked",
+                "notes": (
+                    "browser-use could not launch a browser "
+                    f"({type(exc).__name__}: {message}).{hint} "
+                    "Install Chromium via `python -m playwright install chromium`, "
+                    "ensure `uv`/`uvx` is on PATH, or set "
+                    "OPENFRAME_BROWSER_EXECUTABLE to a Chrome/Chromium binary."
+                ),
+                "envelopes": of_envelopes,
+                "agent_final": None,
+            }
+        return {
+            "status": "fail",
+            "notes": f"agent run raised {type(exc).__name__}: {message}",
+            "envelopes": of_envelopes,
+            "agent_final": None,
+        }
+    finally:
+        if original is not None:
+            import browser_use_openframe_tools as of_tools
+
+            of_tools.call_openframe = original  # type: ignore[attr-defined]
+
+    final = None
+    try:
+        final = history.final_result() if hasattr(history, "final_result") else str(history)
+    except Exception:  # noqa: BLE001
+        final = str(history)
+
+    status, notes = _score(scenario, envelopes=of_envelopes, agent_final=str(final or ""))
+    return {
+        "status": status,
+        "notes": notes,
+        "envelopes": of_envelopes,
+        "agent_final": final,
+        "history": str(history),
+    }
+
+
+def _write_run_artifacts(
+    *,
+    scenario: dict[str, Any],
+    result: dict[str, Any],
+    out_dir: Path,
+) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    scenario_id = scenario["id"]
+    raw_path = out_dir / f"{scenario_id}.json"
+    raw_path.write_text(json.dumps({"scenario": scenario, "result": result}, indent=2, default=str), encoding="utf-8")
+
+    md_path = out_dir / f"{scenario_id}.md"
+    md_path.write_text(
+        "\n".join(
+            [
+                f"# Scenario `{scenario_id}` — {scenario.get('name', '')}",
+                "",
+                f"- Status: **{result.get('status')}**",
+                f"- Mode: `{scenario.get('mode')}`",
+                f"- Profiles: {', '.join(scenario.get('profiles') or [])}",
+                f"- Notes: {result.get('notes')}",
+                "",
+                "## Agent final",
+                "",
+                "```",
+                str(result.get("agent_final") or "(none)"),
+                "```",
+                "",
+                "## Open Frame envelopes",
+                "",
+                f"Count: {len(result.get('envelopes') or [])}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return md_path
+
+
+def _write_scorecard(out_dir: Path, rows: list[dict[str, Any]]) -> Path:
+    path = out_dir / "scorecard.md"
+    lines = [
+        f"# Market validation scorecard — {out_dir.name}",
+        "",
+        "| Scenario | Mode | Status | Notes |",
+        "|---|---|---|---|",
+    ]
+    for row in rows:
+        notes = str(row.get("notes", "")).replace("|", "/")
+        lines.append(
+            f"| `{row['id']}` | `{row.get('mode')}` | **{row.get('status')}** | {notes} |"
+        )
+    passed = sum(1 for r in rows if r.get("status") == "pass")
+    failed = sum(1 for r in rows if r.get("status") == "fail")
+    blocked = sum(1 for r in rows if r.get("status") == "blocked")
+    lines.extend(
+        [
+            "",
+            f"Totals: pass={passed} fail={failed} blocked={blocked}",
+            "",
+            "## Verdict",
+            "",
+        ]
+    )
+    if failed:
+        lines.append("Not market-ready for failed scenarios — investigate notes above.")
+    elif passed and not blocked:
+        lines.append("All executed scenarios passed under current environment.")
+    else:
+        lines.append("Partial run (blocked scenarios). Re-run after fixing environment.")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scenario", action="append", help="Scenario id (e.g. s1). Repeatable.")
+    parser.add_argument("--all", action="store_true", help="Run all scenarios in scenarios/")
+    parser.add_argument(
+        "--deterministic-only",
+        action="store_true",
+        help="Skip browser-use agent scenarios (browser-only / hybrid)",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        help="Output directory (default docs/market-validation-runs/<stamp>)",
+    )
+    args = parser.parse_args(argv)
+
+    paths = _list_scenarios()
+    if not args.all:
+        if not args.scenario:
+            parser.error("pass --scenario ID or --all")
+        wanted = {s.lower().removeprefix("s") for s in args.scenario}
+        # allow s1 or 1
+        paths = [
+            p
+            for p in paths
+            if p.stem.lower() in {f"s{w}" if not w.startswith("s") else w for w in wanted}
+            or p.stem.lower() in {s.lower() for s in args.scenario}
+        ]
+        if not paths:
+            parser.error(f"no scenarios matched {args.scenario}")
+
+    out_dir = args.out_dir or (RUNS_DIR / _stamp())
+    rows: list[dict[str, Any]] = []
+
+    try:
+        for path in paths:
+            scenario = _load_scenario(path)
+            mode = scenario.get("mode", "openframe-only")
+            print(f"==> {scenario['id']} ({mode})")
+            work_dir = out_dir / "_work" / scenario["id"]
+            if mode in {"browser-only", "hybrid"} and args.deterministic_only:
+                result = {
+                    "status": "blocked",
+                    "notes": "skipped (--deterministic-only)",
+                    "envelopes": [],
+                    "agent_final": None,
+                }
+            elif mode == "openframe-only":
+                result = _run_deterministic(scenario, work_dir=work_dir)
+            else:
+                result = asyncio.run(_run_agent(scenario, work_dir=work_dir))
+
+            _write_run_artifacts(scenario=scenario, result=result, out_dir=out_dir)
+            rows.append(
+                {
+                    "id": scenario["id"],
+                    "mode": mode,
+                    "status": result.get("status"),
+                    "notes": result.get("notes"),
+                }
+            )
+            print(f"    {result.get('status')}: {result.get('notes')}")
+            _stop_http_servers()
+    finally:
+        _stop_http_servers()
+
+    scorecard = _write_scorecard(out_dir, rows)
+    print(f"Wrote {scorecard}")
+    # Non-zero if any fail (blocked is ok for CI without keys).
+    if any(r.get("status") == "fail" for r in rows):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

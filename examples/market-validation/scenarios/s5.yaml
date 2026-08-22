@@ -1,0 +1,24 @@
+id: s5
+name: Template icon
+profiles: [P5]
+mode: openframe-only
+deterministic: true
+prompt: >
+  Find the icon glyph on the fixture scene using a template crop (OCR would miss).
+setup: {}
+steps:
+  - tool: desktop_find
+    args:
+      query: "icon"
+      strategy: first
+      frame_path: examples/flows/template-icon-probe/scene.png
+      template: examples/flows/template-icon-probe/icon-template.png
+pass_checks:
+  - type: envelope_ok
+    tool: desktop_find
+  - type: count_gte
+    tool: desktop_find
+    value: 1
+  - type: target_source_contains
+    tool: desktop_find
+    value: "template:ncc"
