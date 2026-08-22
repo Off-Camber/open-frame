@@ -1,0 +1,45 @@
+{
+  "scenario": {
+    "id": "ab1-browser-only-t1",
+    "name": "Efficiency \u2014 web heading extraction",
+    "profiles": [
+      "P1"
+    ],
+    "mode": "browser-only",
+    "max_steps": 8,
+    "prompt": "Open {{handoff_html}} in the browser and report the exact H1 heading text on the page. Include the heading in your final answer.\nUse only browser tools. Do not use desktop_* tools.",
+    "setup": {
+      "prepare": "handoff_html"
+    },
+    "pass_checks": [
+      {
+        "type": "openframe_unused"
+      },
+      {
+        "type": "agent_final_regex",
+        "pattern": "Open Frame handoff"
+      }
+    ],
+    "thesis": "efficiency",
+    "arm": "browser-only",
+    "pair": "ab1"
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [],
+    "agent_final": "Successfully opened http://127.0.0.1:49544/handoff.html and found the H1 heading.\n\nThe exact H1 heading text on the page is:\n**Open Frame handoff**",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:49544/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49544/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Waited for 2 seconds', extracted_content='Waited for 2 seconds', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Navigated to http://127.0.0.1:49544/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49544/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Scrolled down 2.0 pages', extracted_content='\ud83d\udd0d Scrolled down 2.0 pages', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='H1 found: Open Frame handoff', extracted_content='H1 found: Open Frame handoff', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - Successfully opened http://127.0.0.1:49544/handoff.html and found the H1 heading.\\n\\nThe exact H1 head - 47 more characters', extracted_content='Successfully opened http://127.0.0.1:49544/handoff.html and found the H1 heading.\\n\\nThe exact H1 heading text on the page is:\\n**Open Frame handoff**', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:49544/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'wait': {'seconds': 2}, 'interacted_element': None}, {'navigate': {'url': 'http://127.0.0.1:49544/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'scroll': {'down': True, 'pages': 2.0}, 'interacted_element': None}, {'evaluate': {'code': \"(function(){try{const h1 = document.querySelector('h1');if(h1){return 'H1 found: ' + h1.textContent;}else{return 'No H1 found on page';};}catch(e){return 'Error: ' + e.message;}})();\"}, 'interacted_element': None}, {'done': {'text': 'Successfully opened http://127.0.0.1:49544/handoff.html and found the H1 heading.\\n\\nThe exact H1 heading text on the page is:\\n**Open Frame handoff**', 'success': True, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 15.031,
+      "steps": 6,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 38231,
+      "completion_tokens": 847,
+      "total_tokens": 39078,
+      "cached_tokens": 38116,
+      "cost_usd": 0.02594035,
+      "usage_complete": true
+    }
+  }
+}

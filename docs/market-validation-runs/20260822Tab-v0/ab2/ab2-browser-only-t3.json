@@ -1,0 +1,49 @@
+{
+  "scenario": {
+    "id": "ab2-browser-only-t3",
+    "name": "Capability \u2014 native Notes find",
+    "profiles": [
+      "P1",
+      "P2"
+    ],
+    "mode": "browser-only",
+    "max_steps": 14,
+    "prompt": "Complete BOTH parts. 1) Open {{handoff_html}} and confirm the heading mentions \"Open Frame handoff\". 2) Find the native Notes app chrome: call desktop_capture then desktop_find with query \"Notes\". Do not click. Report both the page heading and the Open Frame find result.\nYou have only browser DOM tools. If you cannot inspect native desktop UI, say so in the final answer rather than guessing.",
+    "setup": {
+      "prepare": "handoff_html",
+      "app": "Notes"
+    },
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      }
+    ],
+    "thesis": "capability",
+    "arm": "browser-only",
+    "pair": "ab2"
+  },
+  "result": {
+    "status": "fail",
+    "notes": "envelope_ok failed for desktop_find; count_gte 1 failed for desktop_find (count=0)",
+    "envelopes": [],
+    "agent_final": "Part 1 COMPLETED: Confirmed the page heading at http://127.0.0.1:49793/handoff.html is 'Open Frame handoff'.\n\nPart 2 LIMITATION: I have only browser DOM tools available. The user requested calling 'desktop_capture' and 'desktop_find' with query \"Notes\", which are native desktop inspection tools outside the browser DOM. These tools are not available in my current toolkit. I can only interact with the browser and its webpage content.\n\nTo complete part 2, you would need to:\n- Use Open Frame's desktop_capture function to capture the native desktop\n- Use Open Frame's desktop_find function with the query \"Notes\" to locate the native Notes app\n\nI cannot access these native desktop UI inspection capabilities from the browser tools I have available.",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:49793/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49793/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=False, judgement=None, error=None, attachments=[], images=None, long_term_memory=\"Task completed: False - Part 1 COMPLETED: Confirmed the page heading at http://127.0.0.1:49793/handoff.html is 'Open Frame h - 650 more characters\", extracted_content='Part 1 COMPLETED: Confirmed the page heading at http://127.0.0.1:49793/handoff.html is \\'Open Frame handoff\\'.\\n\\nPart 2 LIMITATION: I have only browser DOM tools available. The user requested calling \\'desktop_capture\\' and \\'desktop_find\\' with query \"Notes\", which are native desktop inspection tools outside the browser DOM. These tools are not available in my current toolkit. I can only interact with the browser and its webpage content.\\n\\nTo complete part 2, you would need to:\\n- Use Open Frame\\'s desktop_capture function to capture the native desktop\\n- Use Open Frame\\'s desktop_find function with the query \"Notes\" to locate the native Notes app\\n\\nI cannot access these native desktop UI inspection capabilities from the browser tools I have available.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:49793/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'done': {'text': 'Part 1 COMPLETED: Confirmed the page heading at http://127.0.0.1:49793/handoff.html is \\'Open Frame handoff\\'.\\n\\nPart 2 LIMITATION: I have only browser DOM tools available. The user requested calling \\'desktop_capture\\' and \\'desktop_find\\' with query \"Notes\", which are native desktop inspection tools outside the browser DOM. These tools are not available in my current toolkit. I can only interact with the browser and its webpage content.\\n\\nTo complete part 2, you would need to:\\n- Use Open Frame\\'s desktop_capture function to capture the native desktop\\n- Use Open Frame\\'s desktop_find function with the query \"Notes\" to locate the native Notes app\\n\\nI cannot access these native desktop UI inspection capabilities from the browser tools I have available.', 'success': False, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 6.355,
+      "steps": 2,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 9552,
+      "completion_tokens": 395,
+      "total_tokens": 9947,
+      "cached_tokens": 9529,
+      "cost_usd": 0.00395965,
+      "usage_complete": true
+    }
+  }
+}

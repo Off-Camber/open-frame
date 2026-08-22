@@ -1,0 +1,49 @@
+{
+  "scenario": {
+    "id": "ab2-browser-only-t2",
+    "name": "Capability \u2014 native Notes find",
+    "profiles": [
+      "P1",
+      "P2"
+    ],
+    "mode": "browser-only",
+    "max_steps": 14,
+    "prompt": "Complete BOTH parts. 1) Open {{handoff_html}} and confirm the heading mentions \"Open Frame handoff\". 2) Find the native Notes app chrome: call desktop_capture then desktop_find with query \"Notes\". Do not click. Report both the page heading and the Open Frame find result.\nYou have only browser DOM tools. If you cannot inspect native desktop UI, say so in the final answer rather than guessing.",
+    "setup": {
+      "prepare": "handoff_html",
+      "app": "Notes"
+    },
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      }
+    ],
+    "thesis": "capability",
+    "arm": "browser-only",
+    "pair": "ab2"
+  },
+  "result": {
+    "status": "fail",
+    "notes": "envelope_ok failed for desktop_find; count_gte 1 failed for desktop_find (count=0)",
+    "envelopes": [],
+    "agent_final": "Part 1 COMPLETED:\n- Successfully opened http://127.0.0.1:49773/handoff.html\n- Confirmed page heading: \"Open Frame handoff\"\n- Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\n\nPart 2 - LIMITATION:\nThe user requested to call desktop_capture and desktop_find functions to locate the native Notes app. However, based on my available tools, I only have access to browser DOM tools (navigate, click, input, extract, etc.). I do not have desktop_capture or desktop_find functions available in my tool set.\n\nThe user instruction states: \"You have only browser DOM tools. If you cannot inspect native desktop UI, say so in the final answer rather than guessing.\"\n\nConclusion: I cannot complete Part 2 because the required desktop capture and desktop find tools are not available to me. These functions would need to be implemented as separate tools or through a different system that has access to native OS UI elements.",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:49773/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49773/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=False, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: False - Part 1 COMPLETED:\\n- Successfully opened http://127.0.0.1:49773/handoff.html\\n- Confirmed page heading - 871 more characters', extracted_content='Part 1 COMPLETED:\\n- Successfully opened http://127.0.0.1:49773/handoff.html\\n- Confirmed page heading: \"Open Frame handoff\"\\n- Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\nPart 2 - LIMITATION:\\nThe user requested to call desktop_capture and desktop_find functions to locate the native Notes app. However, based on my available tools, I only have access to browser DOM tools (navigate, click, input, extract, etc.). I do not have desktop_capture or desktop_find functions available in my tool set.\\n\\nThe user instruction states: \"You have only browser DOM tools. If you cannot inspect native desktop UI, say so in the final answer rather than guessing.\"\\n\\nConclusion: I cannot complete Part 2 because the required desktop capture and desktop find tools are not available to me. These functions would need to be implemented as separate tools or through a different system that has access to native OS UI elements.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:49773/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'done': {'text': 'Part 1 COMPLETED:\\n- Successfully opened http://127.0.0.1:49773/handoff.html\\n- Confirmed page heading: \"Open Frame handoff\"\\n- Page subtitle: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\nPart 2 - LIMITATION:\\nThe user requested to call desktop_capture and desktop_find functions to locate the native Notes app. However, based on my available tools, I only have access to browser DOM tools (navigate, click, input, extract, etc.). I do not have desktop_capture or desktop_find functions available in my tool set.\\n\\nThe user instruction states: \"You have only browser DOM tools. If you cannot inspect native desktop UI, say so in the final answer rather than guessing.\"\\n\\nConclusion: I cannot complete Part 2 because the required desktop capture and desktop find tools are not available to me. These functions would need to be implemented as separate tools or through a different system that has access to native OS UI elements.', 'success': False, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 6.542,
+      "steps": 2,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 9552,
+      "completion_tokens": 458,
+      "total_tokens": 10010,
+      "cached_tokens": 9529,
+      "cost_usd": 0.004272150000000001,
+      "usage_complete": true
+    }
+  }
+}

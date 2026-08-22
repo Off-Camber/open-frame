@@ -1,0 +1,45 @@
+{
+  "scenario": {
+    "id": "ab1-browser-only-t3",
+    "name": "Efficiency \u2014 web heading extraction",
+    "profiles": [
+      "P1"
+    ],
+    "mode": "browser-only",
+    "max_steps": 8,
+    "prompt": "Open {{handoff_html}} in the browser and report the exact H1 heading text on the page. Include the heading in your final answer.\nUse only browser tools. Do not use desktop_* tools.",
+    "setup": {
+      "prepare": "handoff_html"
+    },
+    "pass_checks": [
+      {
+        "type": "openframe_unused"
+      },
+      {
+        "type": "agent_final_regex",
+        "pattern": "Open Frame handoff"
+      }
+    ],
+    "thesis": "efficiency",
+    "arm": "browser-only",
+    "pair": "ab1"
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [],
+    "agent_final": "Successfully opened http://127.0.0.1:49639/handoff.html and found the H1 heading.\n\n**H1 Heading Text:** Open Frame handoff",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:49639/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:49639/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Waited for 2 seconds', extracted_content='Waited for 2 seconds', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Waited for 2 seconds', extracted_content='Waited for 2 seconds', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='<url>\\nhttp://127.0.0.1:49639/handoff.html\\n</url>\\n<query>\\nH1 heading on the page\\n</query>\\n<result>\\n**H1 heading on the page:**\\n\\n\"Open Frame handoff\"\\n</result>', extracted_content='<url>\\nhttp://127.0.0.1:49639/handoff.html\\n</url>\\n<query>\\nH1 heading on the page\\n</query>\\n<result>\\n**H1 heading on the page:**\\n\\n\"Open Frame handoff\"\\n</result>', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - Successfully opened http://127.0.0.1:49639/handoff.html and found the H1 heading.\\n\\n**H1 Heading Text - 22 more characters', extracted_content='Successfully opened http://127.0.0.1:49639/handoff.html and found the H1 heading.\\n\\n**H1 Heading Text:** Open Frame handoff', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:49639/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'wait': {'seconds': 2}, 'interacted_element': None}, {'wait': {'seconds': 2}, 'interacted_element': None}, {'extract': {'query': 'H1 heading on the page', 'extract_links': False, 'extract_images': False, 'start_from_char': 0, 'already_collected': []}, 'interacted_element': None}, {'done': {'text': 'Successfully opened http://127.0.0.1:49639/handoff.html and found the H1 heading.\\n\\n**H1 Heading Text:** Open Frame handoff', 'success': True, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 12.912,
+      "steps": 5,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 38577,
+      "completion_tokens": 745,
+      "total_tokens": 39322,
+      "cached_tokens": 38116,
+      "cost_usd": 0.01272885,
+      "usage_complete": true
+    }
+  }
+}
