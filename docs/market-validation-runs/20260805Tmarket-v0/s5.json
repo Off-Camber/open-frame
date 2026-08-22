@@ -1,0 +1,78 @@
+{
+  "scenario": {
+    "id": "s5",
+    "name": "Template icon",
+    "profiles": [
+      "P5"
+    ],
+    "mode": "openframe-only",
+    "deterministic": true,
+    "prompt": "Find the icon glyph on the fixture scene using a template crop (OCR would miss).\n",
+    "setup": {},
+    "steps": [
+      {
+        "tool": "desktop_find",
+        "args": {
+          "query": "icon",
+          "strategy": "first",
+          "frame_path": "examples/flows/template-icon-probe/scene.png",
+          "template": "examples/flows/template-icon-probe/icon-template.png"
+        }
+      }
+    ],
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      },
+      {
+        "type": "target_source_contains",
+        "tool": "desktop_find",
+        "value": "template:ncc"
+      }
+    ]
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "icon",
+            "strategy": "first",
+            "source": "file:scene.png",
+            "count": 1,
+            "targets": [
+              {
+                "x": 120,
+                "y": 60,
+                "width": 64,
+                "height": 64,
+                "confidence": 0.9999999999999998,
+                "source": "template:ncc",
+                "coordinate_space": "physical",
+                "label": "icon-template.png",
+                "text": "icon"
+              }
+            ],
+            "template": "examples/flows/template-icon-probe/icon-template.png"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      }
+    ],
+    "agent_final": null
+  }
+}

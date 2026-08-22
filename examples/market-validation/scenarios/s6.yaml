@@ -1,0 +1,18 @@
+id: s6
+name: Fail-closed missing target
+profiles: [P3, P5]
+mode: openframe-only
+deterministic: true
+prompt: >
+  Attempt a dry-run click on a string that does not exist on screen.
+  Expect a structured not_found failure; do not actuate.
+setup: {}
+steps:
+  - tool: desktop_click_dry_run
+    args:
+      query: "OF_MARKET_VALIDATION_MISSING_TARGET_ZZZ"
+      expect_one: true
+pass_checks:
+  - type: envelope_error_code
+    tool: desktop_click_dry_run
+    code: not_found

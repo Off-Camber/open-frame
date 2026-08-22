@@ -1,0 +1,14 @@
+id: s1
+name: Web-only baseline
+profiles: [P1]
+mode: browser-only
+max_steps: 8
+prompt: >
+  Open https://example.com/ and report the main heading text on the page.
+  Do not use any desktop_* tools. When done, include the exact heading in your
+  final answer.
+pass_checks:
+  - type: openframe_unused
+  - type: agent_final_regex
+    pattern: "Example Domain"
+setup: {}

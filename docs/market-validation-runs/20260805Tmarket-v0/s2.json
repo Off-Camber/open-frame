@@ -1,0 +1,141 @@
+{
+  "scenario": {
+    "id": "s2",
+    "name": "Desktop find",
+    "profiles": [
+      "P2",
+      "P3",
+      "P4"
+    ],
+    "mode": "openframe-only",
+    "deterministic": true,
+    "prompt": "Focus the Notes app and use desktop tools to find the text \"Notes\" on screen. Do not click anything.\n",
+    "setup": {
+      "app": "Notes"
+    },
+    "steps": [
+      {
+        "tool": "desktop_capture",
+        "args": {
+          "mode": "screen"
+        }
+      },
+      {
+        "tool": "desktop_find",
+        "args": {
+          "query": "Notes",
+          "strategy": "first"
+        }
+      }
+    ],
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      }
+    ]
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-05T14:30:09.967122+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ocg_cjoy.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      }
+    ],
+    "agent_final": null
+  }
+}

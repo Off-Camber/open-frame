@@ -1,0 +1,29 @@
+{
+  "scenario": {
+    "id": "s1",
+    "name": "Web-only baseline",
+    "profiles": [
+      "P1"
+    ],
+    "mode": "browser-only",
+    "max_steps": 8,
+    "prompt": "Open https://example.com/ and report the main heading text on the page. Do not use any desktop_* tools. When done, include the exact heading in your final answer.\n",
+    "pass_checks": [
+      {
+        "type": "openframe_unused"
+      },
+      {
+        "type": "agent_final_regex",
+        "pattern": "Example Domain"
+      }
+    ],
+    "setup": {}
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [],
+    "agent_final": "I successfully opened https://example.com/ and found the main heading on the page.\n\n**Main Heading Text:** Example Domain\n\nThis is the primary heading displayed at the top of the page. The page also contains supporting text that reads: \"This domain is for use in documentation examples without needing permission. Avoid use in operations.\" with a \"Learn more\" link below it.",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to https://example.com/', extracted_content='\ud83d\udd17 Navigated to https://example.com/', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - I successfully opened https://example.com/ and found the main heading on the page.\\n\\n**Main Heading T - 274 more characters', extracted_content='I successfully opened https://example.com/ and found the main heading on the page.\\n\\n**Main Heading Text:** Example Domain\\n\\nThis is the primary heading displayed at the top of the page. The page also contains supporting text that reads: \"This domain is for use in documentation examples without needing permission. Avoid use in operations.\" with a \"Learn more\" link below it.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'https://example.com/', 'new_tab': False}, 'interacted_element': None}, {'done': {'text': 'I successfully opened https://example.com/ and found the main heading on the page.\\n\\n**Main Heading Text:** Example Domain\\n\\nThis is the primary heading displayed at the top of the page. The page also contains supporting text that reads: \"This domain is for use in documentation examples without needing permission. Avoid use in operations.\" with a \"Learn more\" link below it.', 'success': True, 'files_to_display': []}, 'interacted_element': None}])"
+  }
+}

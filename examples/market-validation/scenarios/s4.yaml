@@ -1,0 +1,22 @@
+id: s4
+name: Below-fold desktop scroll
+profiles: [P3, P4]
+mode: openframe-only
+deterministic: true
+prompt: >
+  Open the scroll-probe page in Safari and find OFSCROLLMARKER using
+  scroll_until_found (via the packaged flow).
+setup:
+  prepare: scroll_probe_flow
+steps:
+  - tool: desktop_run_flow
+    args:
+      flow_path: "{{scroll_flow_path}}"
+      dry_run: false
+      include_step_details: true
+pass_checks:
+  - type: envelope_ok
+    tool: desktop_run_flow
+  - type: details_truthy
+    tool: desktop_run_flow
+    key: success

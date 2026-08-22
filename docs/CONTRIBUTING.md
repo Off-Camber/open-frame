@@ -36,6 +36,15 @@ pytest
 ruff check .
 ```
 
+7. Optional: install git hooks so ruff runs on commit:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks are defined in `.pre-commit-config.yaml` (`ruff check --fix` and `ruff format` on staged files). CI still runs `ruff check .` and `pytest` on every push/PR.
+
 ## macOS permissions for live runs
 
 Open Frame needs explicit permissions for real capture and input automation:

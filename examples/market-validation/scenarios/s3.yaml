@@ -1,0 +1,24 @@
+id: s3
+name: Hybrid handoff
+profiles: [P1, P2]
+mode: hybrid
+max_steps: 14
+prompt: >
+  Complete BOTH parts. Available custom tools include desktop_capture and
+  desktop_find — you MUST call them for part 2 (do not claim they are missing).
+
+  1) Open {{handoff_html}} in the browser and confirm the page heading mentions
+  "Open Frame handoff".
+  2) Call desktop_capture, then desktop_find with query "Notes". Do not click.
+  Report both the page heading and the Open Frame find result in your final answer.
+setup:
+  app: Notes
+  prepare: handoff_html
+pass_checks:
+  - type: envelope_ok
+    tool: desktop_find
+  - type: count_gte
+    tool: desktop_find
+    value: 1
+  - type: agent_final_regex
+    pattern: "handoff|Notes|Open Frame"

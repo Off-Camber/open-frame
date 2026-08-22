@@ -1,0 +1,165 @@
+{
+  "scenario": {
+    "id": "s4",
+    "name": "Below-fold desktop scroll",
+    "profiles": [
+      "P3",
+      "P4"
+    ],
+    "mode": "openframe-only",
+    "deterministic": true,
+    "prompt": "Open the scroll-probe page in Safari and find OFSCROLLMARKER using scroll_until_found (via the packaged flow).\n",
+    "setup": {
+      "prepare": "scroll_probe_flow"
+    },
+    "steps": [
+      {
+        "tool": "desktop_run_flow",
+        "args": {
+          "flow_path": "{{scroll_flow_path}}",
+          "dry_run": false,
+          "include_step_details": true
+        }
+      }
+    ],
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_run_flow"
+      },
+      {
+        "type": "details_truthy",
+        "tool": "desktop_run_flow",
+        "key": "success"
+      }
+    ]
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_run_flow",
+        "mcp_tool": "run_flow",
+        "envelope": {
+          "ok": true,
+          "tool": "run_flow",
+          "run_id": "20260805T143033Z",
+          "data": {
+            "flow": "scroll-until-found-probe",
+            "run_id": "20260805T143033Z",
+            "dry_run": false,
+            "success": true,
+            "steps": [
+              {
+                "step_id": "open-page",
+                "success": true,
+                "duration_ms": 686,
+                "error": null,
+                "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-j4356bho.png",
+                "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-x_uwncl6.png",
+                "details": {
+                  "kind": "navigate",
+                  "params": {
+                    "url": "file:///Users/ben/Workspace/open-frame/examples/demo/scroll-probe/index.html"
+                  },
+                  "url": "file:///Users/ben/Workspace/open-frame/examples/demo/scroll-probe/index.html",
+                  "artifact_dir": "runs/20260805T143033Z/open-page"
+                }
+              },
+              {
+                "step_id": "wait-load",
+                "success": true,
+                "duration_ms": 2544,
+                "error": null,
+                "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-9ihwrrf_.png",
+                "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-0cc5kxaq.png",
+                "details": {
+                  "kind": "wait",
+                  "params": {
+                    "ms": 2000
+                  },
+                  "wait_ms": 2000,
+                  "artifact_dir": "runs/20260805T143033Z/wait-load"
+                }
+              },
+              {
+                "step_id": "focus-safari",
+                "success": true,
+                "duration_ms": 1592,
+                "error": null,
+                "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-otj55_en.png",
+                "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-yw383wzi.png",
+                "details": {
+                  "kind": "app",
+                  "params": {
+                    "name": "Safari"
+                  },
+                  "app": "Safari",
+                  "artifact_dir": "runs/20260805T143033Z/focus-safari"
+                }
+              },
+              {
+                "step_id": "wait-settle",
+                "success": true,
+                "duration_ms": 1259,
+                "error": null,
+                "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-09q2rnuu.png",
+                "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-mb3mm2wc.png",
+                "details": {
+                  "kind": "wait",
+                  "params": {
+                    "ms": 600
+                  },
+                  "wait_ms": 600,
+                  "artifact_dir": "runs/20260805T143033Z/wait-settle"
+                }
+              },
+              {
+                "step_id": "find-marker",
+                "success": true,
+                "duration_ms": 6092,
+                "error": null,
+                "before_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-29il38a4.png",
+                "after_frame_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-xpxiqpd6.png",
+                "details": {
+                  "kind": "find",
+                  "params": {
+                    "query": "OFSCROLLMARKER",
+                    "scroll_until_found": true,
+                    "max_scroll_attempts": 12,
+                    "scroll_clicks": -5,
+                    "scroll_poll_ms": 250,
+                    "timeout_ms": 1200,
+                    "poll_ms": 200,
+                    "scope": "window",
+                    "window": {
+                      "app": "Safari"
+                    }
+                  },
+                  "query": "OFSCROLLMARKER",
+                  "matches": 1,
+                  "timeout_ms": 1200,
+                  "poll_ms": 200,
+                  "scope_to_window": true,
+                  "template": null,
+                  "scroll_until_found": true,
+                  "scroll_attempts": 0,
+                  "max_scroll_attempts": 12,
+                  "scroll_clicks": -5,
+                  "artifact_dir": "runs/20260805T143033Z/find-marker"
+                }
+              }
+            ],
+            "step_details": "full"
+          },
+          "error": null,
+          "artifacts": {
+            "run_dir": "runs/20260805T143033Z"
+          }
+        }
+      }
+    ],
+    "agent_final": null
+  }
+}

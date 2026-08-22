@@ -1,0 +1,24 @@
+id: s2
+name: Desktop find
+profiles: [P2, P3, P4]
+mode: openframe-only
+deterministic: true
+prompt: >
+  Focus the Notes app and use desktop tools to find the text "Notes" on screen.
+  Do not click anything.
+setup:
+  app: Notes
+steps:
+  - tool: desktop_capture
+    args:
+      mode: screen
+  - tool: desktop_find
+    args:
+      query: "Notes"
+      strategy: first
+pass_checks:
+  - type: envelope_ok
+    tool: desktop_find
+  - type: count_gte
+    tool: desktop_find
+    value: 1

@@ -23,6 +23,7 @@ Primary docs for the project.
 - **[Release gates](RELEASE_GATES.md)** — CI matrix + local macOS live gate checklist
 - **[Robustness triage](ROBUSTNESS_TRIAGE.md)** — app-matrix defect burn-down (PR 4)
 - **[Dogfooding](DOGFOODING.md)** — short real-client MCP evidence log
+- **[Market validation](MARKET_VALIDATION.md)** — user profiles + browser-use hybrid harness
 
 ## Product/planning docs
 
