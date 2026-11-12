@@ -243,6 +243,9 @@ def main() -> int:
             }
             if overlay_path is not None:
                 payload["overlay_path"] = str(overlay_path)
+            recognizer_errors = getattr(locator, "recognizer_errors", None)
+            if recognizer_errors:
+                payload["recognizer_errors"] = list(recognizer_errors)
             print(json.dumps(payload, indent=2))
             return 0
         for item in targets:

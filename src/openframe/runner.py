@@ -35,6 +35,8 @@ from openframe.verify import (
 )
 from openframe.window import evaluate_window_guard, frontmost_window
 
+_SUBPROCESS_TIMEOUT_SEC = 30
+
 
 # Backward-compatible private alias used by CLI/Session/tests.
 def _select_target(*, targets: list[Target], selector: str, scale_factor: float = 1.0) -> Target:
@@ -51,6 +53,7 @@ class FlowRunner:
         session = Session(run_id=run_id)
         locator = build_default_locator()
         actuator = Actuator(dry_run=self.dry_run)
+        previous_start: Frame | None = None
         run_dir = f"runs/{run_id}"
         substitution_base = {
             "run_id": run_id,
@@ -78,7 +81,12 @@ class FlowRunner:
 
             try:
                 details.update(
-                    self._execute_step(step=resolved_step, locator=locator, actuator=actuator)
+                    self._execute_step(
+                        step=resolved_step,
+                        locator=locator,
+                        actuator=actuator,
+                        baseline_frame=previous_start,
+                    )
                 )
                 success = True
             except Exception as exc:  # noqa: BLE001
@@ -108,13 +116,19 @@ class FlowRunner:
                 )
             )
 
+            previous_start = before
             if not success:
                 break
 
         return session
 
     def _execute_step(
-        self, *, step: FlowStep, locator: Locator, actuator: Actuator
+        self,
+        *,
+        step: FlowStep,
+        locator: Locator,
+        actuator: Actuator,
+        baseline_frame: Frame | None = None,
     ) -> dict[str, Any]:
         kind = step.kind
         _enforce_window_guard(step=step)
@@ -456,6 +470,7 @@ class FlowRunner:
                 poll_ms=poll_ms,
                 match_bounds=match_bounds,
                 scope_to_window=scope_to_window,
+                baseline=baseline_frame,
             )
             if not result.success:
                 raise ValueError(result.message)
@@ -469,6 +484,10 @@ class FlowRunner:
         raise ValueError(f"Unsupported flow step kind '{kind}' in step '{step.id}'.")
 
 
+def _is_diff_spec(raw_spec: str) -> bool:
+    return raw_spec.split(":", 1)[0].strip() == "diff"
+
+
 def _run_verify_specs(
     *,
     verify_specs: list[str],
@@ -477,15 +496,23 @@ def _run_verify_specs(
     poll_ms: int,
     match_bounds: MatchBounds | None = None,
     scope_to_window: bool = False,
+    baseline: Frame | None = None,
 ) -> VerifyResult:
     if not verify_specs:
         raise ValueError("At least one verify spec is required.")
+    if any(_is_diff_spec(item) for item in verify_specs) and (
+        baseline is None or not baseline.image_path
+    ):
+        raise ValueError(
+            "verify diff requires the frame from the start of the preceding step."
+        )
 
     deadline = monotonic() + (timeout_ms / 1000.0)
     last: VerifyResult | None = None
 
     while True:
         frame, used_window_capture = _capture_scoped_frame(scope_to_window=scope_to_window)
+        before = baseline if baseline is not None and baseline.image_path else frame
         # Window captures are already cropped; screen-space window bounds would
         # be wrong and must not be applied on top of the window image.
         apply_window_bounds = scope_to_window and not used_window_capture
@@ -501,7 +528,7 @@ def _run_verify_specs(
 
         all_success = True
         for verifier in verifiers:
-            result = verifier.verify(before=frame, after=frame)
+            result = verifier.verify(before=before, after=frame)
             last = result
             if not result.success:
                 all_success = False
@@ -1008,15 +1035,27 @@ def _focus_app(name: str) -> None:
     raise RuntimeError(f"Could not focus app '{name}': {last_error}")
 
 
+def _apple_script_string(value: str) -> str:
+    """Return ``value`` as a double-quoted AppleScript string."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 def _launch_app_via_open(name: str) -> None:
     import subprocess
 
-    subprocess.run(
-        ["open", "-a", name],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        subprocess.run(
+            ["open", "-a", name],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Launching app '{name}' timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
 
 
 def _activate_app_via_applescript(name: str) -> str | None:
@@ -1024,13 +1063,20 @@ def _activate_app_via_applescript(name: str) -> str | None:
     import subprocess
 
     script = (
-        f"with timeout of 5 seconds\n"
-        f'  tell application "{name}" to activate\n'
-        f"end timeout"
+        "with timeout of 5 seconds\n"
+        f"  tell application {_apple_script_string(name)} to activate\n"
+        "end timeout"
     )
-    completed = subprocess.run(
-        ["osascript", "-e", script], check=False, capture_output=True, text=True
-    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-e", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        return f"osascript timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
     if completed.returncode == 0:
         return None
     return completed.stderr.strip() or "unknown error"
@@ -1040,19 +1086,26 @@ def _set_frontmost_via_system_events(name: str) -> str | None:
     """Best-effort set frontmost via System Events; return stderr on failure."""
     import subprocess
 
-    escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+    quoted = _apple_script_string(name)
     script = f"""
 with timeout of 3 seconds
   tell application "System Events"
-    if exists (process "{escaped}") then
-      set frontmost of process "{escaped}" to true
+    if exists (process {quoted}) then
+      set frontmost of process {quoted} to true
     end if
   end tell
 end timeout
 """.strip()
-    completed = subprocess.run(
-        ["osascript", "-e", script], check=False, capture_output=True, text=True
-    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-e", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        return f"osascript timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
     if completed.returncode == 0:
         return None
     return completed.stderr.strip() or "unknown error"
@@ -1116,9 +1169,18 @@ with timeout of 8 seconds
 {size_block}  end tell
 end timeout
 """.strip()
-    completed = subprocess.run(
-        ["osascript", "-e", script], check=False, capture_output=True, text=True
-    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-e", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Setting TextEdit document text timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or "unknown error"
         raise RuntimeError(f"Could not set TextEdit document text: {stderr}")
@@ -1167,7 +1229,18 @@ with timeout of 8 seconds
   end tell
 end timeout
 """.strip()
-    subprocess.run(["osascript", "-e", script], check=False, capture_output=True, text=True)
+    try:
+        subprocess.run(
+            ["osascript", "-e", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Closing TextEdit documents timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
     sleep(0.2)
 
 
@@ -1184,7 +1257,16 @@ def _frontmost_app_name() -> str | None:
             "end timeout"
         ),
     ]
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     if completed.returncode != 0:
         return None
     name = completed.stdout.strip()

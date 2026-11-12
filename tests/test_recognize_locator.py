@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from openframe.recognize import Locator, Recognizer, RecognizerResult
 from openframe.types import Frame, Target
 
@@ -108,3 +110,35 @@ def test_locator_dedupes_mixed_physical_and_logical_coordinate_spaces() -> None:
 
     assert len(targets) == 1
     assert targets[0].text == "A11y"
+
+
+class _FailingRecognizer(Recognizer):
+    name = "a11y:macos"
+
+    def __init__(self) -> None:
+        super().__init__(priority=10)
+
+    def find(self, frame: Frame, query: str, options: dict | None = None) -> RecognizerResult:
+        _ = frame, query, options
+        return RecognizerResult(
+            recognizer=self.name, targets=[], metadata={"error": "permission denied"}
+        )
+
+
+def test_locator_keeps_later_targets_and_records_recognizer_error() -> None:
+    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen")
+    ocr = StubRecognizer(priority=20, target_text="Submit")
+    locator = Locator([_FailingRecognizer(), ocr])
+
+    targets = locator.find(frame, "Submit", strategy="all")
+
+    assert [item.text for item in targets] == ["Submit"]
+    assert locator.recognizer_errors == ["a11y:macos: permission denied"]
+
+
+def test_locator_errors_when_a_recognizer_fails_and_nothing_matches() -> None:
+    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen")
+    locator = Locator([_FailingRecognizer()])
+
+    with pytest.raises(RuntimeError, match="permission denied"):
+        locator.find(frame, "Submit", strategy="all")

@@ -40,6 +40,8 @@ class WindowState:
 
 WindowStateProvider = Callable[[], "WindowState | None"]
 
+_SUBPROCESS_TIMEOUT_SEC = 30
+
 
 def frontmost_window() -> WindowState | None:
     """Return the frontmost window state, or None if it cannot be queried."""
@@ -86,24 +88,33 @@ if (procs.length === 0) {
 }
 """.strip()
 
-    completed = subprocess.run(
-        ["osascript", "-l", "JavaScript", "-e", script],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-l", "JavaScript", "-e", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Frontmost window lookup timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
     if completed.returncode != 0:
-        return None
+        message = completed.stderr.strip() or completed.stdout.strip() or "unknown error"
+        raise RuntimeError(f"Frontmost window lookup failed: {message}")
 
     raw = completed.stdout.strip()
-    if not raw or raw == "null":
+    if raw == "null":
         return None
+    if not raw:
+        raise RuntimeError("Frontmost window lookup returned no output.")
     try:
         payload = json.loads(raw)
-    except json.JSONDecodeError:
-        return None
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Frontmost window lookup returned invalid JSON.") from exc
     if not isinstance(payload, dict):
-        return None
+        raise RuntimeError("Frontmost window lookup returned a non-object.")  # noqa: TRY004
 
     return WindowState(
         app=str(payload.get("app", "")),

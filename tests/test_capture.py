@@ -189,3 +189,15 @@ def test_region_capture_uses_region_spec(tmp_path: Path, monkeypatch: pytest.Mon
 
     assert frame.source == "region:10,20,300,150"
     assert frame.metadata["region"] == {"x": 10, "y": 20, "width": 300, "height": 150}
+
+
+def test_run_command_timeout_raises_capture_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    def fake_run(*_args: object, **_kwargs: object) -> object:
+        raise subprocess.TimeoutExpired(cmd="screencapture", timeout=30)
+
+    monkeypatch.setattr(macos.subprocess, "run", fake_run)
+
+    with pytest.raises(macos.CaptureError, match="timed out"):
+        macos._run_command(["screencapture", "-x"])
