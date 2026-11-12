@@ -43,7 +43,7 @@ pip install pre-commit
 pre-commit install
 ```
 
-Hooks are defined in `.pre-commit-config.yaml` (`ruff check --fix` and `ruff format` on staged files). CI still runs `ruff check .` and `pytest` on every push/PR.
+Hooks are defined in `.pre-commit-config.yaml` (`ruff check --fix` and `ruff format` on staged files). CI runs `ruff check .`, `ruff format --check .`, and `pytest` on every push/PR.
 
 ## macOS permissions for live runs
 
@@ -77,8 +77,7 @@ Without these permissions, capture/recognize/act steps may fail or return empty 
 
 ## Release / stability gates
 
-Hosted CI covers lint, unit tests, and packaging on Python 3.11 and 3.12.
-Permissioned GUI checks are local-only:
+Hosted CI covers lint, format, unit tests (including the template extra), a wheel install smoke test, and packaging on Python 3.11 and 3.12, plus unit tests on a macOS runner. Permissioned GUI checks are local-only:
 
 ```bash
 ./scripts/macos_live_gate.sh

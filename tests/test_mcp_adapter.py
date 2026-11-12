@@ -10,9 +10,21 @@ from openframe.types import Frame, StepResult, Target
 def test_list_mcp_tools_contains_expected_names() -> None:
     tools = list_mcp_tools()
     names = {item["name"] for item in tools}
-    assert {"capture", "find", "click", "type", "key", "scroll", "run_flow", "get_run_artifacts"}.issubset(names)
+    assert {
+        "capture",
+        "find",
+        "click",
+        "type",
+        "key",
+        "scroll",
+        "run_flow",
+        "get_run_artifacts",
+    }.issubset(names)
     assert all(item["contract_version"] == "v0.2.2" for item in tools)
-    assert all("required_args" in item and "optional_args" in item and "error_codes" in item for item in tools)
+    assert all(
+        "required_args" in item and "optional_args" in item and "error_codes" in item
+        for item in tools
+    )
 
 
 def test_call_mcp_tool_unknown_tool_returns_structured_error() -> None:
@@ -122,7 +134,9 @@ def test_timeout_does_not_actuate_and_carries_run_id(monkeypatch) -> None:
     finished = threading.Event()
     seen: dict[str, str | None] = {}
 
-    def slow_handler(payload: dict[str, object]) -> tuple[dict[str, object], str | None, dict[str, object]]:
+    def slow_handler(
+        payload: dict[str, object],
+    ) -> tuple[dict[str, object], str | None, dict[str, object]]:
         seen["run_id"] = payload.get("run_id") if isinstance(payload.get("run_id"), str) else None
         entered.set()
         try:
@@ -226,35 +240,51 @@ def test_find_without_query_returns_validation_error() -> None:
 
 
 def test_click_expect_one_returns_ambiguous_target(monkeypatch) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
 
     class FakeLocator:
         def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
-                Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
-                Target(x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"),
+                Target(
+                    x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"
+                ),
+                Target(
+                    x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"
+                ),
             ]
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame
+    )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
 
-    result = call_mcp_tool("click", {"query": "Create", "expect_one": True, "dry_run": True, "run_id": "r1"})
+    result = call_mcp_tool(
+        "click", {"query": "Create", "expect_one": True, "dry_run": True, "run_id": "r1"}
+    )
     assert result["ok"] is False
     assert result["error"]["code"] == "ambiguous_target"
     assert result["run_id"] == "r1"
 
 
 def test_click_fails_closed_without_selector(monkeypatch) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
     clicked = {"count": 0}
 
     class FakeLocator:
         def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
-                Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"),
-                Target(x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"),
+                Target(
+                    x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Create"
+                ),
+                Target(
+                    x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"
+                ),
             ]
 
     class FakeActuator:
@@ -265,7 +295,9 @@ def test_click_fails_closed_without_selector(monkeypatch) -> None:
             clicked["count"] += 1
             return (0, 0)
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame
+    )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
 
@@ -276,15 +308,21 @@ def test_click_fails_closed_without_selector(monkeypatch) -> None:
 
 
 def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
     clicked = {}
 
     class FakeLocator:
         def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy
             return [
-                Target(x=30, y=200, width=20, height=10, confidence=0.9, source="ocr", text="Create"),
-                Target(x=10, y=100, width=20, height=10, confidence=0.8, source="ocr", text="Create"),
+                Target(
+                    x=30, y=200, width=20, height=10, confidence=0.9, source="ocr", text="Create"
+                ),
+                Target(
+                    x=10, y=100, width=20, height=10, confidence=0.8, source="ocr", text="Create"
+                ),
             ]
 
     class FakeActuator:
@@ -297,7 +335,9 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
             clicked["y"] = target.y
             return (target.x, target.y)
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame
+    )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
     monkeypatch.setattr(
@@ -305,7 +345,9 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
 
-    result = call_mcp_tool("click", {"query": "Create", "selector": "top_most", "dry_run": True, "run_id": "r1"})
+    result = call_mcp_tool(
+        "click", {"query": "Create", "selector": "top_most", "dry_run": True, "run_id": "r1"}
+    )
     assert result["ok"] is True
     assert clicked == {"x": 10, "y": 100}
 
@@ -355,7 +397,9 @@ def test_find_allows_frame_path_without_sidecar(tmp_path: Path, monkeypatch) -> 
     image.write_bytes(b"not-a-real-png")
 
     class FakeLocator:
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy, options
             assert frame.scale_factor == 1.0
             return []
@@ -379,7 +423,9 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
     seen: dict[str, object] = {}
 
     class FakeLocator:
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = query, strategy, options
             assert frame.scale_factor == 2.0
             assert frame.origin_x == 40
@@ -437,7 +483,9 @@ def test_find_reports_recognizer_failure_instead_of_not_found(monkeypatch) -> No
         "openframe.integrations.mcp.adapter._resolve_frame",
         lambda *_args, **_kwargs: Frame(width=1, height=1, scale_factor=1.0, source="screen"),
     )
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: BrokenLocator())
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._build_locator", lambda: BrokenLocator()
+    )
 
     result = call_mcp_tool("find", {"query": "Submit"})
 
@@ -452,17 +500,20 @@ def test_find_includes_recognizer_errors_when_another_recognizer_matches(monkeyp
 
         def find(self, frame, query, strategy="all", options=None):
             _ = frame, query, strategy, options
-            return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
+            return [
+                Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")
+            ]
 
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter._resolve_frame",
         lambda *_args, **_kwargs: Frame(width=1, height=1, scale_factor=1.0, source="screen"),
     )
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: PartialLocator())
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._build_locator", lambda: PartialLocator()
+    )
 
     result = call_mcp_tool("find", {"query": "Submit"})
 
     assert result["ok"] is True
     assert result["data"]["recognizer_errors"] == ["a11y:macos: permission denied"]
     assert result["data"]["count"] == 1
-

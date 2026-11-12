@@ -70,7 +70,9 @@ def test_create_mcp_server_lists_tools_with_schemas() -> None:
     _run(_check())
 
 
-def test_stdio_server_click_dry_run_returns_adapter_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stdio_server_click_dry_run_returns_adapter_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     expected = {
         "ok": True,
         "tool": "click",

@@ -86,7 +86,11 @@ def test_runner_executes_tool_calls_then_finishes() -> None:
     assert result.cost_usd == 0.0
     assert len(result.steps) == 2
     assert seen == [("find", {"query": "Send"}), ("click", {"query": "Send"})]
-    assert result.steps[0].observation == {"ok": True, "tool": "find", "data": {"echo": {"query": "Send"}}}
+    assert result.steps[0].observation == {
+        "ok": True,
+        "tool": "find",
+        "data": {"echo": {"query": "Send"}},
+    }
 
 
 def test_runner_passes_tool_catalog_to_provider() -> None:
@@ -102,9 +106,7 @@ def test_runner_passes_tool_catalog_to_provider() -> None:
 
 def test_runner_stops_at_max_steps() -> None:
     caller, seen = _fake_caller_factory()
-    provider = ScriptedProvider(
-        [AgentAction.call("find", {"query": str(i)}) for i in range(10)]
-    )
+    provider = ScriptedProvider([AgentAction.call("find", {"query": str(i)}) for i in range(10)])
     runner = AgentRunner(
         provider=provider, max_steps=3, tool_caller=caller, tool_catalog=_fake_catalog
     )

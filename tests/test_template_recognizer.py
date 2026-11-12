@@ -27,7 +27,9 @@ def _draw_glyph(draw: ImageDraw.ImageDraw, origin: tuple[int, int], *, scale: in
     s = scale
     draw.rectangle((x, y, x + 30 * s - 1, y + 30 * s - 1), fill=(220, 40, 40))
     draw.rectangle((x + 6 * s, y + 6 * s, x + 14 * s, y + 14 * s), fill=(255, 255, 255))
-    draw.line((x + 4 * s, y + 22 * s, x + 26 * s, y + 22 * s), fill=(20, 20, 20), width=max(1, 2 * s))
+    draw.line(
+        (x + 4 * s, y + 22 * s, x + 26 * s, y + 22 * s), fill=(20, 20, 20), width=max(1, 2 * s)
+    )
     draw.ellipse((x + 16 * s, y + 8 * s, x + 26 * s, y + 18 * s), fill=(40, 120, 220))
 
 

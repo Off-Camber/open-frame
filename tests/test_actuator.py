@@ -92,7 +92,9 @@ def test_point_for_target_adds_capture_origin_for_image_pixels() -> None:
     target = Target(x=100, y=40, width=20, height=20, confidence=0.9, source="ocr")
 
     # Center is (110, 50). At 2x that is (55, 25), then the window origin is added.
-    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0, origin=(40, 80)) == (
+    assert actuator.point_for_target(
+        target, anchor="center", scale_factor=2.0, origin=(40, 80)
+    ) == (
         95,
         105,
     )
@@ -111,7 +113,9 @@ def test_point_for_target_leaves_logical_coordinates_unshifted() -> None:
         text="Vendor",
     )
 
-    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0, origin=(40, 80)) == (
+    assert actuator.point_for_target(
+        target, anchor="center", scale_factor=2.0, origin=(40, 80)
+    ) == (
         140,
         212,
     )
@@ -162,7 +166,11 @@ def test_wait_for_frame_change_detects_change() -> None:
     ]
 
     def capture() -> Frame:
-        return frames.pop(0) if frames else Frame(width=1, height=1, scale_factor=1.0, source="screen:1")
+        return (
+            frames.pop(0)
+            if frames
+            else Frame(width=1, height=1, scale_factor=1.0, source="screen:1")
+        )
 
     changed = actuator.wait_for_frame_change(capture_frame=capture, timeout_ms=50, poll_ms=1)
 

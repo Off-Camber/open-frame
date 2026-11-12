@@ -20,7 +20,9 @@ def test_runner_stops_on_first_failure(monkeypatch) -> None:
 
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -44,7 +46,9 @@ def test_runner_does_not_start_the_next_step_after_cancel(monkeypatch) -> None:
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     typed: list[str] = []
 
     def type_text(self, text: str, *, interval: float = 0.0) -> None:
@@ -72,7 +76,9 @@ def test_runner_completes_simple_wait_flow(monkeypatch) -> None:
     flow = Flow(name="demo", steps=[FlowStep(id="one", kind="wait", params={"ms": 0})])
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -94,7 +100,9 @@ def test_runner_write_file_creates_artifact(monkeypatch, tmp_path) -> None:
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=False).run(flow, run_id="r1")
 
@@ -107,11 +115,15 @@ def test_runner_write_file_skips_in_dry_run(monkeypatch, tmp_path) -> None:
     target = tmp_path / "doc.txt"
     flow = Flow(
         name="write-dry",
-        steps=[FlowStep(id="write-doc", kind="write_file", params={"path": str(target), "text": "x"})],
+        steps=[
+            FlowStep(id="write-doc", kind="write_file", params={"path": str(target), "text": "x"})
+        ],
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -126,8 +138,12 @@ def test_runner_supports_phase5_step_kinds_in_dry_run(monkeypatch) -> None:
             FlowStep(id="app", kind="app", params={"name": "Finder"}),
             FlowStep(id="type", kind="type", params={"text": "hello"}),
             FlowStep(id="key", kind="key", params={"key": "tab"}),
-            FlowStep(id="fill", kind="fill", params={"query": "Name", "text": "Alice", "clear": True}),
-            FlowStep(id="attach", kind="attach", params={"path": "/tmp/file.txt", "submit_key": "enter"}),
+            FlowStep(
+                id="fill", kind="fill", params={"query": "Name", "text": "Alice", "clear": True}
+            ),
+            FlowStep(
+                id="attach", kind="attach", params={"path": "/tmp/file.txt", "submit_key": "enter"}
+            ),
             FlowStep(id="navigate", kind="navigate", params={"url": "https://example.com"}),
             FlowStep(id="click", kind="click", params={"query": "Submit"}),
             FlowStep(id="find", kind="find", params={"query": "Submit"}),
@@ -135,7 +151,9 @@ def test_runner_supports_phase5_step_kinds_in_dry_run(monkeypatch) -> None:
             FlowStep(id="wait", kind="wait", params={"ms": 0}),
             FlowStep(id="capture", kind="capture", params={}),
             FlowStep(id="scroll", kind="scroll", params={"clicks": -3}),
-            FlowStep(id="drag", kind="drag", params={"from_x": 10, "from_y": 20, "to_x": 30, "to_y": 40}),
+            FlowStep(
+                id="drag", kind="drag", params={"from_x": 10, "from_y": 20, "to_x": 30, "to_y": 40}
+            ),
         ],
     )
 
@@ -145,13 +163,19 @@ def test_runner_supports_phase5_step_kinds_in_dry_run(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
-            return [Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Submit")]
+            return [
+                Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Submit")
+            ]
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -173,7 +197,9 @@ def test_runner_substitutes_variables_and_run_tokens(monkeypatch) -> None:
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r123/type-subject"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r123/type-subject")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r123")
 
@@ -198,7 +224,9 @@ def test_runner_resolves_nested_templates(monkeypatch) -> None:
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r999/type-token"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r999/type-token")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r999")
 
@@ -209,7 +237,13 @@ def test_runner_resolves_nested_templates(monkeypatch) -> None:
 def test_runner_retries_click_until_target_found(monkeypatch) -> None:
     flow = Flow(
         name="retry-click",
-        steps=[FlowStep(id="click-retry", kind="click", params={"query": "Submit", "timeout_ms": 50, "poll_ms": 1})],
+        steps=[
+            FlowStep(
+                id="click-retry",
+                kind="click",
+                params={"query": "Submit", "timeout_ms": 50, "poll_ms": 1},
+            )
+        ],
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
@@ -217,17 +251,23 @@ def test_runner_retries_click_until_target_found(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             self.calls = 0
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             self.calls += 1
             if self.calls < 2:
                 return []
-            return [Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Submit")]
+            return [
+                Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Submit")
+            ]
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -237,7 +277,9 @@ def test_runner_retries_click_until_target_found(monkeypatch) -> None:
 def test_runner_click_expect_one_fails_on_multiple_matches(monkeypatch) -> None:
     flow = Flow(
         name="ambiguous-click",
-        steps=[FlowStep(id="click-one", kind="click", params={"query": "Create", "expect_one": True})],
+        steps=[
+            FlowStep(id="click-one", kind="click", params={"query": "Create", "expect_one": True})
+        ],
     )
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
 
@@ -245,16 +287,22 @@ def test_runner_click_expect_one_fails_on_multiple_matches(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Create"),
-                Target(x=20, y=20, width=10, height=10, confidence=0.9, source="stub", text="Create"),
+                Target(
+                    x=20, y=20, width=10, height=10, confidence=0.9, source="stub", text="Create"
+                ),
             ]
 
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -274,11 +322,15 @@ def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return [
                 Target(x=1, y=1, width=10, height=10, confidence=0.9, source="stub", text="Create"),
-                Target(x=20, y=20, width=10, height=10, confidence=0.9, source="stub", text="Create"),
+                Target(
+                    x=20, y=20, width=10, height=10, confidence=0.9, source="stub", text="Create"
+                ),
             ]
 
     class FakeActuator:
@@ -292,7 +344,9 @@ def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -304,7 +358,13 @@ def test_runner_click_fails_closed_without_selector(monkeypatch) -> None:
 def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     flow = Flow(
         name="selector-click",
-        steps=[FlowStep(id="click-selector", kind="click", params={"query": "Create", "selector": "top_most"})],
+        steps=[
+            FlowStep(
+                id="click-selector",
+                kind="click",
+                params={"query": "Create", "selector": "top_most"},
+            )
+        ],
     )
     frame = Frame(width=1, height=1, scale_factor=2.0, source="screen", image_path=None)
     clicked: dict[str, int] = {}
@@ -313,18 +373,32 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return [
-                Target(x=40, y=200, width=10, height=10, confidence=0.9, source="stub", text="Create"),
-                Target(x=30, y=100, width=10, height=10, confidence=0.8, source="stub", text="Create"),
+                Target(
+                    x=40, y=200, width=10, height=10, confidence=0.9, source="stub", text="Create"
+                ),
+                Target(
+                    x=30, y=100, width=10, height=10, confidence=0.8, source="stub", text="Create"
+                ),
             ]
 
     class FakeActuator:
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
+        def click_target(
+            self,
+            target: Target,
+            *,
+            anchor: str,
+            kind: str,
+            scale_factor: float = 1.0,
+            **kwargs: object,
+        ):
             _ = anchor, kind
             clicked["x"] = target.x
             clicked["y"] = target.y
@@ -334,7 +408,9 @@ def test_runner_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -387,7 +463,9 @@ def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             self.calls = 0
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             self.calls += 1
             if self.calls < 3:
@@ -397,7 +475,9 @@ def test_runner_verify_polls_until_spec_passes(monkeypatch) -> None:
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -428,7 +508,9 @@ def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return []
 
@@ -512,7 +594,9 @@ def test_focus_app_retries_on_not_running_then_succeeds(monkeypatch) -> None:
 def test_runner_click_point_uses_logical_coordinates(monkeypatch) -> None:
     flow = Flow(
         name="click-point",
-        steps=[FlowStep(id="focus-body", kind="click_point", params={"x_ratio": 0.5, "y_ratio": 0.5})],
+        steps=[
+            FlowStep(id="focus-body", kind="click_point", params={"x_ratio": 0.5, "y_ratio": 0.5})
+        ],
     )
     frame = Frame(width=2000, height=1000, scale_factor=2.0, source="screen", image_path=None)
     clicked: dict[str, int] = {}
@@ -529,7 +613,9 @@ def test_runner_click_point_uses_logical_coordinates(monkeypatch) -> None:
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -555,18 +641,32 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return [
-                Target(x=100, y=50, width=10, height=10, confidence=0.9, source="stub", text="Subject"),
-                Target(x=900, y=120, width=10, height=10, confidence=0.8, source="stub", text="Subject"),
+                Target(
+                    x=100, y=50, width=10, height=10, confidence=0.9, source="stub", text="Subject"
+                ),
+                Target(
+                    x=900, y=120, width=10, height=10, confidence=0.8, source="stub", text="Subject"
+                ),
             ]
 
     class FakeActuator:
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
+        def click_target(
+            self,
+            target: Target,
+            *,
+            anchor: str,
+            kind: str,
+            scale_factor: float = 1.0,
+            **kwargs: object,
+        ):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             return (target.x, target.y)
@@ -580,7 +680,9 @@ def test_runner_fill_selector_right_most_clicks_right_target(monkeypatch) -> Non
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
 
@@ -613,7 +715,9 @@ def test_runner_type_via_applescript_sets_textedit_document(monkeypatch) -> None
 
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner._textedit_set_front_document_text", fake_set)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
 
@@ -646,7 +750,9 @@ def test_runner_type_via_applescript_close_closes_documents(monkeypatch) -> None
 
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner._textedit_close_all_documents", fake_close)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
 
@@ -676,7 +782,9 @@ def test_runner_scroll_step_records_details(monkeypatch) -> None:
     )
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -717,7 +825,9 @@ def test_runner_drag_step_point_to_point(monkeypatch) -> None:
     )
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: object())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(1, 1, 1.0, "x"))
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -728,10 +838,14 @@ def test_runner_drag_step_point_to_point(monkeypatch) -> None:
 
 def test_runner_scroll_until_found_scrolls_then_succeeds(monkeypatch) -> None:
     calls = {"find": 0, "scroll": 0}
-    target = Target(x=10, y=20, width=30, height=10, confidence=0.9, source="stub", text="BelowFold")
+    target = Target(
+        x=10, y=20, width=30, height=10, confidence=0.9, source="stub", text="BelowFold"
+    )
 
     class FakeLocator:
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy, options
             calls["find"] += 1
             if calls["scroll"] >= 2:
@@ -769,8 +883,12 @@ def test_runner_scroll_until_found_scrolls_then_succeeds(monkeypatch) -> None:
     )
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
-    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
+    monkeypatch.setattr(
+        "openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x")
+    )
     monkeypatch.setattr("openframe.runner.sleep", lambda *_: None)
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -785,7 +903,9 @@ def test_window_scoped_click_refuses_when_frontmost_window_is_unknown(monkeypatc
     frame = Frame(width=200, height=100, scale_factor=2.0, source="screen:1")
 
     class FakeLocator:
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy, options
             return [Target(x=10, y=10, width=20, height=10, confidence=0.9, source="ocr")]
 
@@ -823,7 +943,9 @@ def test_runner_scroll_until_found_fails_closed(monkeypatch) -> None:
     scrolls = {"count": 0}
 
     class FakeLocator:
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy, options
             return []
 
@@ -857,8 +979,12 @@ def test_runner_scroll_until_found_fails_closed(monkeypatch) -> None:
     )
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
-    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
+    monkeypatch.setattr(
+        "openframe.runner.screen", lambda *args, **kwargs: Frame(100, 100, 1.0, "x")
+    )
     monkeypatch.setattr("openframe.runner.sleep", lambda *_: None)
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r1")
@@ -871,7 +997,9 @@ def test_verify_diff_uses_the_preceding_step_frame(monkeypatch) -> None:
     from openframe.runner import _run_verify_specs
     from openframe.verify import VerifyResult
 
-    baseline = Frame(width=2, height=2, scale_factor=1.0, source="screen", image_path="/tmp/before.png")
+    baseline = Frame(
+        width=2, height=2, scale_factor=1.0, source="screen", image_path="/tmp/before.png"
+    )
     fresh = Frame(width=2, height=2, scale_factor=1.0, source="screen", image_path="/tmp/after.png")
     seen: dict[str, str | None] = {}
 

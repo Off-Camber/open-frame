@@ -68,7 +68,9 @@ def test_format_doctor_text_includes_hints_for_non_pass() -> None:
 
 
 def test_run_doctor_monkeypatched_probes(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("openframe.doctor._check_platform", lambda: CheckResult("platform", "pass", "Darwin"))
+    monkeypatch.setattr(
+        "openframe.doctor._check_platform", lambda: CheckResult("platform", "pass", "Darwin")
+    )
     monkeypatch.setattr(
         "openframe.doctor._check_python", lambda: CheckResult("python", "pass", "Python 3.11")
     )

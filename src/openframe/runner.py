@@ -503,9 +503,7 @@ def _run_verify_specs(
     if any(_is_diff_spec(item) for item in verify_specs) and (
         baseline is None or not baseline.image_path
     ):
-        raise ValueError(
-            "verify diff requires the frame from the start of the preceding step."
-        )
+        raise ValueError("verify diff requires the frame from the start of the preceding step.")
 
     deadline = monotonic() + (timeout_ms / 1000.0)
     last: VerifyResult | None = None
@@ -567,11 +565,7 @@ def _capture_frontmost_window_frame() -> Frame | None:
             return None
 
         windows = list_windows()
-        candidates = [
-            item
-            for item in windows
-            if str(item.get("owner", "")) == state.app
-        ]
+        candidates = [item for item in windows if str(item.get("owner", "")) == state.app]
         if not candidates:
             return None
 
@@ -642,8 +636,7 @@ def _parse_scroll_until_found(*, step: FlowStep) -> dict[str, Any] | None:
         raise ValueError(f"Step '{step.id}' max_scroll_attempts must be >= 0.")
     if max_attempts > HARD_MAX_SCROLL_ATTEMPTS:
         raise ValueError(
-            f"Step '{step.id}' max_scroll_attempts exceeds hard limit "
-            f"({HARD_MAX_SCROLL_ATTEMPTS})."
+            f"Step '{step.id}' max_scroll_attempts exceeds hard limit ({HARD_MAX_SCROLL_ATTEMPTS})."
         )
     scroll_clicks = int(step.params.get("scroll_clicks", DEFAULT_SCROLL_CLICKS))
     scroll_poll_ms = int(step.params.get("scroll_poll_ms", DEFAULT_SCROLL_POLL_MS))
@@ -652,7 +645,9 @@ def _parse_scroll_until_found(*, step: FlowStep) -> dict[str, Any] | None:
     x = int(step.params["scroll_x"]) if "scroll_x" in step.params else None
     y = int(step.params["scroll_y"]) if "scroll_y" in step.params else None
     if (x is None) ^ (y is None):
-        raise ValueError(f"Step '{step.id}' scroll_until_found requires both scroll_x and scroll_y.")
+        raise ValueError(
+            f"Step '{step.id}' scroll_until_found requires both scroll_x and scroll_y."
+        )
     return {
         "max_attempts": max_attempts,
         "scroll_clicks": scroll_clicks,
@@ -1141,12 +1136,7 @@ def _textedit_set_front_document_text(text: str, *, font_size: int | None = None
 
     _textedit_close_all_documents()
 
-    escaped = (
-        text.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("\n", "\\n")
-        .replace("\r", "")
-    )
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "")
     size_block = ""
     if font_size is not None:
         if font_size <= 0:

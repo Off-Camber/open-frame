@@ -57,9 +57,15 @@ def test_target_gone_verifier_fails_when_target_still_found() -> None:
 
 def test_text_presence_verifier_respects_left_of_query_bounds() -> None:
     frame = Frame(width=1000, height=800, scale_factor=1.0, source="screen")
-    compose_marker = Target(x=900, y=100, width=40, height=10, confidence=0.9, source="stub", text="OFSENDZXQ")
-    list_marker = Target(x=300, y=200, width=40, height=10, confidence=0.9, source="stub", text="OFSENDZXQ")
-    from_anchor = Target(x=850, y=80, width=30, height=10, confidence=0.9, source="stub", text="From")
+    compose_marker = Target(
+        x=900, y=100, width=40, height=10, confidence=0.9, source="stub", text="OFSENDZXQ"
+    )
+    list_marker = Target(
+        x=300, y=200, width=40, height=10, confidence=0.9, source="stub", text="OFSENDZXQ"
+    )
+    from_anchor = Target(
+        x=850, y=80, width=30, height=10, confidence=0.9, source="stub", text="From"
+    )
 
     locator = StubLocator(
         0,

@@ -18,7 +18,9 @@ def _frame(scale: float = 1.0) -> Frame:
 
 
 def test_evaluate_window_guard_matches_all_fields() -> None:
-    state = WindowState(app="Outlook", title="Untitled - Message", role="AXWindow", x=0, y=0, width=10, height=10)
+    state = WindowState(
+        app="Outlook", title="Untitled - Message", role="AXWindow", x=0, y=0, width=10, height=10
+    )
 
     passed, _ = evaluate_window_guard(
         spec={"app": "Outlook", "title_contains": "Message", "role": "AXWindow"},
@@ -28,7 +30,9 @@ def test_evaluate_window_guard_matches_all_fields() -> None:
 
 
 def test_evaluate_window_guard_fails_when_app_mismatch() -> None:
-    state = WindowState(app="Outlook", title="Inbox", role="AXWindow", x=0, y=0, width=10, height=10)
+    state = WindowState(
+        app="Outlook", title="Inbox", role="AXWindow", x=0, y=0, width=10, height=10
+    )
 
     passed, message = evaluate_window_guard(spec={"app": "Chrome"}, state=state)
 
@@ -37,7 +41,9 @@ def test_evaluate_window_guard_fails_when_app_mismatch() -> None:
 
 
 def test_window_state_verifier_uses_injected_provider() -> None:
-    state = WindowState(app="Outlook", title="Compose - Message", role="AXWindow", x=0, y=0, width=10, height=10)
+    state = WindowState(
+        app="Outlook", title="Compose - Message", role="AXWindow", x=0, y=0, width=10, height=10
+    )
     verifier = WindowStateVerifier(
         kind="title_contains", expected="Compose", state_provider=lambda: state
     )
@@ -71,10 +77,14 @@ def test_runner_window_guard_blocks_step_when_app_wrong(monkeypatch) -> None:
     )
     frame = _frame()
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step")
+    )
     monkeypatch.setattr(
         "openframe.runner.frontmost_window",
-        lambda: WindowState(app="Cursor", title="open-frame", role="AXWindow", x=0, y=0, width=100, height=100),
+        lambda: WindowState(
+            app="Cursor", title="open-frame", role="AXWindow", x=0, y=0, width=100, height=100
+        ),
     )
     monkeypatch.setattr("openframe.runner._focus_app", lambda _name: None)
 
@@ -98,7 +108,9 @@ def test_runner_window_guard_refocuses_before_failing(monkeypatch) -> None:
 
     focused: list[str] = []
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: _frame())
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step")
+    )
     monkeypatch.setattr("openframe.runner.frontmost_window", frontmost)
     monkeypatch.setattr("openframe.runner._focus_app", lambda name: focused.append(name))
 
@@ -111,7 +123,11 @@ def test_runner_window_guard_refocuses_before_failing(monkeypatch) -> None:
 def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None:
     flow = Flow(
         name="scoped-click",
-        steps=[FlowStep(id="click-in-window", kind="click", params={"query": "Send", "scope": "window"})],
+        steps=[
+            FlowStep(
+                id="click-in-window", kind="click", params={"query": "Send", "scope": "window"}
+            )
+        ],
     )
     frame = _frame()
 
@@ -123,7 +139,9 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return [outside, inside]
 
@@ -131,7 +149,15 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object):
+        def click_target(
+            self,
+            target: Target,
+            *,
+            anchor: str,
+            kind: str,
+            scale_factor: float = 1.0,
+            **kwargs: object,
+        ):
             _ = anchor, kind, scale_factor
             clicked["x"] = target.x
             clicked["y"] = target.y
@@ -142,10 +168,14 @@ def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None
     monkeypatch.setattr("openframe.runner._capture_frontmost_window_frame", lambda: None)
     monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step")
+    )
     monkeypatch.setattr(
         "openframe.runner.frontmost_window",
-        lambda: WindowState(app="Outlook", title="Inbox", role="AXWindow", x=100, y=100, width=400, height=400),
+        lambda: WindowState(
+            app="Outlook", title="Inbox", role="AXWindow", x=100, y=100, width=400, height=400
+        ),
     )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r-scope")
@@ -168,10 +198,20 @@ def test_runner_window_title_contains_verify_spec(monkeypatch) -> None:
     frame = _frame()
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
     monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step")
+    )
     monkeypatch.setattr(
         "openframe.runner.frontmost_window",
-        lambda: WindowState(app="Outlook", title="Compose - New Message", role="AXWindow", x=0, y=0, width=10, height=10),
+        lambda: WindowState(
+            app="Outlook",
+            title="Compose - New Message",
+            role="AXWindow",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        ),
     )
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r-verify")
@@ -179,7 +219,9 @@ def test_runner_window_title_contains_verify_spec(monkeypatch) -> None:
     assert session.results[0].success is True
 
 
-def test_frontmost_window_timeout_and_script_failure_are_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_frontmost_window_timeout_and_script_failure_are_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import subprocess
     from types import SimpleNamespace
 

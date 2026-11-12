@@ -18,7 +18,11 @@ class DemoRecognizer(Recognizer):
             return RecognizerResult(recognizer=self.name, targets=[])
         return RecognizerResult(
             recognizer=self.name,
-            targets=[Target(x=10, y=20, width=30, height=40, confidence=0.9, source=self.name, text=query)],
+            targets=[
+                Target(
+                    x=10, y=20, width=30, height=40, confidence=0.9, source=self.name, text=query
+                )
+            ],
         )
 
 
@@ -52,8 +56,24 @@ def test_session_click_fails_closed_on_ambiguous_targets() -> None:
             return RecognizerResult(
                 recognizer=self.name,
                 targets=[
-                    Target(x=10, y=20, width=30, height=40, confidence=0.9, source=self.name, text=query),
-                    Target(x=50, y=60, width=30, height=40, confidence=0.8, source=self.name, text=query),
+                    Target(
+                        x=10,
+                        y=20,
+                        width=30,
+                        height=40,
+                        confidence=0.9,
+                        source=self.name,
+                        text=query,
+                    ),
+                    Target(
+                        x=50,
+                        y=60,
+                        width=30,
+                        height=40,
+                        confidence=0.8,
+                        source=self.name,
+                        text=query,
+                    ),
                 ],
             )
 
@@ -71,7 +91,9 @@ def test_session_click_fails_closed_on_ambiguous_targets() -> None:
 def test_session_run_executes_in_memory_steps(monkeypatch) -> None:
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
     monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
-    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
     session = Session(run_id="r1", dry_run=True)
 
     results = session.run([{"id": "wait-1", "kind": "wait", "ms": 0}])

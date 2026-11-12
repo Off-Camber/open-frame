@@ -189,14 +189,15 @@ def _peaks_above_threshold(
         return []
 
     candidates = [
-        (int(r), int(c), float(corr[r, c]))
-        for r, c in zip(*np.nonzero(mask), strict=False)
+        (int(r), int(c), float(corr[r, c])) for r, c in zip(*np.nonzero(mask), strict=False)
     ]
     candidates.sort(key=lambda item: item[2], reverse=True)
 
     selected: list[tuple[int, int, float]] = []
     for row, col, score in candidates:
-        if any(abs(row - sr) <= nms_radius and abs(col - sc) <= nms_radius for sr, sc, _ in selected):
+        if any(
+            abs(row - sr) <= nms_radius and abs(col - sc) <= nms_radius for sr, sc, _ in selected
+        ):
             continue
         selected.append((row, col, score))
         if len(selected) >= max_matches:

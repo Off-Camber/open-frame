@@ -213,7 +213,9 @@ def _write_reports(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Benchmark MCP run_flow repeatability and runtime.")
+    parser = argparse.ArgumentParser(
+        description="Benchmark MCP run_flow repeatability and runtime."
+    )
     parser.add_argument(
         "--flow",
         dest="flows",

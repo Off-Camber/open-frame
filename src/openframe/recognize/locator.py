@@ -91,9 +91,7 @@ def _merge_target(
 
 
 def _iou(left: Target, right: Target, *, scale_factor: float = 1.0) -> float:
-    left_x, left_y, left_width, left_height = target_logical_bounds(
-        left, scale_factor=scale_factor
-    )
+    left_x, left_y, left_width, left_height = target_logical_bounds(left, scale_factor=scale_factor)
     right_x, right_y, right_width, right_height = target_logical_bounds(
         right, scale_factor=scale_factor
     )

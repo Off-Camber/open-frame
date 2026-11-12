@@ -269,9 +269,7 @@ def main() -> int:
             if getattr(args, "template_threshold", None) is not None:
                 click_params["template_threshold"] = args.template_threshold
             options = recognition_options_from_mapping(click_params or None)
-            targets = locator.find(
-                frame=frame, query=args.query, strategy="all", options=options
-            )
+            targets = locator.find(frame=frame, query=args.query, strategy="all", options=options)
             selector = explicit_selector(getattr(args, "selector", None))
             expect_one = bool(getattr(args, "expect_one", False))
             ensure_actionable_match_count(

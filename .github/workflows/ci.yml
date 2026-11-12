@@ -26,17 +26,98 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,ocr,flow,mcp]"
+          pip install -e ".[dev,ocr,flow,mcp,template]"
           pip install build twine
 
       - name: Ruff check
         run: ruff check .
 
+      - name: Ruff format
+        run: ruff format --check .
+
       - name: Run tests
-        run: pytest
+        run: pytest --cov=openframe --cov-report=term-missing --cov-fail-under=80
 
       - name: Build package
         run: python -m build --sdist --wheel
 
       - name: Validate package metadata
         run: python -m twine check dist/*
+
+      - name: Wheel install smoke test
+        if: matrix.python-version == '3.11'
+        run: |
+          python -m venv /tmp/open-frame-wheel
+          /tmp/open-frame-wheel/bin/python -m pip install --disable-pip-version-check dist/*.whl
+          /tmp/open-frame-wheel/bin/open-frame mcp list-tools --json > /tmp/open-frame-tools.json
+          /tmp/open-frame-wheel/bin/python - <<'PY'
+          import json
+          import tomllib
+          from importlib.metadata import version
+          from pathlib import Path
+
+          payload = json.loads(Path("/tmp/open-frame-tools.json").read_text())
+          names = {item["name"] for item in payload["tools"]}
+          required = {
+              "capture",
+              "find",
+              "click",
+              "type",
+              "key",
+              "scroll",
+              "run_flow",
+              "get_run_artifacts",
+          }
+          missing = required - names
+          if missing:
+              raise SystemExit(f"wheel is missing tools: {sorted(missing)}")
+          expected = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          installed = version("off-camber-open-frame")
+          print(f"installed {installed}; pyproject {expected}; tools {sorted(names)}")
+          if installed != expected:
+              raise SystemExit(f"installed {installed} != pyproject {expected}")
+          PY
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install Tesseract
+        run: brew install tesseract
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ocr,flow,mcp,template]"
+
+      - name: Run tests
+        run: pytest
+
+      - name: Capture the screen
+        run: |
+          open-frame capture --out /tmp/open-frame-ci-screen.png
+          python - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+
+          path = Path("/tmp/open-frame-ci-screen.png")
+          raw = path.read_bytes()
+          if raw[:8] != b"\x89PNG\r\n\x1a\n":
+              raise SystemExit("capture did not write a PNG")
+          width, height = struct.unpack(">II", raw[16:24])
+          sidecar = json.loads(Path(str(path) + ".openframe.json").read_text())
+          print(
+              f"SCREEN_CAPTURE=ok bytes={len(raw)} width={width} height={height} "
+              f"scale={sidecar.get('scale_factor')}"
+          )
+          if width <= 0 or height <= 0:
+              raise SystemExit("capture PNG has no dimensions")
+          PY

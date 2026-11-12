@@ -64,7 +64,9 @@ def _assert_sidecar(frame: Frame) -> None:
     assert payload["height"] == frame.height
 
 
-def test_screen_scale_uses_main_display_width(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_screen_scale_uses_main_display_width(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _install_capture(monkeypatch, tmp_path, (3420, 2224))
 
     frame = macos.screen()

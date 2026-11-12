@@ -41,9 +41,7 @@ class UsageStats:
             cache_creation_input_tokens=(
                 self.cache_creation_input_tokens + other.cache_creation_input_tokens
             ),
-            cache_read_input_tokens=(
-                self.cache_read_input_tokens + other.cache_read_input_tokens
-            ),
+            cache_read_input_tokens=(self.cache_read_input_tokens + other.cache_read_input_tokens),
             output_tokens=self.output_tokens + other.output_tokens,
             calls=self.calls + other.calls,
         )
@@ -90,9 +88,7 @@ class AgentAction:
         )
 
     @classmethod
-    def finish(
-        cls, message: str | None = None, *, usage: UsageStats | None = None
-    ) -> AgentAction:
+    def finish(cls, message: str | None = None, *, usage: UsageStats | None = None) -> AgentAction:
         """Build a finish action that ends the run."""
         return cls(kind="finish", final_message=message, usage=usage)
 

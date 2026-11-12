@@ -62,8 +62,7 @@ provider = AnthropicProvider()  # uses ANTHROPIC_API_KEY
 runner = AgentRunner(provider=provider, max_steps=12)
 
 result = runner.run(
-    "Capture the screen and tell me whether a 'Send' button is visible. "
-    "Do not click anything."
+    "Capture the screen and tell me whether a 'Send' button is visible. Do not click anything."
 )
 
 print("success:", result.success, "| stop:", result.stop_reason)
