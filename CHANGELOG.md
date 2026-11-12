@@ -29,6 +29,11 @@ Guidelines:
 - Keep bullets concise and specific.
 - Link PRs/issues when available.
 
+## Unreleased
+
+### Fixed
+- A flow window guard that names an app focuses that app once and checks again before the step fails ([#34](https://github.com/Off-Camber/open-frame/pull/34)).
+
 ## v0.2.2 - 2026-11-12
 
 ### Changed

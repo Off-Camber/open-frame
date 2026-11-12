@@ -10,6 +10,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-08-22 | Local CLI / browser-use | A/B cost harness (`docs/market-validation-runs/20260822Tab-v0`) | AB1 **efficiency** (hybrid cheaper median `$`, 3/3); AB2 **capability** (hybrid 3/3, browser-only 0/3) |
 | 2026-11-12 | Local CLI | Live gate and app matrix on macOS 27.0.1, SHA `038aba5`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display | Live gate **fail** (calibration 0/5; every other check passed, including MCP stdio with `scroll`). App matrix **3/6** (Mail, System Settings, Notes). Harness exit 0 because strict mode is off. |
 | 2026-11-12 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, parent `ff4b84c`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display | Live gate **pass** (calibration **5/5**; window, region, and `frame_path` clicks inside `CALMARK89`). App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
+| 2026-11-12 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `c924fca`, Python 3.11.15 (`.venv`), Tesseract 5.5.2 | Live gate **pass** (calibration **5/5**; window click (336, 201), region (328, 207), `frame_path` (331, 207), each inside `CALMARK89`). App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. This is the run that backed 0.2.2. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -29,6 +30,14 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-a2-live-gate-4`) an
 - **calibration_5x, 5/5.**
 - **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped and region clicks at (336, 201). `frame_path` click at (331, 207).
 - **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, Calendar. One earlier strict run failed Mail because the window guard saw Cursor. The recorded run is the one after a guarded step takes the expected app back and checks again.
+
+## macOS 27 gates (2026-11-12, `c924fca`)
+
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-c-live-gate`) and `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-c-app-matrix`). This is the run that backed release 0.2.2. The published tag is one commit later and only changes the version, changelog, and contract label.
+
+- **calibration_5x, 5/5.**
+- **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped click at (336, 201). Region click at (328, 207). `frame_path` click at (331, 207).
+- **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, Calendar.
 
 ## Notes
 
