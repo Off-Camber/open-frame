@@ -74,11 +74,36 @@ def test_runner_window_guard_blocks_step_when_app_wrong(monkeypatch) -> None:
         "openframe.runner.frontmost_window",
         lambda: WindowState(app="Cursor", title="open-frame", role="AXWindow", x=0, y=0, width=100, height=100),
     )
+    monkeypatch.setattr("openframe.runner._focus_app", lambda _name: None)
 
     session = FlowRunner(dry_run=True).run(flow, run_id="r-guard")
 
     assert session.results[0].success is False
     assert "window guard failed" in (session.results[0].error or "")
+
+
+def test_runner_window_guard_refocuses_before_failing(monkeypatch) -> None:
+    flow = Flow(
+        name="guarded",
+        steps=[FlowStep(id="wait-mail", kind="wait", params={"ms": 0, "window": {"app": "Mail"}})],
+    )
+    reads = {"count": 0}
+
+    def frontmost() -> WindowState:
+        reads["count"] += 1
+        app = "Cursor" if reads["count"] == 1 else "Mail"
+        return WindowState(app=app, title="Inbox", role="AXWindow", x=0, y=0, width=100, height=100)
+
+    focused: list[str] = []
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: _frame())
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r/step"))
+    monkeypatch.setattr("openframe.runner.frontmost_window", frontmost)
+    monkeypatch.setattr("openframe.runner._focus_app", lambda name: focused.append(name))
+
+    session = FlowRunner(dry_run=True).run(flow, run_id="r-refocus")
+
+    assert session.results[0].success is True
+    assert focused == ["Mail"]
 
 
 def test_runner_window_scope_filters_targets_outside_window(monkeypatch) -> None:

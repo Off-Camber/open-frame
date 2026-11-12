@@ -1,7 +1,8 @@
 name: app-matrix-finder
 description: >
-  Non-destructive Finder probe — activate Finder, find a stable sidebar/chrome
-  label (not menu-bar File, which is outside window scope), verify frontmost app.
+  Non-destructive Finder probe — activate Finder, find the list-view column
+  header inside the Finder window, verify frontmost app. The window title is
+  the folder name, so the app name is not a label in the window.
 steps:
   - id: focus-finder
     kind: app
@@ -13,15 +14,21 @@ steps:
 
   - id: find-finder-chrome
     kind: find
-    query: "Finder"
+    query: "Date Added"
     timeout_ms: 10000
     poll_ms: 250
     selector: first
+    scope: window
+    window:
+      app: "Finder"
 
   - id: verify-finder
     kind: verify
     timeout_ms: 5000
     poll_ms: 250
+    scope: window
+    window:
+      app: "Finder"
     specs:
       - 'window-app:"Finder"'
-      - 'text-appeared:"Finder"'
+      - 'text-appeared:"Date Added"'

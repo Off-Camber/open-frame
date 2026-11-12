@@ -857,8 +857,21 @@ def _enforce_window_guard(*, step: FlowStep) -> None:
         return
     state = frontmost_window()
     passed, message = evaluate_window_guard(spec=spec, state=state)
-    if not passed:
-        raise ValueError(f"Step '{step.id}' window guard failed: {message}")
+    if passed:
+        return
+    # The app that launched the gate can take frontmost during a wait.
+    # Take the guarded app back, then check again. A miss still fails the step.
+    app_name = spec.get("app")
+    if app_name:
+        try:
+            _focus_app(app_name)
+        except RuntimeError:
+            pass
+        state = frontmost_window()
+        passed, message = evaluate_window_guard(spec=spec, state=state)
+        if passed:
+            return
+    raise ValueError(f"Step '{step.id}' window guard failed: {message}")
 
 
 def _coerce_timeout_ms(*, step: FlowStep, default_ms: int) -> int:

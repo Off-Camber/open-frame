@@ -202,6 +202,27 @@ run_app_probe "safari" "examples/flows/app-matrix/safari/flow.yaml" "Safari"
 run_app_probe "mail" "examples/flows/app-matrix/mail/flow.yaml" "Mail"
 run_app_probe "system-settings" "examples/flows/app-matrix/system-settings/flow.yaml" "System Settings"
 run_app_probe "notes" "examples/flows/app-matrix/notes/flow.yaml" "Notes"
+# Calendar on a fresh macOS 27 profile opens onto a What's New sheet that
+# covers the view and has no Today label. Dismiss that sheet, then let the
+# flow require Today. A missing sheet is a no-op.
+osascript <<'APPLESCRIPT' >/dev/null 2>&1 || true
+tell application "Calendar" to activate
+delay 0.6
+tell application "System Events"
+  tell process "Calendar"
+    repeat with w in windows
+      try
+        if exists button "Continue" of sheet 1 of w then
+          click button "Continue" of sheet 1 of w
+        else if exists button "Continue" of w then
+          click button "Continue" of w
+        end if
+      end try
+    end repeat
+  end tell
+end tell
+APPLESCRIPT
+sleep 0.8
 run_app_probe "calendar" "examples/flows/app-matrix/calendar/flow.yaml" "Calendar"
 
 python3 - <<'PY'
