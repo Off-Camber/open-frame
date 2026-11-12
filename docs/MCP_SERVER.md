@@ -25,6 +25,10 @@ pip install "off-camber-open-frame[mcp,ocr,act,flow]"
 pip install -e ".[mcp,ocr,act,flow]"
 ```
 
+Install Open Frame in its own virtualenv. The mcp extra is deliberately pinned
+to `mcp>=1.0,<2`. mcp 2.x is a separate API, and a shared environment can
+replace this package with that release.
+
 3. System Tesseract:
 
 ```bash

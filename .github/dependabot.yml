@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # mcp 2.x renames FastMCP and removes the in-memory test helper.
+      # Stay on 1.x until that port; still accept 1.x minor and patch updates.
+      - dependency-name: "mcp"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: "github-actions"
     directory: "/"
