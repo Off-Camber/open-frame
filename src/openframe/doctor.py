@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import platform
 import shutil
@@ -14,14 +15,26 @@ from typing import Any, Literal
 
 CheckStatus = Literal["pass", "fail", "skip"]
 
+_PACKAGE = "off-camber-open-frame"
+_MCP_REQUIRED_EXTRAS = ("extra_ocr", "extra_act", "extra_mcp")
+MCP_CLIENT_PERMISSION_NOTE = (
+    "Screen Recording and Accessibility must be granted to the MCP client app "
+    "(Cursor or Claude Desktop), not the terminal that ran doctor."
+)
+
+
+def _extra_hint(extra: str) -> str:
+    return f'pip install "{_PACKAGE}[{extra}]"'
+
+
 # Optional extras: absent → skip (informational), not a failure.
 _EXTRA_CHECKS: tuple[tuple[str, tuple[str, ...], str], ...] = (
-    ("extra_ocr", ("PIL", "pytesseract"), "pip install -e '.[ocr]'"),
-    ("extra_act", ("pyautogui",), "pip install -e '.[act]'"),
-    ("extra_flow", ("yaml",), "pip install -e '.[flow]'"),
-    ("extra_agent", ("anthropic",), "pip install -e '.[agent]'"),
-    ("extra_mcp", ("mcp",), "pip install -e '.[mcp]'"),
-    ("extra_template", ("PIL", "numpy"), "pip install -e '.[template]'"),
+    ("extra_ocr", ("PIL", "pytesseract"), _extra_hint("ocr")),
+    ("extra_act", ("pyautogui",), _extra_hint("act")),
+    ("extra_flow", ("yaml",), _extra_hint("flow")),
+    ("extra_agent", ("anthropic",), _extra_hint("agent")),
+    ("extra_mcp", ("mcp",), _extra_hint("mcp")),
+    ("extra_template", ("PIL", "numpy"), _extra_hint("template")),
 )
 
 
@@ -36,7 +49,19 @@ class CheckResult:
     required: bool = True
 
 
-def run_doctor() -> list[CheckResult]:
+def mcp_client_config() -> dict[str, Any]:
+    """Ready-to-paste MCP client config using this interpreter."""
+    return {
+        "mcpServers": {
+            "open-frame": {
+                "command": sys.executable,
+                "args": ["-m", "openframe.cli", "mcp", "serve"],
+            }
+        }
+    }
+
+
+def run_doctor(*, mcp: bool = False) -> list[CheckResult]:
     """Run all environment checks and return results in display order."""
     checks: list[CheckResult] = [
         _check_platform(),
@@ -46,6 +71,10 @@ def run_doctor() -> list[CheckResult]:
     checks.extend(_check_extras())
     checks.append(_check_screen_recording())
     checks.append(_check_accessibility())
+    checks.append(_check_displays())
+    if mcp:
+        checks = _require_mcp_extras(checks)
+        checks.append(_check_mcp_server(checks))
     return checks
 
 
@@ -258,6 +287,134 @@ def _check_accessibility() -> CheckResult:
         id="accessibility",
         status="pass",
         detail=f"{len(valid)} elements with bounds (seen={len(elements)})",
+        required=True,
+    )
+
+
+def _require_mcp_extras(checks: list[CheckResult]) -> list[CheckResult]:
+    """MCP onboarding fails when ocr, act, or mcp is not installed."""
+    updated: list[CheckResult] = []
+    for item in checks:
+        if item.id in _MCP_REQUIRED_EXTRAS and item.status != "pass":
+            updated.append(
+                CheckResult(
+                    id=item.id,
+                    status="fail",
+                    detail=item.detail,
+                    hint=item.hint,
+                    required=True,
+                )
+            )
+        else:
+            updated.append(item)
+    return updated
+
+
+def _check_displays() -> CheckResult:
+    """Warn when more than one display is online. Capture stays on the primary display."""
+    if sys.platform != "darwin":
+        return CheckResult(
+            id="displays",
+            status="skip",
+            detail="skipped on non-macOS",
+            required=False,
+        )
+    try:
+        from openframe.capture import CaptureError, list_displays
+    except ImportError as exc:  # pragma: no cover
+        return CheckResult(
+            id="displays",
+            status="skip",
+            detail=f"capture module unavailable: {exc}",
+            required=False,
+        )
+    try:
+        displays = list_displays()
+    except (CaptureError, OSError, RuntimeError, ValueError) as exc:
+        return CheckResult(
+            id="displays",
+            status="skip",
+            detail=str(exc),
+            required=False,
+        )
+    online = [item for item in displays if item.get("online")]
+    if len(online) > 1:
+        return CheckResult(
+            id="displays",
+            status="pass",
+            detail=(
+                f"warning: {len(online)} displays online; only the primary display is supported"
+            ),
+            required=False,
+        )
+    noun = "display" if len(online) == 1 else "displays"
+    return CheckResult(
+        id="displays",
+        status="pass",
+        detail=f"{len(online)} {noun} online",
+        required=False,
+    )
+
+
+def _check_mcp_server(checks: list[CheckResult]) -> CheckResult:
+    """Start the MCP server in-process and require the full tool list."""
+    missing = [
+        item.id for item in checks if item.id in _MCP_REQUIRED_EXTRAS and item.status != "pass"
+    ]
+    if missing:
+        return CheckResult(
+            id="mcp_server",
+            status="fail",
+            detail="server not started because " + ", ".join(missing) + " is missing",
+            hint=_extra_hint("mcp,ocr,act"),
+            required=True,
+        )
+    try:
+        from mcp.shared.memory import (
+            create_connected_server_and_client_session as connect_session,
+        )
+
+        from openframe.integrations.mcp.adapter import MCP_TOOLS
+        from openframe.integrations.mcp.server import create_mcp_server
+    except ImportError as exc:
+        return CheckResult(
+            id="mcp_server",
+            status="fail",
+            detail=f"MCP server did not start: {exc}",
+            hint=_extra_hint("mcp"),
+            required=True,
+        )
+
+    expected = {str(tool["name"]) for tool in MCP_TOOLS}
+
+    async def _list() -> set[str]:
+        server = create_mcp_server()
+        async with connect_session(server) as session:
+            listed = await session.list_tools()
+            return {item.name for item in listed.tools}
+
+    try:
+        names = asyncio.run(_list())
+    except Exception as exc:  # noqa: BLE001 - doctor reports any startup failure
+        return CheckResult(
+            id="mcp_server",
+            status="fail",
+            detail=f"MCP server did not start: {exc}",
+            hint=_extra_hint("mcp"),
+            required=True,
+        )
+    missing_tools = expected - names
+    if missing_tools:
+        return CheckResult(
+            id="mcp_server",
+            status="fail",
+            detail="MCP server is missing tools: " + ", ".join(sorted(missing_tools)),
+            required=True,
+        )
+    return CheckResult(
+        id="mcp_server",
+        status="pass",
+        detail=f"started and listed {len(names)} tools",
         required=True,
     )
 
