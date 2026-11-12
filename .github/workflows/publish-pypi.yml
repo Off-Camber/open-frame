@@ -9,6 +9,11 @@ on:
         description: Tag to publish, for example v0.2.2
         required: true
         type: string
+      republish_existing:
+        description: Rebuild that tag and upload with skip-existing. Skips lint and tests.
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   tag:
@@ -25,12 +30,34 @@ jobs:
           python-version: "3.11"
 
       - name: Check tag matches package version
+        env:
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
-          python scripts/check_release_tag.py \
-            "${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          if [ -f scripts/check_release_tag.py ]; then
+            python scripts/check_release_tag.py "${TAG}"
+          else
+            python - <<'PY'
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          tag = os.environ["TAG"].strip()
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"].strip()
+          got = tag.removeprefix("refs/tags/").removeprefix("v")
+          if not tag or got != version:
+              print(
+                  f"release tag {tag} does not match pyproject version {version}; expected v{version}",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+          print(f"release tag {tag} matches pyproject version {version}")
+          PY
+          fi
 
   test:
     needs: tag
+    if: github.event.inputs.republish_existing != 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -65,7 +92,8 @@ jobs:
         run: pytest --cov=openframe --cov-report=term-missing --cov-fail-under=80
 
   publish:
-    needs: test
+    needs: [tag, test]
+    if: always() && needs.tag.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -83,9 +111,30 @@ jobs:
           python-version: "3.11"
 
       - name: Check tag matches package version
+        env:
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
-          python scripts/check_release_tag.py \
-            "${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          if [ -f scripts/check_release_tag.py ]; then
+            python scripts/check_release_tag.py "${TAG}"
+          else
+            python - <<'PY'
+          import os
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          tag = os.environ["TAG"].strip()
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"].strip()
+          got = tag.removeprefix("refs/tags/").removeprefix("v")
+          if not tag or got != version:
+              print(
+                  f"release tag {tag} does not match pyproject version {version}; expected v{version}",
+                  file=sys.stderr,
+              )
+              raise SystemExit(1)
+          print(f"release tag {tag} matches pyproject version {version}")
+          PY
+          fi
 
       - name: Build distributions
         run: |
