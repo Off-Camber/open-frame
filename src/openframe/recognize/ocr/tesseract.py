@@ -14,6 +14,11 @@ from openframe.recognize.match import (
 )
 from openframe.types import Frame, Target
 
+# Measured on the macOS 27 TextEdit frames: 80 keeps CALMARK89, Example
+# Domain, and the Finder "Date Added" header. 60 drops "Example". 100 splits
+# the caret fixture into CALMARK8.
+_INK_THRESHOLD = 80
+
 
 class TesseractRecognizer(Recognizer):
     """Find text targets using Tesseract OCR output boxes."""
@@ -42,8 +47,15 @@ class TesseractRecognizer(Recognizer):
                 "OCR dependencies are missing. Install with: pip install -e .[ocr]"
             ) from exc
 
-        image = Image.open(frame.image_path)
-        data = pytesseract.image_to_data(image, output_type=Output.DICT)
+        # Grayscale keeps a caret from becoming an extra digit. A hard
+        # threshold drops TextEdit's gray spell-check dots, which otherwise
+        # turn a large C into G. The same threshold breaks a clean region
+        # capture of that token, so both readings are kept.
+        image = Image.open(frame.image_path).convert("L")
+        rendered = (
+            image,
+            image.point(lambda pixel: 255 if pixel > _INK_THRESHOLD else 0),
+        )
         query_normalized = normalize_text(query)
         if not query_normalized:
             return RecognizerResult(
@@ -53,27 +65,41 @@ class TesseractRecognizer(Recognizer):
             )
         multi_word = len(tokenize(query)) > 1
         match_mode = _match_mode(options)
+        targets: list[Target] = []
+        for variant in rendered:
+            data = pytesseract.image_to_data(variant, output_type=Output.DICT)
+            word_targets = _targets_from_words(
+                data, query=query, source=self.name, match_mode=match_mode
+            )
+            line_targets = (
+                _targets_from_lines(data, query=query, source=self.name, match_mode=match_mode)
+                if multi_word or match_mode == "substring"
+                else []
+            )
+            if multi_word:
+                targets.extend(line_targets or word_targets)
+            else:
+                targets.extend(word_targets or line_targets)
 
-        word_targets = _targets_from_words(
-            data, query=query, source=self.name, match_mode=match_mode
-        )
-        line_targets = (
-            _targets_from_lines(data, query=query, source=self.name, match_mode=match_mode)
-            if multi_word or match_mode == "substring"
-            else []
-        )
-
-        if multi_word:
-            targets = line_targets or word_targets
-        else:
-            targets = word_targets or line_targets
-
+        targets = _dedupe_targets(targets)
         targets.sort(key=lambda item: item.confidence, reverse=True)
         return RecognizerResult(
             recognizer=self.name,
             targets=targets,
             metadata={"query": query, "match_count": len(targets), "match_mode": match_mode},
         )
+
+
+def _dedupe_targets(targets: list[Target]) -> list[Target]:
+    seen: set[tuple[str | None, int, int, int, int]] = set()
+    unique: list[Target] = []
+    for target in targets:
+        key = (target.text, target.x, target.y, target.width, target.height)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(target)
+    return unique
 
 
 def _match_mode(options: dict[str, Any] | None) -> MatchMode:

@@ -31,6 +31,9 @@ def test_token_mode_matches_exact_token() -> None:
 def test_token_mode_matches_phrase_inside_longer_line() -> None:
     assert text_matches_query("Invoice No 123", "Invoice No") is True
     assert text_matches_query("Invoice No:", "Invoice No") is True
+    assert text_matches_query("CALMARK89_", "CALMARK89") is True
+    assert text_matches_query("CALMARK89X", "CALMARK89") is False
+    assert text_matches_query("FOO_BAR", "FOO") is False
 
 
 def test_substring_mode_keeps_legacy_containment() -> None:

@@ -6,7 +6,9 @@ from typing import Literal
 
 MatchMode = Literal["token", "substring"]
 
-_TOKEN_PUNCTUATION = ".,:;!?()[]{}\"'"
+# Trailing "_" is included because a TextEdit caret is sometimes read as one
+# (CALMARK89_). Strip is edges only, so an internal underscore stays.
+_TOKEN_PUNCTUATION = ".,:;!?()[]{}\"'_"
 
 
 def normalize_text(value: str) -> str:
