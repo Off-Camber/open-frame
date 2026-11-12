@@ -11,8 +11,8 @@ This is a thin protocol shim over the existing tool adapter. Tool results use
 the Open Frame envelope (`ok`, `tool`, `run_id`, `data`, `error`, `artifacts`).
 Failures stay in-band (`ok: false` + `error.code`), not as MCP protocol errors.
 
-Contract version: **`v0.2.1`** (envelope keys unchanged; adds `timeout` error
-code, summarized `run_flow` steps by default, and wall-clock tool timeouts).
+Contract version: **`v0.2.2`** (envelope keys unchanged; adds `busy`.
+`timeout`, summarized `run_flow` steps, and wall-clock tool timeouts remain).
 
 ## Prerequisites
 

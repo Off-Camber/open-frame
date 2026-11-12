@@ -89,7 +89,7 @@ If `run_flow` returns `ok: false`, inspect artifacts:
 - `run_flow`
 - `get_run_artifacts`
 
-The current frozen contract identifier is `v0.2.1`.
+The current frozen contract identifier is `v0.2.2`.
 
 For connecting Claude Desktop or Cursor, see [MCP server setup](MCP_SERVER.md).
 
@@ -120,6 +120,8 @@ Stable error codes used by MCP tools include:
 - `not_found`
 - `flow_failed`
 - `runtime_error`
+- `timeout`
+- `busy`
 - `internal_error`
 
 `click` also accepts:

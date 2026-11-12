@@ -29,6 +29,20 @@ Guidelines:
 - Keep bullets concise and specific.
 - Link PRs/issues when available.
 
+## v0.2.2 - 2026-11-12
+
+### Changed
+- MCP contract label `v0.2.2`. Envelope keys are unchanged. `busy` is an added error code for a tool call that arrives while another call is still running, including one that already returned `timeout` ([#35](https://github.com/Off-Camber/open-frame/pull/35)).
+
+### Fixed
+- Window, region, and `frame_path` clicks map image pixels with the capture scale and origin. A live `frame_path` click without capture metadata is refused ([#33](https://github.com/Off-Camber/open-frame/pull/33)).
+- The calibration token is read from both a grayscale pass and a threshold pass, so spell-check dots and a clean region capture can both match ([#34](https://github.com/Off-Camber/open-frame/pull/34)).
+- A timed-out MCP tool does not start another click, keystroke, scroll, drag, or flow step. `click` and `run_flow` timeouts include `run_id` ([#35](https://github.com/Off-Camber/open-frame/pull/35)).
+- `screencapture` and `osascript` stop after 30 seconds instead of blocking. A flow `diff` check compares a fresh capture with the previous step's starting frame. An accessibility failure is reported, and a find with no matches after a recognizer error is no longer `not_found` ([#36](https://github.com/Off-Camber/open-frame/pull/36)).
+
+### Docs
+- macOS 27 live-gate and strict app-matrix results are in the dogfooding log.
+
 ## v0.2.1 - 2026-08-05
 
 ### Added

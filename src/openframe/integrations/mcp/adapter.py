@@ -25,7 +25,7 @@ from openframe.runner import FlowRunner
 from openframe.types import Frame, StepResult
 from openframe.verify import write_step_artifacts
 
-MCP_CONTRACT_VERSION = "v0.2.1"
+MCP_CONTRACT_VERSION = "v0.2.2"
 
 # Wall-clock defaults (seconds). Override via env for long flows.
 DEFAULT_TOOL_TIMEOUT_SEC = 60.0
