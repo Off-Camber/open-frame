@@ -7,12 +7,16 @@ from pathlib import Path
 from openframe.types import Target
 
 
-def draw_debug_overlay(*, frame_path: str | Path, targets: list[Target], out_path: str | Path) -> Path:
+def draw_debug_overlay(
+    *, frame_path: str | Path, targets: list[Target], out_path: str | Path
+) -> Path:
     """Draw target boxes on top of a frame and write a PNG overlay image."""
     try:
         from PIL import Image, ImageDraw
     except ImportError as exc:
-        raise RuntimeError("Overlay drawing requires Pillow. Install with: pip install -e .[ocr]") from exc
+        raise RuntimeError(
+            "Overlay drawing requires Pillow. Install with: pip install -e .[ocr]"
+        ) from exc
 
     source = Path(frame_path).expanduser().resolve()
     output = Path(out_path).expanduser().resolve()

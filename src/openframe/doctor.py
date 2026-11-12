@@ -113,7 +113,6 @@ def _python_version() -> tuple[int, int, int]:
     return version.major, version.minor, version.micro
 
 
-
 def _check_tesseract() -> CheckResult:
     binary = shutil.which("tesseract")
     if binary is None:

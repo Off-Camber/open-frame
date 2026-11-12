@@ -335,9 +335,7 @@ def _build_llm():  # type: ignore[no-untyped-def]
     ):
         from browser_use import ChatAnthropic
 
-        model = os.environ.get(
-            "OPENFRAME_MARKET_VALIDATION_MODEL", "claude-haiku-4-5-20251001"
-        )
+        model = os.environ.get("OPENFRAME_MARKET_VALIDATION_MODEL", "claude-haiku-4-5-20251001")
         return ChatAnthropic(model=model)
     from browser_use import ChatOpenAI
 
@@ -464,9 +462,7 @@ async def _run_agent(scenario: dict[str, Any], *, work_dir: Path) -> dict[str, A
                 "scroll": "desktop_scroll",
                 "run_flow": "desktop_run_flow",
             }.get(tool, tool)
-            of_envelopes.append(
-                {"step_tool": mapped, "mcp_tool": tool, "envelope": envelope}
-            )
+            of_envelopes.append({"step_tool": mapped, "mcp_tool": tool, "envelope": envelope})
             return envelope
 
         of_tools.call_openframe = recording_call  # type: ignore[attr-defined]
@@ -587,7 +583,10 @@ def _write_run_artifacts(
     out_dir.mkdir(parents=True, exist_ok=True)
     scenario_id = scenario["id"]
     raw_path = out_dir / f"{scenario_id}.json"
-    raw_path.write_text(json.dumps({"scenario": scenario, "result": result}, indent=2, default=str), encoding="utf-8")
+    raw_path.write_text(
+        json.dumps({"scenario": scenario, "result": result}, indent=2, default=str),
+        encoding="utf-8",
+    )
 
     md_path = out_dir / f"{scenario_id}.md"
     metrics = result.get("metrics") or {}
@@ -640,9 +639,7 @@ def _write_scorecard(out_dir: Path, rows: list[dict[str, Any]]) -> Path:
     ]
     for row in rows:
         notes = str(row.get("notes", "")).replace("|", "/")
-        lines.append(
-            f"| `{row['id']}` | `{row.get('mode')}` | **{row.get('status')}** | {notes} |"
-        )
+        lines.append(f"| `{row['id']}` | `{row.get('mode')}` | **{row.get('status')}** | {notes} |")
     passed = sum(1 for r in rows if r.get("status") == "pass")
     failed = sum(1 for r in rows if r.get("status") == "fail")
     blocked = sum(1 for r in rows if r.get("status") == "blocked")

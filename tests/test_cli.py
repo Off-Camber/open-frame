@@ -51,7 +51,9 @@ def test_capture_window_id_uses_window_backend(
         )
 
     monkeypatch.setattr("openframe.cli.window", fake_window)
-    monkeypatch.setattr("sys.argv", ["open-frame", "capture", "--out", str(out_path), "--window-id", "123"])
+    monkeypatch.setattr(
+        "sys.argv", ["open-frame", "capture", "--out", str(out_path), "--window-id", "123"]
+    )
 
     exit_code = main()
     captured = capsys.readouterr()
@@ -60,7 +62,9 @@ def test_capture_window_id_uses_window_backend(
     assert captured.out.strip() == str(out_path)
 
 
-def test_list_windows_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_list_windows_json_output(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     windows = [{"id": 1, "owner": "Finder", "title": "Desktop", "bounds": {"x": 0, "y": 0}}]
     monkeypatch.setattr("openframe.cli.list_windows", lambda: windows)
     monkeypatch.setattr("sys.argv", ["open-frame", "list-windows", "--json"])
@@ -76,7 +80,9 @@ def test_list_windows_with_displays_json(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     windows = [{"id": 1, "owner": "Finder", "title": "Desktop", "bounds": {"x": 0, "y": 0}}]
-    displays = [{"name": "Built-in Retina Display", "resolution": "3024 x 1964 Retina", "retina": True}]
+    displays = [
+        {"name": "Built-in Retina Display", "resolution": "3024 x 1964 Retina", "retina": True}
+    ]
     monkeypatch.setattr("openframe.cli.list_windows", lambda: windows)
     monkeypatch.setattr("openframe.cli.list_displays", lambda: displays)
     monkeypatch.setattr("sys.argv", ["open-frame", "list-windows", "--json", "--displays"])
@@ -91,7 +97,16 @@ def test_list_windows_with_displays_json(
 def test_capture_rejects_both_window_title_and_id(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "sys.argv",
-        ["open-frame", "capture", "--out", "frame.png", "--window-title", "Mail", "--window-id", "1"],
+        [
+            "open-frame",
+            "capture",
+            "--out",
+            "frame.png",
+            "--window-title",
+            "Mail",
+            "--window-id",
+            "1",
+        ],
     )
     with pytest.raises(SystemExit):
         main()
@@ -139,23 +154,33 @@ def test_capture_region_uses_region_backend(
 
 
 def test_capture_rejects_partial_region(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("sys.argv", ["open-frame", "capture", "--out", "frame.png", "--x", "10", "--y", "20"])
+    monkeypatch.setattr(
+        "sys.argv", ["open-frame", "capture", "--out", "frame.png", "--x", "10", "--y", "20"]
+    )
     with pytest.raises(SystemExit):
         main()
 
 
-def test_find_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+def test_find_json_output(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
 
     class FakeLocator:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
             assert frame.source == "screen:1"
             assert query == "Submit"
             assert strategy == "first"
-            return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
+            return [
+                Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")
+            ]
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
@@ -173,15 +198,21 @@ def test_find_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
 def test_find_with_overlay_writes_overlay_path(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
     overlay_path = tmp_path / "overlay.png"
 
     class FakeLocator:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
-            return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
+            return [
+                Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")
+            ]
 
     monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
@@ -199,15 +230,21 @@ def test_find_with_overlay_writes_overlay_path(
     assert payload["overlay_path"] == str(overlay_path)
 
 
-def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+def test_click_command_dry_run_json(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
     target = Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Submit")
 
     class FakeLocator:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
             assert query == "Submit"
             assert strategy == "all"
             return [target]
@@ -216,7 +253,15 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
         def __init__(self, *, dry_run: bool) -> None:
             assert dry_run is True
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object) -> tuple[int, int]:
+        def click_target(
+            self,
+            target: Target,
+            *,
+            anchor: str,
+            kind: str,
+            scale_factor: float = 1.0,
+            **kwargs: object,
+        ) -> tuple[int, int]:
             assert target.text == "Submit"
             assert anchor == "center"
             assert kind == "click"
@@ -239,21 +284,33 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
 def test_click_with_failed_verification_returns_nonzero(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    frame = Frame(width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png")
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
     target = Target(x=10, y=20, width=30, height=40, confidence=0.9, source="ocr", text="Submit")
 
     class FakeLocator:
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "first", options=None
+        ) -> list[Target]:
             return [target]
 
     class FakeActuator:
         def __init__(self, *, dry_run: bool) -> None:
             _ = dry_run
 
-        def click_target(self, target: Target, *, anchor: str, kind: str, scale_factor: float = 1.0, **kwargs: object) -> tuple[int, int]:
+        def click_target(
+            self,
+            target: Target,
+            *,
+            anchor: str,
+            kind: str,
+            scale_factor: float = 1.0,
+            **kwargs: object,
+        ) -> tuple[int, int]:
             _ = target, anchor, kind, scale_factor
             return (25, 40)
 
@@ -267,9 +324,15 @@ def test_click_with_failed_verification_returns_nonzero(
     monkeypatch.setattr("openframe.cli.screen", lambda: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.cli._run_verification_specs", lambda **_kwargs: FakeVerifierResult())
-    monkeypatch.setattr("openframe.cli.write_step_artifacts", lambda **_kwargs: Path("runs/r1/click"))
-    monkeypatch.setattr("sys.argv", ["open-frame", "click", "Submit", "--verify", "text-gone:Submit"])
+    monkeypatch.setattr(
+        "openframe.cli._run_verification_specs", lambda **_kwargs: FakeVerifierResult()
+    )
+    monkeypatch.setattr(
+        "openframe.cli.write_step_artifacts", lambda **_kwargs: Path("runs/r1/click")
+    )
+    monkeypatch.setattr(
+        "sys.argv", ["open-frame", "click", "Submit", "--verify", "text-gone:Submit"]
+    )
 
     exit_code = main()
     captured = capsys.readouterr()
@@ -278,7 +341,9 @@ def test_click_with_failed_verification_returns_nonzero(
     assert "verification failed" in captured.out
 
 
-def test_run_command_json_success(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_run_command_json_success(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     class FakeFlow:
         name = "demo"
 
@@ -313,7 +378,9 @@ def test_run_command_json_success(monkeypatch: pytest.MonkeyPatch, capsys: pytes
     assert payload["success"] is True
 
 
-def test_mcp_list_tools_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_mcp_list_tools_json(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(
         "openframe.cli.list_mcp_tools",
         lambda: [{"name": "capture", "description": "Capture screen/window/region into a frame"}],

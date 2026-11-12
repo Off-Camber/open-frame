@@ -201,8 +201,14 @@ def test_median_and_ab_verdict_rules() -> None:
 
     browser_fail = harness.summarize_arm_trials(
         [
-            {"status": "fail", "metrics": {"wall_seconds": 1, "total_tokens": 100, "cost_usd": 0.01}},
-            {"status": "fail", "metrics": {"wall_seconds": 2, "total_tokens": 120, "cost_usd": 0.02}},
+            {
+                "status": "fail",
+                "metrics": {"wall_seconds": 1, "total_tokens": 100, "cost_usd": 0.01},
+            },
+            {
+                "status": "fail",
+                "metrics": {"wall_seconds": 2, "total_tokens": 120, "cost_usd": 0.02},
+            },
             {"status": "blocked", "notes": "no key", "metrics": {"wall_seconds": 0}},
         ]
     )

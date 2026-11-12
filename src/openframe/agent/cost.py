@@ -45,8 +45,7 @@ def estimate_cost(
         rate = ModelPricing(input=rate[0], output=rate[1])
     return (
         (usage.input_tokens / 1_000_000.0) * rate.input
-        + (usage.cache_creation_input_tokens / 1_000_000.0)
-        * rate.cache_creation_input
+        + (usage.cache_creation_input_tokens / 1_000_000.0) * rate.cache_creation_input
         + (usage.cache_read_input_tokens / 1_000_000.0) * rate.cache_read_input
         + (usage.output_tokens / 1_000_000.0) * rate.output
     )

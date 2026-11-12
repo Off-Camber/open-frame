@@ -81,7 +81,9 @@ def _check_window(out_dir: Path) -> dict[str, str]:
     window = _textedit_window()
     if window is None:
         return _fail("TextEdit window bounds were not listed")
-    completed = _run_flow(out_dir / "geometry-window-click.yaml", WINDOW_CLICK_FLOW, "geometry-window")
+    completed = _run_flow(
+        out_dir / "geometry-window-click.yaml", WINDOW_CLICK_FLOW, "geometry-window"
+    )
     point = _point_from_run(completed.stdout)
     return _judge("window-scoped click", point, completed)
 
@@ -340,7 +342,9 @@ if (procs.length === 0) {
         text=True,
     )
     if completed.returncode != 0:
-        return {"detail": _flat(completed.stderr or completed.stdout) or "accessibility query failed"}
+        return {
+            "detail": _flat(completed.stderr or completed.stdout) or "accessibility query failed"
+        }
     try:
         payload = json.loads(completed.stdout.strip() or "{}")
     except json.JSONDecodeError:

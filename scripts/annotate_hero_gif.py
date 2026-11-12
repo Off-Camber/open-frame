@@ -123,15 +123,21 @@ def _draw_overlay(
     crumbs = ["FIND", "CLICK", "VERIFY"]
     x = width - 18
     for name in reversed(crumbs):
-        active = (phase == "verify" and name in {"FIND", "CLICK", "VERIFY"}) or (
-            phase == "click" and name in {"FIND", "CLICK"}
-        ) or (phase == "find" and name == "FIND")
+        active = (
+            (phase == "verify" and name in {"FIND", "CLICK", "VERIFY"})
+            or (phase == "click" and name in {"FIND", "CLICK"})
+            or (phase == "find" and name == "FIND")
+        )
         tw, th = _measure(draw, name, brand_font)
         x1 = x
         x0 = x - tw - 16
         y0 = height - 42
         y1 = y0 + th + 10
-        fill = accent if name.lower() == phase else ((40, 48, 58, 230) if active else (28, 34, 42, 200))
+        fill = (
+            accent
+            if name.lower() == phase
+            else ((40, 48, 58, 230) if active else (28, 34, 42, 200))
+        )
         text_fill = (16, 21, 28, 255) if name.lower() == phase else (200, 208, 216, 255)
         draw.rounded_rectangle((x0, y0, x1, y1), radius=5, fill=fill)
         draw.text((x0 + 8, y0 + 4), name, font=brand_font, fill=text_fill)

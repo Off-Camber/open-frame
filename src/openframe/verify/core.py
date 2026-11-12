@@ -63,16 +63,14 @@ def filter_targets(
         return targets
 
     filtered = [
-        (item, target_logical_bounds(item, scale_factor=frame.scale_factor))
-        for item in targets
+        (item, target_logical_bounds(item, scale_factor=frame.scale_factor)) for item in targets
     ]
     if bounds.left_of_query:
         anchors = locator.find(frame, bounds.left_of_query, strategy="all")
         if not anchors:
             return []
         boundary_x = max(
-            target_logical_bounds(item, scale_factor=frame.scale_factor)[0]
-            for item in anchors
+            target_logical_bounds(item, scale_factor=frame.scale_factor)[0] for item in anchors
         )
         filtered = [
             (item, logical)
@@ -83,21 +81,13 @@ def filter_targets(
     logical_frame_width = frame.width / (frame.scale_factor if frame.scale_factor > 0 else 1.0)
     if bounds.min_x_ratio is not None:
         min_x = int(logical_frame_width * bounds.min_x_ratio)
-        filtered = [
-            (item, logical) for item, logical in filtered if logical[0] >= min_x
-        ]
+        filtered = [(item, logical) for item, logical in filtered if logical[0] >= min_x]
     if bounds.max_x_ratio is not None:
         max_x = int(logical_frame_width * bounds.max_x_ratio)
-        filtered = [
-            (item, logical) for item, logical in filtered if logical[0] <= max_x
-        ]
+        filtered = [(item, logical) for item, logical in filtered if logical[0] <= max_x]
 
     if bounds.min_x is not None:
-        filtered = [
-            (item, logical)
-            for item, logical in filtered
-            if logical[0] >= bounds.min_x
-        ]
+        filtered = [(item, logical) for item, logical in filtered if logical[0] >= bounds.min_x]
     if bounds.max_x is not None:
         filtered = [
             (item, logical)
@@ -105,11 +95,7 @@ def filter_targets(
             if (logical[0] + logical[2]) <= bounds.max_x
         ]
     if bounds.min_y is not None:
-        filtered = [
-            (item, logical)
-            for item, logical in filtered
-            if logical[1] >= bounds.min_y
-        ]
+        filtered = [(item, logical) for item, logical in filtered if logical[1] >= bounds.min_y]
     if bounds.max_y is not None:
         filtered = [
             (item, logical)
@@ -279,7 +265,9 @@ class TargetGoneVerifier(Verifier):
         return VerifyResult(
             verifier=self.name,
             success=success,
-            message=f'target "{self.query}" gone' if success else f'target "{self.query}" still present',
+            message=f'target "{self.query}" gone'
+            if success
+            else f'target "{self.query}" still present',
             details={"query": self.query, "found_count": len(matches)},
         )
 

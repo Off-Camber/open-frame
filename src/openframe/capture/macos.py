@@ -31,9 +31,7 @@ def screen(out_path: str | Path | None = None) -> Frame:
 
     width, height = _read_png_dimensions(image_path)
     left, top, logical_width, _logical_height = _main_display_bounds()
-    scale_factor = _scale_from_logical_width(
-        physical_width=width, logical_width=logical_width
-    )
+    scale_factor = _scale_from_logical_width(physical_width=width, logical_width=logical_width)
     metadata = {
         "backend": "screencapture",
         "display_index": 1,
@@ -78,9 +76,7 @@ def window(
     _run_command(["screencapture", "-x", "-o", "-l", str(selected["id"]), str(image_path)])
 
     width, height = _read_png_dimensions(image_path)
-    scale_factor = _scale_from_logical_width(
-        physical_width=width, logical_width=logical_width
-    )
+    scale_factor = _scale_from_logical_width(physical_width=width, logical_width=logical_width)
     metadata = {
         "backend": "screencapture",
         "window_id": selected["id"],

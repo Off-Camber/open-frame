@@ -125,7 +125,9 @@ def test_runner_and_mcp_select_same_target_for_spatial_selectors(
         def __init__(self, _recognizers: list[object] | None = None) -> None:
             pass
 
-        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+        def find(
+            self, frame: Frame, query: str, strategy: str = "all", options=None
+        ) -> list[Target]:
             _ = frame, query, strategy
             return list(targets)
 

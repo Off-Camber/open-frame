@@ -62,5 +62,7 @@ def _load_yaml(text: str) -> Any:
     try:
         import yaml
     except ImportError as exc:
-        raise RuntimeError("Flow loading requires PyYAML. Install with: pip install -e .[flow]") from exc
+        raise RuntimeError(
+            "Flow loading requires PyYAML. Install with: pip install -e .[flow]"
+        ) from exc
     return yaml.safe_load(text)

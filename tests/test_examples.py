@@ -273,8 +273,8 @@ def test_app_matrix_flows_are_present_and_non_destructive() -> None:
     assert "app_matrix_gate.sh" in readme
     assert "defect-list.md" in readme
 
-    gate = (
-        Path(__file__).resolve().parent.parent / "scripts" / "app_matrix_gate.sh"
-    ).read_text(encoding="utf-8")
+    gate = (Path(__file__).resolve().parent.parent / "scripts" / "app_matrix_gate.sh").read_text(
+        encoding="utf-8"
+    )
     assert "OPENFRAME_APP_MATRIX_STRICT" in gate
     assert "defect-list.md" in gate
