@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from openframe import __version__
 from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION, call_mcp_tool
 
 CaptureMode = Literal["screen", "window", "region"]
@@ -47,6 +48,10 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
             "Prefer dry_run=true when unsure before actuating."
         ),
     )
+    # mcp 1.x FastMCP has no version argument. The handshake reads the low-level server.
+    lowlevel = getattr(server, "_mcp_server", None)
+    if lowlevel is not None and hasattr(lowlevel, "version"):
+        lowlevel.version = __version__
 
     @server.tool(
         name="capture",

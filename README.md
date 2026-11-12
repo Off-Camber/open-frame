@@ -61,19 +61,36 @@ are not installed show as `skip` and do not fail the report.
 
 ### 3. Connect an MCP client
 
-Point Claude Desktop or Cursor at the stdio server:
+```bash
+open-frame doctor --mcp
+```
+
+This fails when the `mcp`, `act`, or `ocr` extras are missing. When they are
+installed it starts the server, lists its tools, and prints a client config
+that uses the absolute path of the current Python. Screen Recording and
+Accessibility must be granted to the MCP client (Cursor or Claude Desktop),
+not the terminal that ran `doctor`.
+
+More client examples: [MCP server setup](docs/MCP_SERVER.md).
 
 ```bash
 open-frame mcp serve
 ```
 
-Copy-paste client config: [MCP server setup](docs/MCP_SERVER.md).
-
 ### 4. Run a first flow
 
 ```bash
 open-frame find "Submit" --json
-open-frame run examples/flows/mcp-dry-run-wait/flow.yaml --dry-run --json
+
+# Write a one-step flow in the current directory. It does not touch the screen.
+cat > hello.yaml <<'EOF'
+name: hello
+steps:
+  - id: pause
+    kind: wait
+    ms: 1
+EOF
+open-frame run hello.yaml --dry-run --json
 ```
 
 If `open-frame` is not on your PATH yet:

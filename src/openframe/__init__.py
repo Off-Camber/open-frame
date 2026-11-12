@@ -1,5 +1,12 @@
 """Open Frame core package."""
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("off-camber-open-frame")
+except PackageNotFoundError:  # pragma: no cover - tests install the package
+    __version__ = "unknown"
+
 from .act import ActError, Actuator
 from .agent import (
     AgentAction,
@@ -53,5 +60,6 @@ __all__ = [
     "VerifyResult",
     "WindowState",
     "WindowStateVerifier",
+    "__version__",
     "frontmost_window",
 ]

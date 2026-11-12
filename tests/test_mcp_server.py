@@ -14,6 +14,7 @@ from mcp.shared.memory import (
     create_connected_server_and_client_session as connect_session,
 )
 
+from openframe import __version__
 from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION
 from openframe.integrations.mcp.server import create_mcp_server
 
@@ -68,6 +69,13 @@ def test_create_mcp_server_lists_tools_with_schemas() -> None:
             assert MCP_CONTRACT_VERSION in (server.instructions or "")
 
     _run(_check())
+
+
+def test_mcp_handshake_reports_package_version() -> None:
+    server = create_mcp_server()
+    options = server._mcp_server.create_initialization_options()
+    assert options.server_version == __version__
+    assert __version__ != "unknown"
 
 
 def test_stdio_server_click_dry_run_returns_adapter_envelope(

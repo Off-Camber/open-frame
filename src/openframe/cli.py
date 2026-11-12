@@ -8,10 +8,18 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+from openframe import __version__
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, list_displays, list_windows, region, screen, window
 from openframe.capture.sidecar import load_frame_sidecar
-from openframe.doctor import doctor_ok, format_doctor_json, format_doctor_text, run_doctor
+from openframe.doctor import (
+    MCP_CLIENT_PERMISSION_NOTE,
+    doctor_ok,
+    format_doctor_json,
+    format_doctor_text,
+    mcp_client_config,
+    run_doctor,
+)
 from openframe.flow import load_flow
 from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
 from openframe.recognize import (
@@ -35,6 +43,7 @@ from openframe.verify import (
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="open-frame")
+    parser.add_argument("--version", action="version", version=f"open-frame {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     capture_parser = subparsers.add_parser("capture", help="Capture display or window")
@@ -150,6 +159,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Diagnose environment prerequisites for first-run setup",
     )
     doctor_parser.add_argument("--json", action="store_true", help="Output JSON")
+    doctor_parser.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Require MCP extras, start the server, and print a client config",
+    )
 
     return parser
 
@@ -419,11 +433,19 @@ def main() -> int:
         return 2
 
     if args.command == "doctor":
-        checks = run_doctor()
+        checks = run_doctor(mcp=args.mcp)
         if args.json:
-            print(json.dumps(format_doctor_json(checks), indent=2))
+            payload = format_doctor_json(checks)
+            if args.mcp:
+                payload["client_config"] = mcp_client_config()
+                payload["permissions"] = MCP_CLIENT_PERMISSION_NOTE
+            print(json.dumps(payload, indent=2))
         else:
             print(format_doctor_text(checks))
+            if args.mcp:
+                print(MCP_CLIENT_PERMISSION_NOTE)
+                print("MCP client config:")
+                print(json.dumps(mcp_client_config(), indent=2))
         return 0 if doctor_ok(checks) else 1
 
     parser.error("Unknown command")

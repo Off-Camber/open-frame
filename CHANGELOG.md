@@ -31,6 +31,15 @@ Guidelines:
 
 ## Unreleased
 
+### Added
+- `open-frame --version` prints the installed package version, and the MCP handshake reports that same version.
+- `open-frame doctor --mcp` fails when the mcp, act, or ocr extras are missing, starts the server and lists its tools, and prints a client config that uses the current interpreter. Screen Recording and Accessibility must be granted to the MCP client (Cursor or Claude Desktop).
+- `open-frame doctor` warns when more than one display is online. Capture stays on the primary display.
+
+### Changed
+- Doctor install hints use `pip install "off-camber-open-frame[extra]"`.
+- The README quickstart writes a one-step flow in the current directory so it works from a wheel, without the `examples/` tree.
+
 ### Fixed
 - A flow window guard that names an app focuses that app once and checks again before the step fails ([#34](https://github.com/Off-Camber/open-frame/pull/34)).
 
