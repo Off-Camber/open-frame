@@ -520,6 +520,54 @@ PY
     "${OUT_DIR}/mcp-stdio-summary.json"
 }
 
+check_geometry_clicks() {
+  local base="${OUT_DIR}/geometry-clicks"
+  local parsed=""
+  local name status detail
+  local failed=0
+  "${PYTHON_BIN}" "${ROOT}/scripts/calibration_geometry_checks.py" "${OUT_DIR}" \
+    >"${base}.out" 2>"${base}.err" || true
+  parsed="$("${PYTHON_BIN}" - "${base}.out" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError):
+    raise SystemExit(0)
+order = ("geometry_window_click", "geometry_region_click", "geometry_frame_path_click")
+for name in order:
+    item = payload.get(name)
+    if not isinstance(item, dict):
+        continue
+    status = str(item.get("status") or "fail")
+    detail = str(item.get("detail") or "").replace("\t", " ")
+    print(f"{name}\t{status}\t{detail}")
+PY
+)"
+  if [[ -z "${parsed}" ]]; then
+    local err
+    err="$(tr '\n' ' ' <"${base}.err" | cut -c1-180)"
+    record_check "geometry_window_click" "fail" "geometry checks produced no result (${err})" \
+      "${base}.err"
+    record_check "geometry_region_click" "fail" "geometry checks produced no result (${err})" \
+      "${base}.err"
+    record_check "geometry_frame_path_click" "fail" "geometry checks produced no result (${err})" \
+      "${base}.err"
+    return 1
+  fi
+  while IFS=$'\t' read -r name status detail; do
+    [[ -z "${name}" ]] && continue
+    record_check "${name}" "${status}" "${detail}" "${base}.out"
+    if [[ "${status}" != "pass" ]]; then
+      failed=1
+    fi
+  done <<< "${parsed}"
+  return "${failed}"
+}
+
 finalize() {
   python3 - <<'PY'
 import json
@@ -584,6 +632,7 @@ run_check check_capture
 run_check check_a11y_bounds
 run_check check_safe_matching
 run_check check_calibration
+run_check check_geometry_clicks
 run_check check_intentional_failure
 run_check check_mcp_stdio
 finalize

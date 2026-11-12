@@ -12,6 +12,7 @@ from typing import Any
 
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, region, screen, window
+from openframe.capture.sidecar import load_frame_sidecar
 from openframe.flow import load_flow
 from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
@@ -345,7 +346,8 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
     selector = explicit_selector(args.get("selector"))
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
 
-    frame = _resolve_frame(_optional_string(args.get("frame_path")))
+    frame_path = _optional_string(args.get("frame_path"))
+    frame = _resolve_frame(frame_path, require_sidecar=bool(frame_path) and not dry_run)
     locator = _build_locator()
     options = recognition_options_from_mapping(args)
     targets = locator.find(frame=frame, query=query, strategy="all", options=options)
@@ -372,7 +374,11 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
 
     actuator = Actuator(dry_run=dry_run)
     point = actuator.click_target(
-        selected_target, anchor=anchor, kind=click_kind, scale_factor=frame.scale_factor
+        selected_target,
+        anchor=anchor,
+        kind=click_kind,
+        scale_factor=frame.scale_factor,
+        origin=(frame.origin_x, frame.origin_y),
     )
     after = frame if dry_run else screen()
     artifact_dir = write_step_artifacts(
@@ -506,11 +512,19 @@ def _build_locator() -> Locator:
     return build_default_locator()
 
 
-def _resolve_frame(frame_path: str | None) -> Frame:
+def _resolve_frame(frame_path: str | None, *, require_sidecar: bool = False) -> Frame:
     if frame_path:
         image_path = Path(frame_path).expanduser().resolve()
         if not image_path.exists():
             raise ValueError(f"Frame path does not exist: {image_path}")
+        loaded = load_frame_sidecar(image_path)
+        if loaded is not None:
+            return loaded
+        if require_sidecar:
+            raise ValueError(
+                "frame_path has no capture metadata sidecar; "
+                "refusing a live click that cannot map image coordinates."
+            )
         return Frame(
             width=0,
             height=0,

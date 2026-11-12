@@ -13,7 +13,11 @@ from openframe.capture import list_windows, screen, window
 from openframe.capture.macos import CaptureError
 from openframe.flow import Flow, FlowStep
 from openframe.recognize import Locator
-from openframe.recognize.coords import select_target, target_logical_bounds
+from openframe.recognize.coords import (
+    select_target,
+    target_logical_bounds,
+    target_uses_physical_pixels,
+)
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.session import Session
@@ -177,7 +181,7 @@ class FlowRunner:
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
             scroll_cfg = _parse_scroll_until_found(step=step)
-            targets, scale_factor, scroll_meta = _find_targets_maybe_scrolling(
+            targets, frame, scroll_meta = _find_targets_maybe_scrolling(
                 locator=locator,
                 actuator=actuator,
                 query=query,
@@ -187,7 +191,10 @@ class FlowRunner:
                 scope_to_window=scope_to_window,
                 options=recognition_options_from_mapping(step.params),
                 scroll_cfg=scroll_cfg,
+                require_window=scope_to_window,
             )
+            scale_factor = frame.scale_factor
+            origin = (frame.origin_x, frame.origin_y)
             try:
                 ensure_actionable_match_count(
                     query=query,
@@ -212,8 +219,12 @@ class FlowRunner:
                 raise ValueError(f"Step '{step.id}' has invalid anchor '{anchor}'.")
             if click_kind not in {"click", "double", "right"}:
                 raise ValueError(f"Step '{step.id}' has invalid click_kind '{click_kind}'.")
-            actuator.click_target(
-                selected_target, anchor=anchor, kind=click_kind, scale_factor=scale_factor
+            point = actuator.click_target(
+                selected_target,
+                anchor=anchor,
+                kind=click_kind,
+                scale_factor=scale_factor,
+                origin=origin,
             )
             details = {
                 "query": query,
@@ -223,6 +234,7 @@ class FlowRunner:
                 "selector": selector or "first",
                 "timeout_ms": timeout_ms,
                 "poll_ms": poll_ms,
+                "point": {"x": point[0], "y": point[1]},
                 "template": (recognition_options_from_mapping(step.params) or {}).get("template"),
             }
             if scroll_meta:
@@ -263,7 +275,7 @@ class FlowRunner:
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
             scroll_cfg = _parse_scroll_until_found(step=step)
-            targets, _scale_factor, scroll_meta = _find_targets_maybe_scrolling(
+            targets, _frame, scroll_meta = _find_targets_maybe_scrolling(
                 locator=locator,
                 actuator=actuator,
                 query=query,
@@ -351,7 +363,7 @@ class FlowRunner:
             timeout_ms = _coerce_timeout_ms(step=step, default_ms=3000)
             poll_ms = _coerce_poll_ms(step=step, default_ms=200)
             scope_to_window = _wants_window_scope(step)
-            targets, scale_factor = _find_targets_with_retry(
+            targets, frame = _find_targets_with_retry(
                 locator=locator,
                 query=query,
                 strategy="all",
@@ -359,7 +371,9 @@ class FlowRunner:
                 poll_ms=poll_ms,
                 scope_to_window=scope_to_window,
                 options=recognition_options_from_mapping(step.params),
+                require_window=scope_to_window,
             )
+            scale_factor = frame.scale_factor
             try:
                 ensure_actionable_match_count(
                     query=query,
@@ -378,7 +392,11 @@ class FlowRunner:
                 targets=targets, selector=selector or "first", scale_factor=scale_factor
             )
             actuator.click_target(
-                selected_target, anchor="center", kind="click", scale_factor=scale_factor
+                selected_target,
+                anchor="center",
+                kind="click",
+                scale_factor=scale_factor,
+                origin=(frame.origin_x, frame.origin_y),
             )
             if bool(step.params.get("clear", False)):
                 actuator.key_combo("command", "a")
@@ -547,23 +565,31 @@ def _find_targets_with_retry(
     poll_ms: int,
     scope_to_window: bool = False,
     options: dict[str, Any] | None = None,
-) -> tuple[list[Target], float]:
-    """Find targets, returning them with the scale factor of the source frame.
+    require_window: bool = False,
+) -> tuple[list[Target], Frame]:
+    """Find targets and return the frame they were read from.
 
-    The scale factor is needed to convert recognizer pixel coordinates into
-    logical click space at actuation time. When ``scope_to_window`` is true,
-    only targets whose bounds lie inside the frontmost window are returned.
+    The frame carries the scale and origin needed to turn image pixels into
+    a screen click. When ``scope_to_window`` is true and the capture is a
+    full screen, only targets inside the frontmost window are returned.
+    Actuating callers set ``require_window`` so a missing window fails the
+    step instead of clicking every match on the screen.
     """
     deadline = monotonic() + (timeout_ms / 1000.0)
     while True:
         frame, used_window_capture = _capture_scoped_frame(scope_to_window=scope_to_window)
         targets = locator.find(frame, query, strategy=strategy, options=options)
         if scope_to_window and not used_window_capture:
-            targets = _filter_targets_to_window(targets=targets, scale_factor=frame.scale_factor)
+            targets = _filter_targets_to_window(
+                targets=targets,
+                scale_factor=frame.scale_factor,
+                origin=(frame.origin_x, frame.origin_y),
+                strict=require_window,
+            )
         if targets:
-            return targets, frame.scale_factor
+            return targets, frame
         if monotonic() >= deadline:
-            return [], frame.scale_factor
+            return [], frame
         sleep(poll_ms / 1000.0)
 
 
@@ -614,10 +640,11 @@ def _find_targets_maybe_scrolling(
     scope_to_window: bool,
     options: dict[str, Any] | None,
     scroll_cfg: dict[str, Any] | None,
-) -> tuple[list[Target], float, dict[str, Any]]:
+    require_window: bool = False,
+) -> tuple[list[Target], Frame, dict[str, Any]]:
     """Find targets, optionally scrolling between bounded attempts."""
     if scroll_cfg is None:
-        targets, scale_factor = _find_targets_with_retry(
+        targets, frame = _find_targets_with_retry(
             locator=locator,
             query=query,
             strategy=strategy,
@@ -625,8 +652,9 @@ def _find_targets_maybe_scrolling(
             poll_ms=poll_ms,
             scope_to_window=scope_to_window,
             options=options,
+            require_window=require_window,
         )
-        return targets, scale_factor, {}
+        return targets, frame, {}
 
     max_attempts = int(scroll_cfg["max_attempts"])
     scroll_clicks = int(scroll_cfg["scroll_clicks"])
@@ -636,9 +664,9 @@ def _find_targets_maybe_scrolling(
     # Per attempt use a short recognition window; overall bound is max_attempts.
     attempt_timeout_ms = min(timeout_ms, max(poll_ms, 300))
     scroll_attempts = 0
-    scale_factor = 1.0
+    frame: Frame | None = None
     for attempt in range(max_attempts + 1):
-        targets, scale_factor = _find_targets_with_retry(
+        targets, frame = _find_targets_with_retry(
             locator=locator,
             query=query,
             strategy=strategy,
@@ -646,11 +674,12 @@ def _find_targets_maybe_scrolling(
             poll_ms=poll_ms,
             scope_to_window=scope_to_window,
             options=options,
+            require_window=require_window,
         )
         if targets:
             return (
                 targets,
-                scale_factor,
+                frame,
                 {
                     "scroll_until_found": True,
                     "scroll_attempts": scroll_attempts,
@@ -665,9 +694,11 @@ def _find_targets_maybe_scrolling(
         if scroll_poll_ms > 0:
             sleep(scroll_poll_ms / 1000.0)
 
+    if frame is None:
+        frame = screen()
     return (
         [],
-        scale_factor,
+        frame,
         {
             "scroll_until_found": True,
             "scroll_attempts": scroll_attempts,
@@ -734,7 +765,7 @@ def _resolve_point_param(
     poll_ms = _coerce_poll_ms(step=step, default_ms=200)
     scope_to_window = _wants_window_scope(step)
     selector = explicit_selector(step.params.get(selector_key))
-    targets, scale_factor = _find_targets_with_retry(
+    targets, frame = _find_targets_with_retry(
         locator=locator,
         query=query,
         strategy="all",
@@ -742,7 +773,9 @@ def _resolve_point_param(
         poll_ms=poll_ms,
         scope_to_window=scope_to_window,
         options=recognition_options_from_mapping(step.params),
+        require_window=scope_to_window,
     )
+    scale_factor = frame.scale_factor
     try:
         ensure_actionable_match_count(
             query=query,
@@ -755,7 +788,12 @@ def _resolve_point_param(
     selected = _select_target(
         targets=targets, selector=selector or "first", scale_factor=scale_factor
     )
-    point = actuator.point_for_target(selected, anchor="center", scale_factor=scale_factor)
+    point = actuator.point_for_target(
+        selected,
+        anchor="center",
+        scale_factor=scale_factor,
+        origin=(frame.origin_x, frame.origin_y),
+    )
     meta[f"{label}_query"] = query
     meta[f"{label}_selector"] = selector or "first"
     return point
@@ -769,16 +807,35 @@ def _wants_window_scope(step: FlowStep) -> bool:
     return _coerce_bool(step.params.get("scope_to_window", False))
 
 
-def _filter_targets_to_window(*, targets: list[Target], scale_factor: float) -> list[Target]:
-    """Keep only targets whose pixel bounds lie within the frontmost window."""
+def _filter_targets_to_window(
+    *,
+    targets: list[Target],
+    scale_factor: float,
+    origin: tuple[int, int] = (0, 0),
+    strict: bool = False,
+) -> list[Target]:
+    """Keep only targets whose bounds lie within the frontmost window.
+
+    Image-pixel targets are shifted by the capture origin before the comparison.
+    When the frontmost window cannot be read, ``strict`` fails the step instead
+    of returning every target unfiltered.
+    """
     state = frontmost_window()
     if state is None or state.width <= 0 or state.height <= 0:
+        if strict:
+            raise ValueError(
+                "Frontmost window could not be read; refusing to actuate without a window scope."
+            )
         return targets
+    origin_x, origin_y = origin
     kept: list[Target] = []
     for target in targets:
         logical_x, logical_y, logical_w, logical_h = target_logical_bounds(
             target, scale_factor=scale_factor
         )
+        if target_uses_physical_pixels(target):
+            logical_x += origin_x
+            logical_y += origin_y
         if state.contains(x=logical_x, y=logical_y, width=logical_w, height=logical_h):
             kept.append(target)
     return kept

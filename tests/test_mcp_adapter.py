@@ -162,7 +162,7 @@ def test_click_expect_one_returns_ambiguous_target(monkeypatch) -> None:
                 Target(x=50, y=60, width=30, height=40, confidence=0.8, source="ocr", text="Create"),
             ]
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
 
     result = call_mcp_tool("click", {"query": "Create", "expect_one": True, "dry_run": True, "run_id": "r1"})
@@ -191,7 +191,7 @@ def test_click_fails_closed_without_selector(monkeypatch) -> None:
             clicked["count"] += 1
             return (0, 0)
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
 
@@ -223,7 +223,7 @@ def test_click_selector_top_most_picks_upper_target(monkeypatch) -> None:
             clicked["y"] = target.y
             return (target.x, target.y)
 
-    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._resolve_frame", lambda _path, **_kwargs: frame)
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
     monkeypatch.setattr(
@@ -251,6 +251,95 @@ def test_scroll_tool_dry_run(monkeypatch) -> None:
     assert result["ok"] is True
     assert result["data"]["clicks"] == -5
     assert scrolled == [{"clicks": -5, "x": 10, "y": 20, "dry_run": True}]
+
+
+def test_live_click_rejects_frame_path_without_sidecar(tmp_path: Path, monkeypatch) -> None:
+    image = tmp_path / "region.png"
+    image.write_bytes(b"not-a-real-png")
+    clicked = {"count": 0}
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, target: Target, **kwargs: object) -> tuple[int, int]:
+            _ = target, kwargs
+            clicked["count"] += 1
+            return (1, 2)
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    result = call_mcp_tool("click", {"query": "Save", "frame_path": str(image), "dry_run": False})
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "validation_error"
+    assert "sidecar" in result["error"]["message"]
+    assert clicked["count"] == 0
+
+
+def test_find_allows_frame_path_without_sidecar(tmp_path: Path, monkeypatch) -> None:
+    image = tmp_path / "region.png"
+    image.write_bytes(b"not-a-real-png")
+
+    class FakeLocator:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+            _ = frame, query, strategy, options
+            assert frame.scale_factor == 1.0
+            return []
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    result = call_mcp_tool("find", {"query": "Save", "frame_path": str(image)})
+
+    assert result["ok"] is True
+    assert result["data"]["count"] == 0
+
+
+def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
+    image = tmp_path / "window.png"
+    image.write_bytes(b"not-a-real-png")
+    sidecar = tmp_path / "window.png.openframe.json"
+    sidecar.write_text(
+        '{"width": 200, "height": 80, "scale_factor": 2.0, "origin_x": 40, "origin_y": 80, '
+        '"source": "window:9"}',
+        encoding="utf-8",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeLocator:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+            _ = query, strategy, options
+            assert frame.scale_factor == 2.0
+            assert frame.origin_x == 40
+            return [Target(x=20, y=10, width=20, height=10, confidence=0.9, source="ocr")]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, target: Target, **kwargs: object) -> tuple[int, int]:
+            seen["origin"] = kwargs["origin"]
+            seen["scale_factor"] = kwargs["scale_factor"]
+            return (50, 85)
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.screen",
+        lambda out_path=None: Frame(
+            width=200, height=80, scale_factor=2.0, source="screen:1", origin_x=0, origin_y=0
+        ),
+    )
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.write_step_artifacts",
+        lambda **_kwargs: Path("runs/r1/mcp-click"),
+    )
+    result = call_mcp_tool(
+        "click", {"query": "Save", "frame_path": str(image), "dry_run": False, "run_id": "r1"}
+    )
+
+    assert result["ok"] is True
+    assert seen["origin"] == (40, 80)
+    assert seen["scale_factor"] == 2.0
+    assert result["data"]["point"] == {"x": 50, "y": 85}
 
 
 def test_scroll_tool_requires_clicks() -> None:

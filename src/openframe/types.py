@@ -18,6 +18,8 @@ class Frame:
     captured_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     image_path: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    origin_x: int = 0
+    origin_y: int = 0
 
 
 @dataclass(slots=True)

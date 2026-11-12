@@ -158,7 +158,8 @@ def test_runner_and_mcp_select_same_target_for_spatial_selectors(
 
         mcp_clicked: dict[str, object] = {}
         monkeypatch.setattr(
-            "openframe.integrations.mcp.adapter._resolve_frame", lambda _path: frame
+            "openframe.integrations.mcp.adapter._resolve_frame",
+            lambda _path, **_kwargs: frame,
         )
         monkeypatch.setattr(
             "openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator()

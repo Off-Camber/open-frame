@@ -88,7 +88,11 @@ class Session:
             scale_factor=active_frame.scale_factor,
         )
         return self._actuator.click_target(
-            selected, anchor=anchor, kind=kind, scale_factor=active_frame.scale_factor
+            selected,
+            anchor=anchor,
+            kind=kind,
+            scale_factor=active_frame.scale_factor,
+            origin=(active_frame.origin_x, active_frame.origin_y),
         )
 
     def run(self, steps: list[dict[str, Any]]) -> list[StepResult]:

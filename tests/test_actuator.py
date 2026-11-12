@@ -68,6 +68,36 @@ def test_click_target_applies_scale_factor_to_click_point(monkeypatch: pytest.Mo
     assert calls[0]["y"] == 20
 
 
+def test_point_for_target_adds_capture_origin_for_image_pixels() -> None:
+    actuator = Actuator(dry_run=True)
+    target = Target(x=100, y=40, width=20, height=20, confidence=0.9, source="ocr")
+
+    # Center is (110, 50). At 2x that is (55, 25), then the window origin is added.
+    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0, origin=(40, 80)) == (
+        95,
+        105,
+    )
+
+
+def test_point_for_target_leaves_logical_coordinates_unshifted() -> None:
+    actuator = Actuator(dry_run=True)
+    target = Target(
+        x=100,
+        y=200,
+        width=80,
+        height=24,
+        confidence=0.95,
+        source="a11y:macos",
+        coordinate_space="logical",
+        text="Vendor",
+    )
+
+    assert actuator.point_for_target(target, anchor="center", scale_factor=2.0, origin=(40, 80)) == (
+        140,
+        212,
+    )
+
+
 def test_point_for_target_rejects_non_positive_scale_factor() -> None:
     actuator = Actuator(dry_run=True)
     with pytest.raises(ValueError):

@@ -157,7 +157,7 @@ def test_find_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Captur
             assert strategy == "first"
             return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
 
-    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
+    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("sys.argv", ["open-frame", "find", "Submit", "--json"])
 
@@ -183,7 +183,7 @@ def test_find_with_overlay_writes_overlay_path(
         def find(self, frame: Frame, query: str, strategy: str = "first", options=None) -> list[Target]:
             return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
 
-    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
+    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.draw_debug_overlay", lambda **_kwargs: overlay_path)
     monkeypatch.setattr(
@@ -222,7 +222,7 @@ def test_click_command_dry_run_json(monkeypatch: pytest.MonkeyPatch, capsys: pyt
             assert kind == "click"
             return (25, 40)
 
-    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
+    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.Actuator", FakeActuator)
     monkeypatch.setattr("sys.argv", ["open-frame", "click", "Submit", "--dry-run", "--json"])
@@ -263,7 +263,7 @@ def test_click_with_failed_verification_returns_nonzero(
         verifier = "verify:text"
         details: ClassVar[dict] = {}
 
-    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path: frame)
+    monkeypatch.setattr("openframe.cli._resolve_find_frame", lambda _frame_path, **_kwargs: frame)
     monkeypatch.setattr("openframe.cli.screen", lambda: frame)
     monkeypatch.setattr("openframe.cli.build_default_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.cli.Actuator", FakeActuator)

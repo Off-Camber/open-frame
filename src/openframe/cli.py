@@ -10,6 +10,7 @@ from pathlib import Path
 
 from openframe.act import ActError, Actuator
 from openframe.capture import CaptureError, list_displays, list_windows, region, screen, window
+from openframe.capture.sidecar import load_frame_sidecar
 from openframe.doctor import doctor_ok, format_doctor_json, format_doctor_text, run_doctor
 from openframe.flow import load_flow
 from openframe.integrations.mcp import call_mcp_tool, list_mcp_tools
@@ -255,7 +256,9 @@ def main() -> int:
 
     if args.command == "click":
         try:
-            frame = _resolve_find_frame(args.frame)
+            frame = _resolve_find_frame(
+                args.frame, require_sidecar=bool(args.frame) and not args.dry_run
+            )
             locator = build_default_locator()
             click_params: dict[str, object] = {}
             if getattr(args, "template", None):
@@ -282,7 +285,11 @@ def main() -> int:
 
             actuator = Actuator(dry_run=args.dry_run)
             point = actuator.click_target(
-                selected, anchor=args.anchor, kind=args.kind, scale_factor=frame.scale_factor
+                selected,
+                anchor=args.anchor,
+                kind=args.kind,
+                scale_factor=frame.scale_factor,
+                origin=(frame.origin_x, frame.origin_y),
             )
             if args.dry_run and not args.verify:
                 after_frame = frame
@@ -422,11 +429,19 @@ def main() -> int:
     return 2
 
 
-def _resolve_find_frame(frame_path: Path | None) -> Frame:
+def _resolve_find_frame(frame_path: Path | None, *, require_sidecar: bool = False) -> Frame:
     if frame_path:
         image_path = frame_path.expanduser().resolve()
         if not image_path.exists():
             raise ValueError(f"Frame path does not exist: {image_path}")
+        loaded = load_frame_sidecar(image_path)
+        if loaded is not None:
+            return loaded
+        if require_sidecar:
+            raise ValueError(
+                "frame path has no capture metadata sidecar; "
+                "refusing a live click that cannot map image coordinates."
+            )
         return Frame(
             width=0,
             height=0,
