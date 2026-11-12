@@ -421,3 +421,48 @@ def test_scroll_tool_requires_clicks() -> None:
     assert result["ok"] is False
     assert result["error"]["code"] == "validation_error"
 
+
+def test_find_reports_recognizer_failure_instead_of_not_found(monkeypatch) -> None:
+    class BrokenLocator:
+        recognizer_errors: ClassVar[list[str]] = ["a11y:macos: permission denied"]
+
+        def find(self, frame, query, strategy="all", options=None):
+            _ = frame, strategy, options
+            raise RuntimeError(
+                f'Recognizer failed and produced no targets for query "{query}": '
+                "a11y:macos: permission denied"
+            )
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame",
+        lambda *_args, **_kwargs: Frame(width=1, height=1, scale_factor=1.0, source="screen"),
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: BrokenLocator())
+
+    result = call_mcp_tool("find", {"query": "Submit"})
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "runtime_error"
+    assert "permission denied" in result["error"]["message"]
+
+
+def test_find_includes_recognizer_errors_when_another_recognizer_matches(monkeypatch) -> None:
+    class PartialLocator:
+        recognizer_errors: ClassVar[list[str]] = ["a11y:macos: permission denied"]
+
+        def find(self, frame, query, strategy="all", options=None):
+            _ = frame, query, strategy, options
+            return [Target(x=1, y=2, width=3, height=4, confidence=0.9, source="ocr", text="Submit")]
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame",
+        lambda *_args, **_kwargs: Frame(width=1, height=1, scale_factor=1.0, source="screen"),
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: PartialLocator())
+
+    result = call_mcp_tool("find", {"query": "Submit"})
+
+    assert result["ok"] is True
+    assert result["data"]["recognizer_errors"] == ["a11y:macos: permission denied"]
+    assert result["data"]["count"] == 1
+

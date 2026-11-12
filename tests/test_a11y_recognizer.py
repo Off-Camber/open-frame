@@ -142,3 +142,64 @@ def test_a11y_recognizer_uses_token_matching(monkeypatch: pytest.MonkeyPatch) ->
     phrase = recognizer.find(frame=frame, query="Invoice No")
     assert len(phrase.targets) == 1
     assert phrase.targets[0].text == "Invoice No 123"
+
+
+def test_a11y_recognizer_drops_elements_whose_position_was_not_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recognizer = MacOSA11yRecognizer()
+    frame = Frame(width=100, height=100, scale_factor=2.0, source="screen:1")
+    monkeypatch.setattr("openframe.recognize.a11y.macos._is_macos", lambda: True)
+    monkeypatch.setattr(
+        "openframe.recognize.a11y.macos._list_frontmost_elements",
+        lambda: [
+            {
+                "title": "Submit",
+                "role": "AXButton",
+                "x": 0,
+                "y": 0,
+                "width": 80,
+                "height": 30,
+                "position_read": False,
+            },
+            {
+                "title": "Submit",
+                "role": "AXButton",
+                "x": 0,
+                "y": 0,
+                "width": 40,
+                "height": 20,
+                "position_read": True,
+            },
+        ],
+    )
+
+    result = recognizer.find(frame=frame, query="Submit")
+
+    assert len(result.targets) == 1
+    assert result.targets[0].width == 40
+
+
+def test_is_macos_uses_sys_platform(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(a11y_macos.sys, "platform", "darwin")
+    assert a11y_macos._is_macos() is True
+    monkeypatch.setattr(a11y_macos.sys, "platform", "linux")
+    assert a11y_macos._is_macos() is False
+
+
+def test_a11y_query_timeout_is_reported(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    def timed_out(*_args: object, **_kwargs: object) -> object:
+        raise subprocess.TimeoutExpired(cmd="osascript", timeout=30)
+
+    monkeypatch.setattr(a11y_macos.sys, "platform", "darwin")
+    monkeypatch.setattr(a11y_macos.subprocess, "run", timed_out)
+
+    result = MacOSA11yRecognizer().find(
+        frame=Frame(width=1, height=1, scale_factor=1.0, source="screen"),
+        query="Submit",
+    )
+
+    assert result.targets == []
+    assert "timed out" in result.metadata["error"]

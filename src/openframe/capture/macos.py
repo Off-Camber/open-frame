@@ -19,6 +19,9 @@ class CaptureError(RuntimeError):
     """Raised when a capture operation fails."""
 
 
+_SUBPROCESS_TIMEOUT_SEC = 30
+
+
 def screen(out_path: str | Path | None = None) -> Frame:
     """Capture the primary display to PNG and return frame metadata."""
     _ensure_macos()
@@ -199,7 +202,18 @@ def _resolve_output_path(out_path: str | Path | None) -> Path:
 
 
 def _run_command(command: list[str]) -> subprocess.CompletedProcess[str]:
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise CaptureError(
+            f"Capture command timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s: {' '.join(command)}"
+        ) from exc
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or "unknown error"
         raise CaptureError(f"Capture command failed: {' '.join(command)} ({stderr})")

@@ -11,9 +11,12 @@ pytest.importorskip("PIL")
 
 from PIL import Image, ImageDraw
 
+from openframe.recognize.a11y.macos import MacOSA11yRecognizer
+from openframe.recognize.base import RecognizerResult
 from openframe.recognize.coords import select_target, target_logical_bounds
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count
+from openframe.recognize.ocr.tesseract import TesseractRecognizer
 from openframe.recognize.template import TemplateRecognizer
 from openframe.types import Frame
 
@@ -137,9 +140,18 @@ def test_template_ambiguous_fail_closed(tmp_path: Path) -> None:
         )
 
 
-def test_default_locator_unchanged_without_template(tmp_path: Path) -> None:
+def test_default_locator_unchanged_without_template(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     frame_path, template_path = _write_scene(tmp_path, scale=1)
     frame = Frame(120, 80, 1.0, "fixture", image_path=str(frame_path))
+
+    def empty(self, frame: Frame, query: str, options: dict | None = None) -> RecognizerResult:
+        _ = frame, query, options
+        return RecognizerResult(recognizer=self.name, targets=[])
+
+    monkeypatch.setattr(MacOSA11yRecognizer, "find", empty)
+    monkeypatch.setattr(TesseractRecognizer, "find", empty)
     locator = build_default_locator()
     # Without template option, icon glyph should not be found as text "icon".
     targets = locator.find(frame, "icon", strategy="all")

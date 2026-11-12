@@ -453,8 +453,8 @@ def test_runner_verify_missing_text_fails_with_artifacts(monkeypatch) -> None:
 def test_focus_app_raises_when_frontmost_differs(monkeypatch) -> None:
     calls: list[list[str]] = []
 
-    def fake_run(command, check, capture_output, text):
-        _ = check, capture_output, text
+    def fake_run(command, check, capture_output, text, timeout=None):
+        _ = check, capture_output, text, timeout
         calls.append(list(command))
         # open -a succeeds; activate succeeds; frontmost stays Terminal.
         if command[:2] == ["open", "-a"]:
@@ -479,8 +479,8 @@ def test_focus_app_raises_when_frontmost_differs(monkeypatch) -> None:
 def test_focus_app_retries_on_not_running_then_succeeds(monkeypatch) -> None:
     state = {"activate": 0, "frontmost": 0}
 
-    def fake_run(command, check, capture_output, text):
-        _ = check, capture_output, text
+    def fake_run(command, check, capture_output, text, timeout=None):
+        _ = check, capture_output, text, timeout
         if command[:2] == ["open", "-a"]:
             return SimpleNamespace(returncode=0, stdout="", stderr="")
         joined = " ".join(command)
@@ -865,3 +865,75 @@ def test_runner_scroll_until_found_fails_closed(monkeypatch) -> None:
     assert session.results[0].success is False
     assert scrolls["count"] == 3
     assert "did not find" in (session.results[0].error or "")
+
+
+def test_verify_diff_uses_the_preceding_step_frame(monkeypatch) -> None:
+    from openframe.runner import _run_verify_specs
+    from openframe.verify import VerifyResult
+
+    baseline = Frame(width=2, height=2, scale_factor=1.0, source="screen", image_path="/tmp/before.png")
+    fresh = Frame(width=2, height=2, scale_factor=1.0, source="screen", image_path="/tmp/after.png")
+    seen: dict[str, str | None] = {}
+
+    class FakeVerifier:
+        def verify(self, *, before: Frame, after: Frame) -> VerifyResult:
+            seen["before"] = before.image_path
+            seen["after"] = after.image_path
+            return VerifyResult(verifier="verify:diff", success=True, message="ok")
+
+    monkeypatch.setattr("openframe.runner._parse_verifier_spec", lambda **_kwargs: FakeVerifier())
+    monkeypatch.setattr("openframe.runner._capture_scoped_frame", lambda **_kwargs: (fresh, False))
+
+    result = _run_verify_specs(
+        verify_specs=["diff:0.2"],
+        locator=object(),  # type: ignore[arg-type]
+        timeout_ms=10,
+        poll_ms=1,
+        baseline=baseline,
+    )
+
+    assert result.success is True
+    assert seen == {"before": "/tmp/before.png", "after": "/tmp/after.png"}
+
+
+def test_verify_diff_requires_a_preceding_frame() -> None:
+    from openframe.runner import _run_verify_specs
+
+    try:
+        _run_verify_specs(
+            verify_specs=["diff:0.2"],
+            locator=object(),  # type: ignore[arg-type]
+            timeout_ms=10,
+            poll_ms=1,
+        )
+    except ValueError as exc:
+        assert "preceding step" in str(exc)
+        return
+    raise AssertionError("verify diff without a baseline should fail")
+
+
+def test_activate_script_escapes_quotes_in_the_app_name(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    scripts: list[str] = []
+
+    def fake_run(command, check, capture_output, text, timeout=None):
+        _ = check, capture_output, text, timeout
+        if command[:2] == ["open", "-a"]:
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        joined = " ".join(command)
+        if "to activate" in joined:
+            scripts.append(joined)
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        if "whose frontmost is true" in joined:
+            return SimpleNamespace(returncode=0, stdout='Foo"Bar\n', stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setattr("openframe.runner.sleep", lambda *_args, **_kwargs: None)
+
+    _focus_app('Foo"Bar')
+
+    assert scripts
+    assert 'tell application "Foo\\"Bar" to activate' in scripts[0]

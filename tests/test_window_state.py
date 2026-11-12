@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from openframe.flow import Flow, FlowStep
 from openframe.runner import FlowRunner
 from openframe.types import Frame, Target
 from openframe.verify import WindowStateVerifier
-from openframe.window import WindowState, evaluate_window_guard
+from openframe.window import WindowState, evaluate_window_guard, frontmost_window
 
 
 def _frame(scale: float = 1.0) -> Frame:
@@ -175,3 +177,32 @@ def test_runner_window_title_contains_verify_spec(monkeypatch) -> None:
     session = FlowRunner(dry_run=True).run(flow, run_id="r-verify")
 
     assert session.results[0].success is True
+
+
+def test_frontmost_window_timeout_and_script_failure_are_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from openframe import window as window_module
+
+    monkeypatch.setattr(window_module.sys, "platform", "darwin")
+
+    def timed_out(*_args: object, **_kwargs: object) -> object:
+        raise subprocess.TimeoutExpired(cmd="osascript", timeout=30)
+
+    monkeypatch.setattr(window_module.subprocess, "run", timed_out)
+    with pytest.raises(RuntimeError, match="timed out"):
+        frontmost_window()
+
+    def failed(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(returncode=1, stdout="", stderr="not authorized")
+
+    monkeypatch.setattr(window_module.subprocess, "run", failed)
+    with pytest.raises(RuntimeError, match="not authorized"):
+        frontmost_window()
+
+    def empty_front(*_args: object, **_kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(returncode=0, stdout="null\n", stderr="")
+
+    monkeypatch.setattr(window_module.subprocess, "run", empty_front)
+    assert frontmost_window() is None

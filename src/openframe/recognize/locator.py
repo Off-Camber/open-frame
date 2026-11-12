@@ -17,6 +17,7 @@ class Locator:
 
     def __init__(self, recognizers: Iterable[Recognizer] | None = None) -> None:
         self._recognizers: list[Recognizer] = []
+        self.recognizer_errors: list[str] = []
         if recognizers:
             for recognizer in recognizers:
                 self.register(recognizer)
@@ -37,12 +38,16 @@ class Locator:
             raise ValueError(f"Unsupported locator strategy: {strategy}")
 
         merged_targets: list[Target] = []
+        errors: list[str] = []
         dedupe_iou_threshold = float((options or {}).get("dedupe_iou_threshold", 0.5))
 
         ordered = sorted(self._recognizers, key=lambda item: item.priority)
 
         for recognizer in ordered:
             result = recognizer.find(frame=frame, query=query, options=options)
+            error = result.metadata.get("error")
+            if error:
+                errors.append(f"{result.recognizer}: {error}")
             if not result.targets:
                 continue
 
@@ -57,6 +62,12 @@ class Locator:
             if strategy == "first":
                 break
 
+        self.recognizer_errors = errors
+        if not merged_targets and errors:
+            detail = "; ".join(errors)
+            raise RuntimeError(
+                f'Recognizer failed and produced no targets for query "{query}": {detail}'
+            )
         return merged_targets
 
 

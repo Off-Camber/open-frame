@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from typing import Any
+
+_SUBPROCESS_TIMEOUT_SEC = 30
 
 from openframe.recognize.base import Recognizer, RecognizerResult
 from openframe.recognize.match import MatchMode, text_matches_query
@@ -49,6 +52,8 @@ class MacOSA11yRecognizer(Recognizer):
             if not text_matches_query(text, query, mode=match_mode):
                 continue
 
+            if item.get("position_read") is False:
+                continue
             width = int(item.get("width", 0))
             height = int(item.get("height", 0))
             if width <= 0 or height <= 0:
@@ -88,10 +93,7 @@ def _match_mode(options: dict[str, Any] | None) -> MatchMode:
 
 
 def _is_macos() -> bool:
-    return (
-        subprocess.run(["uname", "-s"], check=False, capture_output=True, text=True).stdout.strip()
-        == "Darwin"
-    )
+    return sys.platform == "darwin"
 
 
 _LIST_FRONTMOST_ELEMENTS_SCRIPT = """
@@ -109,10 +111,12 @@ function collect(elem, depth, out) {
   var pos = safeCall(function () { return elem.position(); }, null);
   var size = safeCall(function () { return elem.size(); }, null);
   var x = 0, y = 0, w = 0, h = 0;
+  var positionRead = false;
   // System Events may return [x, y] / [width, height] arrays or {x,y}/{width,height} objects.
+  // A missing position must not be reported as (0, 0), which is a real click point.
   if (pos) {
-    if (Array.isArray(pos) && pos.length >= 2) { x = Number(pos[0]); y = Number(pos[1]); }
-    else if (pos.x !== undefined && pos.y !== undefined) { x = Number(pos.x); y = Number(pos.y); }
+    if (Array.isArray(pos) && pos.length >= 2) { x = Number(pos[0]); y = Number(pos[1]); positionRead = true; }
+    else if (pos.x !== undefined && pos.y !== undefined) { x = Number(pos.x); y = Number(pos.y); positionRead = true; }
   }
   if (size) {
     if (Array.isArray(size) && size.length >= 2) { w = Number(size[0]); h = Number(size[1]); }
@@ -121,7 +125,11 @@ function collect(elem, depth, out) {
     }
   }
 
-  out.push({ title: String(title), role: String(role), x: x, y: y, width: w, height: h });
+  if (positionRead && isFinite(x) && isFinite(y)) {
+    out.push({
+      title: String(title), role: String(role), x: x, y: y, width: w, height: h, position_read: true
+    });
+  }
 
   var children = safeCall(function () { return elem.uiElements(); }, []);
   for (var i = 0; i < children.length; i++) {
@@ -146,12 +154,18 @@ if (procs.length === 0) {
 
 
 def _list_frontmost_elements() -> list[dict[str, Any]]:
-    completed = subprocess.run(
-        ["osascript", "-l", "JavaScript", "-e", _LIST_FRONTMOST_ELEMENTS_SCRIPT],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-l", "JavaScript", "-e", _LIST_FRONTMOST_ELEMENTS_SCRIPT],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"macOS accessibility query timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
     if completed.returncode != 0:
         message = (
             completed.stderr.strip() or completed.stdout.strip() or "unknown accessibility error"

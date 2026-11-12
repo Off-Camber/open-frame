@@ -402,6 +402,9 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
         data["targets_inline_limit"] = MAX_FIND_TARGETS_INLINE
     if options and options.get("template"):
         data["template"] = options["template"]
+    recognizer_errors = getattr(locator, "recognizer_errors", None)
+    if recognizer_errors:
+        data["recognizer_errors"] = list(recognizer_errors)
     return data, None, {}
 
 
@@ -467,6 +470,9 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         "point": {"x": point[0], "y": point[1]},
         "target": asdict(selected_target),
     }
+    recognizer_errors = getattr(locator, "recognizer_errors", None)
+    if recognizer_errors:
+        data["recognizer_errors"] = list(recognizer_errors)
     artifacts = {"step_dir": str(artifact_dir)}
     return data, run_id, artifacts
 
