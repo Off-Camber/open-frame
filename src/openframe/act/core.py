@@ -29,13 +29,15 @@ class Actuator:
         *,
         anchor: ClickAnchor = "center",
         scale_factor: float = 1.0,
+        origin: tuple[int, int] = (0, 0),
     ) -> tuple[int, int]:
         """Map target bounds to a click point.
 
-        Recognizers report target bounds in captured-image pixels (physical
-        pixels on Retina displays). Mouse actuation works in logical screen
-        points. ``scale_factor`` (display physical/logical ratio, e.g. 2.0 on
-        Retina) converts the mapped point into logical click space.
+        Recognizers report image matches in captured-image pixels. Mouse
+        actuation works in logical screen points. ``scale_factor`` converts
+        those pixels, then ``origin`` (the capture's logical top-left) places
+        the point on the screen. Accessibility targets are already logical
+        screen points, so ``origin`` is not added for them.
         """
         if scale_factor <= 0:
             raise ValueError("scale_factor must be greater than zero.")
@@ -54,7 +56,8 @@ class Actuator:
             raise ValueError(f"Unsupported click anchor: {anchor}")
 
         if target_uses_physical_pixels(target):
-            return (round(px / scale_factor), round(py / scale_factor))
+            origin_x, origin_y = origin
+            return (round(px / scale_factor) + origin_x, round(py / scale_factor) + origin_y)
         return (px, py)
 
     def click_target(
@@ -64,9 +67,12 @@ class Actuator:
         anchor: ClickAnchor = "center",
         kind: ClickKind = "click",
         scale_factor: float = 1.0,
+        origin: tuple[int, int] = (0, 0),
     ) -> tuple[int, int]:
         """Click a target at a mapped point in logical click space."""
-        x, y = self.point_for_target(target, anchor=anchor, scale_factor=scale_factor)
+        x, y = self.point_for_target(
+            target, anchor=anchor, scale_factor=scale_factor, origin=origin
+        )
         self.click_point(x, y, kind=kind)
         return (x, y)
 

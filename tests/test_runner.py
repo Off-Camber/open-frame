@@ -741,6 +741,45 @@ def test_runner_scroll_until_found_scrolls_then_succeeds(monkeypatch) -> None:
     assert session.results[0].details["scroll_until_found"] is True
 
 
+def test_window_scoped_click_refuses_when_frontmost_window_is_unknown(monkeypatch) -> None:
+    clicks = {"count": 0}
+    frame = Frame(width=200, height=100, scale_factor=2.0, source="screen:1")
+
+    class FakeLocator:
+        def find(self, frame: Frame, query: str, strategy: str = "all", options=None) -> list[Target]:
+            _ = frame, query, strategy, options
+            return [Target(x=10, y=10, width=20, height=10, confidence=0.9, source="ocr")]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, target: Target, **kwargs: object) -> tuple[int, int]:
+            _ = target, kwargs
+            clicks["count"] += 1
+            return (0, 0)
+
+    monkeypatch.setattr("openframe.runner.screen", lambda out_path=None: frame)
+    monkeypatch.setattr("openframe.runner._capture_frontmost_window_frame", lambda: None)
+    monkeypatch.setattr("openframe.runner.frontmost_window", lambda: None)
+    monkeypatch.setattr("openframe.runner.build_default_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.runner.Actuator", FakeActuator)
+    monkeypatch.setattr(
+        "openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step")
+    )
+
+    flow = Flow(
+        name="scoped-click",
+        steps=[FlowStep(id="click-it", kind="click", params={"query": "Save", "scope": "window"})],
+    )
+    session = FlowRunner(dry_run=True).run(flow, run_id="scoped-click")
+
+    assert session.results[0].success is False
+    assert session.results[0].error is not None
+    assert "refusing to actuate" in session.results[0].error
+    assert clicks["count"] == 0
+
+
 def test_runner_scroll_until_found_fails_closed(monkeypatch) -> None:
     scrolls = {"count": 0}
 

@@ -46,6 +46,9 @@ already has Accessibility enabled rather than treating OCR-only success as enoug
 | Accessibility/OCR bounds | frontmost AX elements include non-zero bounds; find/OCR probe succeeds |
 | Safe token matching | `AC` does not match `actuation`; dry-run click stays fail-closed |
 | Calibration | `examples/flows/calibration-token/flow.yaml` passes **5/5** (override with `OPENFRAME_LIVE_GATE_CALIBRATION_RUNS` only for debugging) |
+| Window-scoped click | click on the calibration token reports a point inside the TextEdit window bounds |
+| Region click | click from a region capture of that window reports a point inside those bounds |
+| `frame_path` click | MCP `click` with the window capture's `frame_path` reports a point inside those bounds |
 | Intentional failure | `examples/flows/calibration-token-miss/flow.yaml` exits nonzero with artifacts |
 | MCP stdio | `open-frame mcp serve` handshake succeeds; dry-run `type` returns `ok: true` envelope |
 

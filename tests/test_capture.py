@@ -25,14 +25,6 @@ def test_read_png_dimensions(tmp_path: Path) -> None:
     assert (width, height) == (640, 480)
 
 
-def test_detect_scale_factor_defaults_on_parse_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    class Result:
-        stdout = "invalid"
-
-    monkeypatch.setattr(macos, "_run_command", lambda _command: Result())
-    assert macos._detect_scale_factor(3000) == 1.0
-
-
 def test_screen_returns_frame_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     out_path = tmp_path / "capture.png"
 
@@ -69,11 +61,20 @@ def test_window_capture_by_title(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
         macos,
         "_list_window_infos",
         lambda: [
-            {"id": 200, "owner": "Slack", "title": "Engineering", "bounds": {}},
-            {"id": 201, "owner": "Google Chrome", "title": "Open Frame Docs", "bounds": {}},
+            {
+                "id": 200,
+                "owner": "Slack",
+                "title": "Engineering",
+                "bounds": {"x": 0, "y": 0, "width": 800, "height": 600},
+            },
+            {
+                "id": 201,
+                "owner": "Google Chrome",
+                "title": "Open Frame Docs",
+                "bounds": {"x": 10, "y": 20, "width": 750, "height": 450},
+            },
         ],
     )
-    monkeypatch.setattr(macos, "_detect_scale_factor", lambda _width: 2.0)
 
     def fake_run(command: list[str]) -> object:
         class Result:
@@ -171,7 +172,6 @@ def test_region_capture_uses_region_spec(tmp_path: Path, monkeypatch: pytest.Mon
 
     monkeypatch.setattr(macos, "_ensure_macos", lambda: None)
     monkeypatch.setattr(macos, "_resolve_output_path", lambda _out_path: out_path)
-    monkeypatch.setattr(macos, "_detect_scale_factor", lambda _width: 2.0)
 
     def fake_run(command: list[str]) -> object:
         class Result:
