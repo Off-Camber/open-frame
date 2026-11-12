@@ -80,14 +80,24 @@ Add an MCP server entry in Cursor settings (MCP servers JSON), for example:
 
 Restart Cursor / reload MCP servers, then verify the tools are listed (including `scroll`).
 
-## Sequential single-client use
+## One call at a time
 
-The stdio server is intended for **one client, one tool call at a time**. Do not
-overlap tool calls on the same server process. Long flows are bounded by a
-wall-clock timeout (`OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC`, default 300s; other
-tools use `OPENFRAME_MCP_TOOL_TIMEOUT_SEC`, default 60s). A timeout returns
-`ok: false` with `error.code: "timeout"`; the worker may still finish in the
-background, so start a fresh server session if a timeout fires mid-flow.
+The server runs one tool call at a time. A call that arrives while another is
+running, or while a call that already returned `timeout` has not finished
+winding down, returns `ok: false` with `error.code: "busy"`.
+
+`click`, `type`, `key`, `scroll`, and `run_flow` send real clicks and
+keystrokes unless the arguments include `"dry_run": true`.
+
+Long flows are bounded by a wall-clock timeout
+(`OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC`, default 300s; other tools use
+`OPENFRAME_MCP_TOOL_TIMEOUT_SEC`, default 60s). A non-numeric value is ignored
+and the default is used; a warning is written to stderr. A timeout returns
+`ok: false` with `error.code: "timeout"`. `click` and `run_flow` include the
+`run_id` for that call (the one you passed, or one allocated before the call
+started). The worker does not start another click, keystroke, scroll, drag, or
+flow step after the timeout. When that worker has finished, `get_run_artifacts`
+with the timeout's `run_id` lists whatever the run wrote.
 
 ## Payload bounds
 
@@ -113,7 +123,8 @@ From any MCP client, prefer a non-actuating call first:
 | Client shows no tools | Confirm `command` points at the venv Python; restart the client |
 | Capture / find failures | Run `open-frame doctor` and fix Screen Recording / Accessibility / tesseract |
 | Permission prompts never appear | Grant permissions to the **client host** process, not only Terminal |
-| Tool returns `timeout` | Raise `OPENFRAME_MCP_*_TIMEOUT_SEC`, shorten the flow, or avoid overlapping calls |
+| Tool returns `busy` | Wait until the in-flight call finishes. A timed-out call still counts until its worker stops |
+| Tool returns `timeout` | The envelope `run_id` is the one `get_run_artifacts` accepts after the worker finishes. Raise `OPENFRAME_MCP_*_TIMEOUT_SEC` if the flow needs longer |
 | Huge `run_flow` payloads | Default is summarized steps; use `get_run_artifacts` or opt into `include_step_details` |
 
 See also [Contributing](CONTRIBUTING.md) for permission setup details and

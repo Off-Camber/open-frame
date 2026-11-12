@@ -105,26 +105,100 @@ def test_run_flow_include_step_details(monkeypatch) -> None:
     assert result["data"]["steps"][0]["details"] == {"kind": "wait"}
 
 
-def test_mcp_tool_timeout(monkeypatch) -> None:
+def test_timeout_does_not_actuate_and_carries_run_id(monkeypatch) -> None:
+    import threading
     import time
 
-    import pytest
-
-    from openframe.integrations.mcp.adapter import MCPToolError, _invoke_with_timeout
+    from openframe.act import Actuator
 
     monkeypatch.setenv("OPENFRAME_MCP_TOOL_TIMEOUT_SEC", "0.05")
+    monkeypatch.setenv("OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC", "0.05")
+    actuated: list[str] = []
+    monkeypatch.setattr(
+        "openframe.act.core._load_pyautogui",
+        lambda: actuated.append("pyautogui"),
+    )
+    entered = threading.Event()
+    finished = threading.Event()
+    seen: dict[str, str | None] = {}
 
-    def slow_handler(_args):
-        time.sleep(1.0)
-        return {}, None, {}
+    def slow_handler(payload: dict[str, object]) -> tuple[dict[str, object], str | None, dict[str, object]]:
+        seen["run_id"] = payload.get("run_id") if isinstance(payload.get("run_id"), str) else None
+        entered.set()
+        try:
+            time.sleep(0.4)
+            Actuator(dry_run=False).type_text("secret")
+            actuated.append("typed")
+            return {}, seen["run_id"], {}
+        finally:
+            finished.set()
 
-    with pytest.raises(MCPToolError) as exc_info:
-        _invoke_with_timeout(tool="type", handler=slow_handler, payload={})
-    assert exc_info.value.code == "timeout"
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._tool_run_flow", slow_handler)
+
+    holder: dict[str, dict[str, object]] = {}
+
+    def invoke() -> None:
+        holder["result"] = call_mcp_tool("run_flow", {"flow_path": "flow.yaml"})
+
+    worker = threading.Thread(target=invoke)
+    worker.start()
+    assert entered.wait(2)
+    overlap = call_mcp_tool("type", {"text": "x", "dry_run": True})
+    assert overlap["ok"] is False
+    assert overlap["error"]["code"] == "busy"
+    worker.join(2)
+    assert finished.wait(2)
+
+    result = holder["result"]
+    assert result["ok"] is False
+    assert result["error"]["code"] == "timeout"
+    assert result["run_id"]
+    assert seen["run_id"] == result["run_id"]
+    assert actuated == []
+
+    follow = call_mcp_tool("type", {"text": "x", "dry_run": True})
+    assert follow["ok"] is True
+
+
+def test_overlapping_mcp_call_returns_busy(monkeypatch) -> None:
+    import threading
+
+    entered = threading.Event()
+    release = threading.Event()
+
+    def blocking(_payload: dict[str, object]) -> tuple[dict[str, object], None, dict[str, object]]:
+        entered.set()
+        release.wait(2)
+        return {"text_length": 1, "interval": 0.0, "dry_run": True}, None, {}
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._tool_type", blocking)
+    holder: dict[str, dict[str, object]] = {}
+
+    def invoke() -> None:
+        holder["result"] = call_mcp_tool("type", {"text": "hi", "dry_run": True})
+
+    worker = threading.Thread(target=invoke)
+    worker.start()
+    assert entered.wait(2)
+    overlap = call_mcp_tool("click", {"query": "Submit", "dry_run": True})
+    release.set()
+    worker.join(2)
+
+    assert overlap["ok"] is False
+    assert overlap["error"]["code"] == "busy"
+    assert holder["result"]["ok"] is True
+
+
+def test_non_numeric_tool_timeout_uses_default(monkeypatch, capsys) -> None:
+    from openframe.integrations.mcp import adapter as adapter_module
+
+    adapter_module._timeout_warnings_sent.clear()
+    monkeypatch.setenv("OPENFRAME_MCP_TOOL_TIMEOUT_SEC", "not-a-number")
 
     result = call_mcp_tool("type", {"text": "x", "dry_run": True})
-    # Normal type remains fast / successful under the same env when handler is real.
+
     assert result["ok"] is True
+    assert "OPENFRAME_MCP_TOOL_TIMEOUT_SEC" in capsys.readouterr().err
 
 
 def test_get_run_artifacts_lists_step_files(tmp_path: Path, monkeypatch) -> None:

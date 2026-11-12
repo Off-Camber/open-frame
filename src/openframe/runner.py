@@ -9,6 +9,7 @@ from time import monotonic, perf_counter, sleep
 from typing import Any
 
 from openframe.act import Actuator
+from openframe.cancel import raise_if_tool_cancelled, tool_cancelled
 from openframe.capture import list_windows, screen, window
 from openframe.capture.macos import CaptureError
 from openframe.flow import Flow, FlowStep
@@ -58,6 +59,8 @@ class FlowRunner:
         }
 
         for step in flow.steps:
+            if tool_cancelled():
+                break
             started = perf_counter()
             before = screen()
             step_artifact_dir = f"{run_dir}/{step.id}"
@@ -322,12 +325,14 @@ class FlowRunner:
             via = str(step.params.get("via", "keystrokes")).strip().lower()
             if via in {"applescript-close", "textedit-close"}:
                 if not self.dry_run:
+                    raise_if_tool_cancelled()
                     _textedit_close_all_documents()
                 return {"via": "applescript-close", "closed": True}
             if via in {"applescript", "textedit"}:
                 size = step.params.get("size")
                 font_size = int(size) if size is not None else None
                 if not self.dry_run:
+                    raise_if_tool_cancelled()
                     _textedit_set_front_document_text(text, font_size=font_size)
                 return {
                     "text_length": len(text),
@@ -426,6 +431,7 @@ class FlowRunner:
             if not url:
                 raise ValueError(f"Step '{step.id}' navigate requires 'url'.")
             if not self.dry_run:
+                raise_if_tool_cancelled()
                 webbrowser.open(url, new=0, autoraise=True)
             return {"url": url}
 
@@ -956,6 +962,7 @@ def _window_bounds_as_match_bounds() -> MatchBounds | None:
 def _focus_app(name: str) -> None:
     import sys
 
+    raise_if_tool_cancelled()
     if sys.platform != "darwin":
         raise RuntimeError("app step is currently supported on macOS only.")
 
@@ -1075,6 +1082,7 @@ def _textedit_set_front_document_text(text: str, *, font_size: int | None = None
     import subprocess
     import sys
 
+    raise_if_tool_cancelled()
     if sys.platform != "darwin":
         raise RuntimeError("applescript type via is currently supported on macOS only.")
 
@@ -1122,6 +1130,7 @@ def _textedit_close_all_documents() -> None:
     import subprocess
     import sys
 
+    raise_if_tool_cancelled()
     if sys.platform != "darwin":
         return
 

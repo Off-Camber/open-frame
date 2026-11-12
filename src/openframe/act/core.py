@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Literal
 
+from openframe.cancel import raise_if_tool_cancelled
 from openframe.recognize.coords import target_uses_physical_pixels
 from openframe.types import Frame, Target
 
@@ -78,6 +79,7 @@ class Actuator:
 
     def click_point(self, x: int, y: int, *, kind: ClickKind = "click") -> None:
         """Click at absolute screen coordinates."""
+        raise_if_tool_cancelled()
         if self.dry_run:
             return
 
@@ -95,6 +97,7 @@ class Actuator:
 
     def type_text(self, text: str, *, interval: float = 0.0) -> None:
         """Type plain text at current focus."""
+        raise_if_tool_cancelled()
         if self.dry_run:
             return
         pyautogui = _load_pyautogui()
@@ -102,6 +105,7 @@ class Actuator:
 
     def key_combo(self, *keys: str) -> None:
         """Press a key combination, e.g. ('command', 'v')."""
+        raise_if_tool_cancelled()
         if self.dry_run:
             return
         if not keys:
@@ -111,6 +115,7 @@ class Actuator:
 
     def press_key(self, key: str) -> None:
         """Press a single key."""
+        raise_if_tool_cancelled()
         if self.dry_run:
             return
         if not key:
@@ -123,6 +128,7 @@ class Actuator:
 
         Positive ``clicks`` scroll up; negative scroll down (pyautogui convention).
         """
+        raise_if_tool_cancelled()
         if self.dry_run:
             return
         pyautogui = _load_pyautogui()
@@ -142,6 +148,7 @@ class Actuator:
         button: Literal["left", "middle", "right"] = "left",
     ) -> None:
         """Drag from one screen point to another in logical coordinates."""
+        raise_if_tool_cancelled()
         if duration < 0:
             raise ValueError("duration must be >= 0")
         if self.dry_run:

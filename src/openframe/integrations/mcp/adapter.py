@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import asdict
@@ -11,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from openframe.act import ActError, Actuator
+from openframe.cancel import bind_tool_cancellation, reset_tool_cancellation
 from openframe.capture import CaptureError, region, screen, window
 from openframe.capture.sidecar import load_frame_sidecar
 from openframe.flow import load_flow
@@ -28,6 +31,9 @@ MCP_CONTRACT_VERSION = "v0.2.1"
 DEFAULT_TOOL_TIMEOUT_SEC = 60.0
 DEFAULT_RUN_FLOW_TIMEOUT_SEC = 300.0
 MAX_FIND_TARGETS_INLINE = 50
+_TOOLS_WITH_RUN_ID = frozenset({"click", "run_flow"})
+_mcp_call_lock = threading.Lock()
+_timeout_warnings_sent: set[str] = set()
 
 MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
@@ -50,6 +56,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
@@ -63,11 +70,12 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
         "name": "click",
-        "description": "Find and click a target by query",
+        "description": "Find and click a target by query. Sends a real click unless dry_run is true.",
         "required_args": ["query"],
         "optional_args": [
             "anchor",
@@ -89,11 +97,12 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
         "name": "type",
-        "description": "Type text at current focus",
+        "description": "Type text at current focus. Sends real keystrokes unless dry_run is true.",
         "required_args": [],
         "optional_args": ["text", "interval", "dry_run"],
         "error_codes": [
@@ -102,11 +111,12 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
         "name": "key",
-        "description": "Press a key or key combo",
+        "description": "Press a key or key combo. Sends a real key unless dry_run is true.",
         "required_args": [],
         "optional_args": ["key", "combo", "dry_run"],
         "error_codes": [
@@ -115,11 +125,14 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
         "name": "scroll",
-        "description": "Scroll the mouse wheel at an optional point",
+        "description": (
+            "Scroll the mouse wheel at an optional point. Sends a real scroll unless dry_run is true."
+        ),
         "required_args": ["clicks"],
         "optional_args": ["x", "y", "dry_run"],
         "error_codes": [
@@ -128,11 +141,12 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
         "name": "run_flow",
-        "description": "Run a YAML flow file",
+        "description": "Run a YAML flow file. Runs the flow for real unless dry_run is true.",
         "required_args": ["flow_path"],
         "optional_args": ["dry_run", "run_id", "include_step_details"],
         "error_codes": [
@@ -143,6 +157,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
     {
@@ -156,6 +171,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "runtime_error",
             "timeout",
             "internal_error",
+            "busy",
         ],
     },
 )
@@ -189,11 +205,11 @@ def list_mcp_tools() -> list[dict[str, Any]]:
 def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
     """Call one deterministic tool and return a stable response envelope.
 
-    Each tool runs under a wall-clock timeout (see ``_tool_timeout_sec``). Timed-out
-    workers may continue in the background; clients should treat the session as
-    single-client sequential and avoid overlapping calls.
+    One call runs at a time. A second call, including one that arrives while a
+    timed-out worker is still finishing, returns ``busy``. On timeout the worker
+    is cancelled before its next actuation or flow step.
     """
-    payload = args or {}
+    payload = dict(args or {})
     dispatch = {
         "capture": _tool_capture,
         "find": _tool_find,
@@ -208,6 +224,15 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
     handler = dispatch.get(tool)
     if handler is None:
         return _response_error(tool=tool, code="unknown_tool", message=f"Unsupported tool: {tool}")
+    if not _mcp_call_lock.acquire(blocking=False):
+        return _response_error(
+            tool=tool,
+            code="busy",
+            message=(
+                "Another tool call is still running on this server. "
+                "Wait for it to finish, including a call that already returned timeout."
+            ),
+        )
 
     try:
         data, run_id, artifacts = _invoke_with_timeout(tool=tool, handler=handler, payload=payload)
@@ -235,14 +260,36 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
 
 def _tool_timeout_sec(tool: str) -> float:
     if tool == "run_flow":
-        raw = os.environ.get("OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC")
-        if raw:
-            return max(0.05, float(raw))
-        return DEFAULT_RUN_FLOW_TIMEOUT_SEC
-    raw = os.environ.get("OPENFRAME_MCP_TOOL_TIMEOUT_SEC")
-    if raw:
+        return _parse_timeout_env(
+            "OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC", default=DEFAULT_RUN_FLOW_TIMEOUT_SEC
+        )
+    return _parse_timeout_env("OPENFRAME_MCP_TOOL_TIMEOUT_SEC", default=DEFAULT_TOOL_TIMEOUT_SEC)
+
+
+def _parse_timeout_env(name: str, *, default: float) -> float:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    try:
         return max(0.05, float(raw))
-    return DEFAULT_TOOL_TIMEOUT_SEC
+    except ValueError:
+        if name not in _timeout_warnings_sent:
+            _timeout_warnings_sent.add(name)
+            print(
+                f"Open Frame: ignoring non-numeric {name}={raw!r}; using {default:g}s.",
+                file=sys.stderr,
+            )
+        return default
+
+
+def _prepare_run_id(tool: str, payload: dict[str, Any]) -> str | None:
+    """Assign the run id before the worker starts so a timeout can carry it."""
+    supplied = _optional_string(payload.get("run_id"))
+    if tool in _TOOLS_WITH_RUN_ID:
+        run_id = supplied or _default_run_id()
+        payload["run_id"] = run_id
+        return run_id
+    return supplied
 
 
 def _invoke_with_timeout(
@@ -251,24 +298,45 @@ def _invoke_with_timeout(
     handler: Any,
     payload: dict[str, Any],
 ) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
-    timeout_sec = _tool_timeout_sec(tool)
-    pool = ThreadPoolExecutor(max_workers=1)
+    """Run ``handler`` while the process-wide call lock is held.
+
+    The caller acquires ``_mcp_call_lock``. This function releases it when the
+    handler finishes, including when the caller has already returned a timeout.
+    """
+    worker_started = False
+    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="openframe-mcp")
     try:
-        future = pool.submit(handler, payload)
+        timeout_sec = _tool_timeout_sec(tool)
+        run_id = _prepare_run_id(tool, payload)
+        cancel = threading.Event()
+
+        def wrapped() -> tuple[dict[str, Any], str | None, dict[str, Any]]:
+            token = bind_tool_cancellation(cancel)
+            try:
+                return handler(payload)
+            finally:
+                reset_tool_cancellation(token)
+                _mcp_call_lock.release()
+
+        future = pool.submit(wrapped)
+        worker_started = True
         try:
             return future.result(timeout=timeout_sec)
         except FuturesTimeoutError as exc:
-            future.cancel()
-            raise MCPToolError(
-                code="timeout",
-                message=(
-                    f'Tool "{tool}" exceeded wall-clock timeout of {timeout_sec:g}s. '
-                    "Use get_run_artifacts for partial run output when available, "
-                    "and avoid overlapping MCP calls on one stdio server."
-                ),
-            ) from exc
+            # Leave the worker running so it can observe the flag and release the lock.
+            # Cancelling the future would skip that release when the thread has not started.
+            cancel.set()
+            message = (
+                f'Tool "{tool}" exceeded wall-clock timeout of {timeout_sec:g}s. '
+                "It will not actuate further. A call made before it finishes returns busy."
+            )
+            if run_id is not None:
+                message += " get_run_artifacts can read this run_id once the call has finished."
+            raise MCPToolError(code="timeout", message=message, run_id=run_id) from exc
     finally:
-        pool.shutdown(wait=False, cancel_futures=True)
+        if not worker_started:
+            _mcp_call_lock.release()
+        pool.shutdown(wait=False, cancel_futures=False)
 
 
 def _summarize_step_result(step: StepResult) -> dict[str, Any]:

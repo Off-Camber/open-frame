@@ -29,6 +29,45 @@ def test_runner_stops_on_first_failure(monkeypatch) -> None:
     assert session.results[1].success is False
 
 
+def test_runner_does_not_start_the_next_step_after_cancel(monkeypatch) -> None:
+    import threading
+
+    from openframe.act import Actuator
+    from openframe.cancel import bind_tool_cancellation, reset_tool_cancellation
+
+    flow = Flow(
+        name="demo",
+        steps=[
+            FlowStep(id="one", kind="wait", params={"ms": 0}),
+            FlowStep(id="two", kind="type", params={"text": "hi"}),
+        ],
+    )
+    frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)
+    monkeypatch.setattr("openframe.runner.screen", lambda *args, **kwargs: frame)
+    monkeypatch.setattr("openframe.runner.write_step_artifacts", lambda **kwargs: Path("runs/r1/step"))
+    typed: list[str] = []
+
+    def type_text(self, text: str, *, interval: float = 0.0) -> None:
+        _ = self, interval
+        typed.append(text)
+
+    def wait_ms(self, milliseconds: int) -> None:
+        _ = self, milliseconds
+        event.set()
+
+    event = threading.Event()
+    monkeypatch.setattr(Actuator, "type_text", type_text)
+    monkeypatch.setattr(Actuator, "wait_ms", wait_ms)
+    token = bind_tool_cancellation(event)
+    try:
+        session = FlowRunner(dry_run=False).run(flow, run_id="r1")
+    finally:
+        reset_tool_cancellation(token)
+
+    assert [item.step_id for item in session.results] == ["one"]
+    assert typed == []
+
+
 def test_runner_completes_simple_wait_flow(monkeypatch) -> None:
     flow = Flow(name="demo", steps=[FlowStep(id="one", kind="wait", params={"ms": 0})])
     frame = Frame(width=1, height=1, scale_factor=1.0, source="screen", image_path=None)

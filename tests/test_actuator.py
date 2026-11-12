@@ -12,6 +12,25 @@ def _target() -> Target:
     return Target(x=10, y=20, width=100, height=40, confidence=0.9, source="test")
 
 
+def test_click_point_does_not_load_pyautogui_when_cancelled(monkeypatch) -> None:
+    import threading
+
+    from openframe.cancel import bind_tool_cancellation, reset_tool_cancellation
+
+    loaded: list[str] = []
+    monkeypatch.setattr("openframe.act.core._load_pyautogui", lambda: loaded.append("pyautogui"))
+    event = threading.Event()
+    event.set()
+    token = bind_tool_cancellation(event)
+    try:
+        with pytest.raises(RuntimeError, match="refusing to actuate"):
+            Actuator(dry_run=False).click_point(1, 2)
+    finally:
+        reset_tool_cancellation(token)
+
+    assert loaded == []
+
+
 def test_point_for_target_center_and_corners() -> None:
     actuator = Actuator(dry_run=True)
     target = _target()
