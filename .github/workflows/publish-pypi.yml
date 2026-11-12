@@ -9,11 +9,6 @@ on:
         description: Tag to publish, for example v0.2.2
         required: true
         type: string
-      republish_existing:
-        description: Rebuild that tag and upload with skip-existing. Skips lint and tests.
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   tag:
@@ -57,7 +52,6 @@ jobs:
 
   test:
     needs: tag
-    if: github.event.inputs.republish_existing != 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -93,7 +87,6 @@ jobs:
 
   publish:
     needs: [tag, test]
-    if: always() && needs.tag.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
