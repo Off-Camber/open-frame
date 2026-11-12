@@ -15,13 +15,9 @@ fi
 mkdir -p "${OUT_DIR}"
 OUT_DIR="$(cd "${OUT_DIR}" && pwd)"
 
-if [[ -x "${ROOT}/.venv311/bin/python" ]]; then
-  PYTHON_BIN="${ROOT}/.venv311/bin/python"
-elif [[ -x "${ROOT}/.venv/bin/python" ]]; then
-  PYTHON_BIN="${ROOT}/.venv/bin/python"
-else
-  PYTHON_BIN="python3"
-fi
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON_BIN="$(openframe_python_bin "${ROOT}")"
 
 RUNNER=("${PYTHON_BIN}" -m openframe.cli)
 GIT_SHA="$(git -C "${ROOT}" rev-parse HEAD)"
@@ -464,6 +460,8 @@ import os
 import sys
 from pathlib import Path
 
+from openframe.integrations.mcp.adapter import MCP_TOOLS
+
 try:
     from mcp import ClientSession
     from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -472,15 +470,7 @@ except ImportError as exc:
 
 out_dir = Path(os.environ["OF_LIVE_GATE_OUT"])
 python_bin = os.environ["OF_PYTHON_BIN"]
-expected = {
-    "capture",
-    "find",
-    "click",
-    "type",
-    "key",
-    "run_flow",
-    "get_run_artifacts",
-}
+expected = {item["name"] for item in MCP_TOOLS}
 server = StdioServerParameters(
     command=python_bin,
     args=["-m", "openframe.cli", "mcp", "serve"],

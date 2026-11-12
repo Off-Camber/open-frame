@@ -5,10 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-PYTHON="${ROOT}/.venv311/bin/python"
-if [[ ! -x "${PYTHON}" ]]; then
-  PYTHON="$(command -v python3)"
-fi
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON="$(openframe_python_bin "${ROOT}")"
 
 PORT="${OPENFRAME_HERO_PORT:-8765}"
 DEMO_DIR="${ROOT}/examples/demo/invoice-approve"

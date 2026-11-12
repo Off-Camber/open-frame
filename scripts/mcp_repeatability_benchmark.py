@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import statistics
 import subprocess
 import sys
@@ -33,16 +34,19 @@ class RunSample:
 
 
 def _resolve_runner() -> list[str]:
-    if _is_executable_on_path("open-frame"):
-        return ["open-frame"]
-    if Path(".venv311/bin/python").exists():
-        return [".venv311/bin/python", "-m", "openframe.cli"]
-    return [sys.executable, "-m", "openframe.cli"]
+    return [_resolve_python(), "-m", "openframe.cli"]
 
 
-def _is_executable_on_path(name: str) -> bool:
-    completed = subprocess.run(["which", name], check=False, capture_output=True, text=True)
-    return completed.returncode == 0
+def _resolve_python() -> str:
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if virtual_env:
+        candidate = Path(virtual_env) / "bin" / "python"
+        if os.access(candidate, os.X_OK):
+            return str(candidate)
+    candidate = Path(__file__).resolve().parents[1] / ".venv" / "bin" / "python"
+    if os.access(candidate, os.X_OK):
+        return str(candidate)
+    return sys.executable
 
 
 def _call_run_flow(

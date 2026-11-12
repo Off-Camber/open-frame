@@ -54,19 +54,19 @@ print([r.ok for r in results])
 List available MCP tools:
 
 ```bash
-.venv311/bin/python -m openframe.cli mcp list-tools --json
+.venv/bin/python -m openframe.cli mcp list-tools --json
 ```
 
 Call a tool:
 
 ```bash
-.venv311/bin/python -m openframe.cli mcp call find --args-json '{"query":"New"}'
+.venv/bin/python -m openframe.cli mcp call find --args-json '{"query":"New"}'
 ```
 
 Run a flow via MCP:
 
 ```bash
-.venv311/bin/python -m openframe.cli mcp call run_flow --args-json '{
+.venv/bin/python -m openframe.cli mcp call run_flow --args-json '{
   "flow_path": "examples/flows/outlook-new-email/flow.yaml",
   "dry_run": true,
   "run_id": "compose-dry-1"
@@ -76,7 +76,7 @@ Run a flow via MCP:
 If `run_flow` returns `ok: false`, inspect artifacts:
 
 ```bash
-.venv311/bin/python -m openframe.cli mcp call get_run_artifacts --args-json '{"run_id":"compose-dry-1"}'
+.venv/bin/python -m openframe.cli mcp call get_run_artifacts --args-json '{"run_id":"compose-dry-1"}'
 ```
 
 ## MCP tool set (v0.2 checkpoint)

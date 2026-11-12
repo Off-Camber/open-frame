@@ -8,7 +8,7 @@ changing release-status language or package version.
 GitHub Actions runs on Python **3.11** and **3.12**:
 
 - `ruff check`
-- `pytest` with `.[dev,ocr,flow]` (plus system `tesseract-ocr` on Ubuntu)
+- `pytest` with `.[dev,ocr,flow,mcp]` (plus system `tesseract-ocr` on Ubuntu)
 - `python -m build` and `twine check`
 
 ## Local macOS live gate
@@ -58,7 +58,7 @@ Outputs:
 
 Before a status/version decision, also record:
 
-1. Lint / unit / coverage / build / twine on the candidate SHA
+1. Lint / unit / build / twine on the candidate SHA
 2. MCP dry-run repeatability ≥ 95% on
    `examples/flows/mcp-dry-run-wait/flow.yaml` and
    `examples/flows/mcp-dry-run-actions/flow.yaml`

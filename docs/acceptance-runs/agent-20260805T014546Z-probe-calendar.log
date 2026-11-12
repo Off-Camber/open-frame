@@ -1,0 +1,4 @@
+success=True stop=finished
+final: No, the phrase 'Calendar' does not appear on the screen. The search found 0 matches for "Calendar".
+01. capture({}) -> ok
+02. find({'query': 'Calendar', 'frame_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-n60l075u.png'}) -> ok

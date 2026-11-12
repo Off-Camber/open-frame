@@ -3,8 +3,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON_BIN="$(openframe_python_bin "${ROOT}")"
 PAGE_URI="$(
-  python3 - <<PY
+  "${PYTHON_BIN}" - <<PY
 from pathlib import Path
 print((Path("${ROOT}") / "examples/demo/scroll-probe/index.html").resolve().as_uri())
 PY
@@ -13,7 +16,7 @@ FLOW_SRC="${ROOT}/examples/flows/scroll-until-found/flow.yaml"
 TMP="$(mktemp -t open-frame-scroll-XXXXXX.yaml)"
 trap 'rm -f "${TMP}"' EXIT
 
-python3 - <<PY
+"${PYTHON_BIN}" - <<PY
 from pathlib import Path
 src = Path("${FLOW_SRC}").read_text(encoding="utf-8")
 src = src.replace(
@@ -23,4 +26,4 @@ src = src.replace(
 Path("${TMP}").write_text(src, encoding="utf-8")
 PY
 
-exec open-frame run "${TMP}" "$@"
+exec "${PYTHON_BIN}" -m openframe.cli run "${TMP}" "$@"

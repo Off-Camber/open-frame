@@ -1,0 +1,4 @@
+success=True stop=finished
+final: Yes, the phrase **'Send'** appears on the screen. It was found at coordinates (1030, 1948) with a confidence score of 0.78 using OCR detection.
+01. capture({}) -> ok
+02. find({'query': 'Send', 'frame_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-zw1j1e7z.png'}) -> ok
