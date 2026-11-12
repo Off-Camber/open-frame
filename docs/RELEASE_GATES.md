@@ -14,6 +14,19 @@ GitHub Actions runs on Python **3.11** and **3.12** (Ubuntu) and Python **3.11**
 
 The macOS job runs the unit tests and `open-frame capture`. Hosted runners can take a screenshot. The permissioned live gate stays local.
 
+## Release checklist
+
+Fill this in for the exact commit being tagged. The tag must be `v` plus the `pyproject.toml` version, and it must point at this SHA. The publish workflow rejects any other tag before it builds or uploads.
+
+| Field | Record |
+|---|---|
+| Commit SHA | |
+| Tag | |
+| Live gate | pass or fail, date, macOS version |
+| Live gate evidence | path or link |
+| Strict app matrix | pass count on the same SHA |
+| CI | Ubuntu 3.11, Ubuntu 3.12, and macOS green on that SHA |
+
 ## Local macOS live gate
 
 Permission-dependent capture, accessibility, safe click, and OCR calibration

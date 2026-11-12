@@ -9,8 +9,8 @@ This project is packaged as `off-camber-open-frame`.
    - PyPI project settings -> Publishing -> Add GitHub publisher
    - Owner/repo: `Off-Camber/open-frame`
    - Workflow: `publish-pypi.yml`
-   - Environment (optional): leave empty unless your org requires one
-3. Confirm `pyproject.toml` version is correct for the release.
+   - Environment: `pypi` (must match the workflow; an empty environment will not match the token)
+3. Confirm `pyproject.toml` version is correct for the release. The tag must be `v` plus that version.
 
 ## Local preflight checks
 
@@ -27,12 +27,13 @@ python -m twine check dist/*
 
 Preferred path:
 
-1. Create and publish a GitHub Release for the target tag (for example `v0.1.1`).
-2. The `Publish to PyPI` workflow runs automatically and uploads artifacts.
+1. Record the release checklist in [RELEASE_GATES.md](RELEASE_GATES.md) for the exact commit, including the local live gate result.
+2. Create and publish a GitHub Release for the tag `v` plus the `pyproject.toml` version (for example `v0.2.2`).
+3. The `Publish to PyPI` workflow checks the tag, runs lint and tests, then uploads. The upload job uses the GitHub environment `pypi`, which is meant to wait for a reviewer.
 
 Manual path:
 
-- Run the `Publish to PyPI` workflow from the Actions tab (`workflow_dispatch`).
+- Run the `Publish to PyPI` workflow from the Actions tab and pass the same tag. A tag that does not match `pyproject.toml` fails before the build.
 
 ## Verify release
 
@@ -57,7 +58,9 @@ If publish fails, check these first:
 - **403 / unauthorized publisher**: verify PyPI trusted-publisher settings exactly match:
   - owner/repo: `Off-Camber/open-frame`
   - workflow file: `publish-pypi.yml`
+  - environment: `pypi`
   - trigger source: release publish or manual dispatch from this repo
+- **Tag check failed**: the tag is not `v` plus `project.version` on the checked-out commit. Nothing is built or uploaded.
 - **OIDC token/permission errors**: confirm workflow job permissions include `id-token: write`.
 - **Version already exists**: bump `project.version` in `pyproject.toml`; PyPI does not allow overwrite.
 - **No release trigger fired**: confirm the GitHub Release was published for the target tag.
