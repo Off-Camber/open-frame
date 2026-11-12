@@ -8,11 +8,11 @@ changing release-status language or package version.
 GitHub Actions runs on Python **3.11** and **3.12** (Ubuntu) and Python **3.11** (`macos-latest`):
 
 - `ruff check` and `ruff format --check`
-- `pytest --cov` with `.[dev,ocr,flow,mcp,template]` (plus system `tesseract-ocr` on Ubuntu; Tesseract from Homebrew on macOS)
+- `pytest --cov=openframe --cov-fail-under=80` with `.[dev,ocr,flow,mcp,template]` (plus system `tesseract-ocr` on Ubuntu; Tesseract from Homebrew on macOS)
 - `python -m build` and `twine check`
 - Wheel install smoke test on Ubuntu 3.11: a clean venv installs the built wheel, `open-frame mcp list-tools --json` lists the tools, and the installed version matches `pyproject.toml`
 
-The macOS job probes `screencapture` and runs the unit tests. It does not run the permissioned live gate.
+The macOS job runs the unit tests and `open-frame capture`. Hosted runners can take a screenshot. The permissioned live gate stays local.
 
 ## Local macOS live gate
 

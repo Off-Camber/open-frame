@@ -36,7 +36,7 @@ jobs:
         run: ruff format --check .
 
       - name: Run tests
-        run: pytest --cov=openframe --cov-report=term-missing
+        run: pytest --cov=openframe --cov-report=term-missing --cov-fail-under=80
 
       - name: Build package
         run: python -m build --sdist --wheel
@@ -97,36 +97,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,ocr,flow,mcp,template]"
 
-      - name: Probe screen capture
-        run: |
-          python - <<'PY'
-          import subprocess
-          from pathlib import Path
-
-          dest = Path("/tmp/open-frame-ci-probe.png")
-          dest.unlink(missing_ok=True)
-          try:
-              completed = subprocess.run(
-                  ["screencapture", "-x", str(dest)],
-                  timeout=20,
-                  capture_output=True,
-                  text=True,
-              )
-          except subprocess.TimeoutExpired:
-              print("SCREEN_CAPTURE=unavailable reason=timed out after 20s")
-              raise SystemExit(0)
-          size = dest.stat().st_size if dest.is_file() else 0
-          print(f"exit={completed.returncode}")
-          if completed.stdout:
-              print(completed.stdout)
-          if completed.stderr:
-              print(completed.stderr)
-          print(f"bytes={size}")
-          if completed.returncode == 0 and size > 0:
-              print("SCREEN_CAPTURE=ok")
-          else:
-              print("SCREEN_CAPTURE=unavailable")
-          PY
-
       - name: Run tests
         run: pytest
+
+      - name: Capture the screen
+        run: |
+          open-frame capture --out /tmp/open-frame-ci-screen.png
+          python - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+
+          path = Path("/tmp/open-frame-ci-screen.png")
+          raw = path.read_bytes()
+          if raw[:8] != b"\x89PNG\r\n\x1a\n":
+              raise SystemExit("capture did not write a PNG")
+          width, height = struct.unpack(">II", raw[16:24])
+          sidecar = json.loads(Path(str(path) + ".openframe.json").read_text())
+          print(
+              f"SCREEN_CAPTURE=ok bytes={len(raw)} width={width} height={height} "
+              f"scale={sidecar.get('scale_factor')}"
+          )
+          if width <= 0 or height <= 0:
+              raise SystemExit("capture PNG has no dimensions")
+          PY
