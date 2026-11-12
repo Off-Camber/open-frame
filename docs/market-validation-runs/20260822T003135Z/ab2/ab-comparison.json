@@ -1,0 +1,40 @@
+{
+  "pair": "ab2",
+  "thesis": "capability",
+  "verdict": {
+    "kind": "capability",
+    "summary": "Open Frame required: hybrid met the pass threshold; browser-only did not pass. Not an efficiency claim."
+  },
+  "arms": {
+    "browser-only": {
+      "n": 3,
+      "n_blocked": 0,
+      "n_pass": 0,
+      "n_fail": 3,
+      "pass_rate": 0.0,
+      "median_wall_seconds": 6.721,
+      "median_total_tokens": 10005.0,
+      "median_cost_usd": 0.00426465,
+      "median_steps": 2.0,
+      "blocked_notes": []
+    },
+    "hybrid": {
+      "n": 3,
+      "n_blocked": 0,
+      "n_pass": 3,
+      "n_fail": 0,
+      "pass_rate": 1.0,
+      "median_wall_seconds": 16.942,
+      "median_total_tokens": 22092.0,
+      "median_cost_usd": 0.00925245,
+      "median_steps": 4.0,
+      "blocked_notes": []
+    }
+  },
+  "delta_hybrid_minus_browser": {
+    "wall_seconds": 10.221,
+    "total_tokens": 12087.0,
+    "cost_usd": 0.004987800000000001,
+    "steps": 2.0
+  }
+}

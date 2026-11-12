@@ -16,13 +16,9 @@ fi
 mkdir -p "${OUT_DIR}"
 OUT_DIR="$(cd "${OUT_DIR}" && pwd)"
 
-if [[ -x "${ROOT}/.venv311/bin/python" ]]; then
-  PYTHON_BIN="${ROOT}/.venv311/bin/python"
-elif [[ -x "${ROOT}/.venv/bin/python" ]]; then
-  PYTHON_BIN="${ROOT}/.venv/bin/python"
-else
-  PYTHON_BIN="python3"
-fi
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON_BIN="$(openframe_python_bin "${ROOT}")"
 
 RUNNER=("${PYTHON_BIN}" -m openframe.cli)
 GIT_SHA="$(git -C "${ROOT}" rev-parse HEAD)"

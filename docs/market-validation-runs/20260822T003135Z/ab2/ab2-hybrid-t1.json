@@ -1,0 +1,929 @@
+{
+  "scenario": {
+    "id": "ab2-hybrid-t1",
+    "name": "Capability \u2014 native Notes find",
+    "profiles": [
+      "P1",
+      "P2"
+    ],
+    "mode": "hybrid",
+    "max_steps": 14,
+    "prompt": "Complete BOTH parts. 1) Open {{handoff_html}} and confirm the heading mentions \"Open Frame handoff\". 2) Find the native Notes app chrome: call desktop_capture then desktop_find with query \"Notes\". Do not click. Report both the page heading and the Open Frame find result.\nAvailable custom tools include desktop_capture and desktop_find \u2014 you MUST call them for part 2 (do not claim they are missing).",
+    "setup": {
+      "prepare": "handoff_html",
+      "app": "Notes"
+    },
+    "pass_checks": [
+      {
+        "type": "envelope_ok",
+        "tool": "desktop_find"
+      },
+      {
+        "type": "count_gte",
+        "tool": "desktop_find",
+        "value": 1
+      },
+      {
+        "type": "agent_final_regex",
+        "pattern": "handoff|Notes|Open Frame"
+      }
+    ],
+    "thesis": "capability",
+    "arm": "hybrid",
+    "pair": "ab2"
+  },
+  "result": {
+    "status": "pass",
+    "notes": "all checks passed",
+    "envelopes": [
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:13.104442+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-y1xqu3_a.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:21.620502+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-j_3_7v1m.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:32.373790+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-yungd01f.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:34.862540+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-9d9ch22_.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:43.331594+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-_xdk_bpx.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:45.577595+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-an7psp44.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:33:54.808108+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-n84emiep.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:34:04.458965+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ldp9prdl.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:34:13.430071+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-sttc7z_u.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:34:22.179974+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-dyu7mxlf.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_capture",
+        "mcp_tool": "capture",
+        "envelope": {
+          "ok": true,
+          "tool": "capture",
+          "run_id": null,
+          "data": {
+            "frame": {
+              "width": 3420,
+              "height": 2214,
+              "scale_factor": 2.0,
+              "source": "screen:1",
+              "captured_at": "2026-08-22T00:34:32.225441+00:00",
+              "image_path": "/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-s5rcryuv.png",
+              "metadata": {
+                "backend": "screencapture",
+                "display_index": 1,
+                "physical_width": 3420,
+                "physical_height": 2214
+              }
+            },
+            "mode": "screen"
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      },
+      {
+        "step_tool": "desktop_find",
+        "mcp_tool": "find",
+        "envelope": {
+          "ok": true,
+          "tool": "find",
+          "run_id": null,
+          "data": {
+            "query": "Notes",
+            "strategy": "first",
+            "source": "screen:1",
+            "count": 4,
+            "targets": [
+              {
+                "x": 355,
+                "y": 209,
+                "width": 1000,
+                "height": 660,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXWindow",
+                "text": "Notes \u2013 6 notes"
+              },
+              {
+                "x": 373,
+                "y": 280,
+                "width": 200,
+                "height": 32,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXCell",
+                "text": "Notes"
+              },
+              {
+                "x": 582,
+                "y": 260,
+                "width": 282,
+                "height": 610,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXTable",
+                "text": "My Notes as List"
+              },
+              {
+                "x": 587,
+                "y": 209,
+                "width": 228,
+                "height": 52,
+                "confidence": 0.95,
+                "source": "a11y:macos",
+                "coordinate_space": "logical",
+                "label": "AXStaticText",
+                "text": "Notes"
+              }
+            ]
+          },
+          "error": null,
+          "artifacts": {}
+        }
+      }
+    ],
+    "agent_final": "PART 1 - Page Heading Confirmed:\nThe page at http://127.0.0.1:50552/handoff.html displays the heading: \"Open Frame handoff\"\nFull descriptive text: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\n\nPART 2 - Open Frame Desktop Operations:\nThe following desktop tools were successfully executed:\n1. desktop_capture: Result - openframe:capture ok\n2. desktop_find with query \"Notes\": Result - openframe:find ok\n\nBoth parts of the task have been completed. Part 1 confirms the page heading \"Open Frame handoff\" is present. Part 2 confirms the Open Frame tools (desktop_capture and desktop_find) were successfully called to locate the native Notes app on the desktop without clicking.",
+    "history": "AgentHistoryList(all_results=[ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='Found initial url and automatically loaded it. Navigated to http://127.0.0.1:50552/handoff.html', extracted_content='\ud83d\udd17 Navigated to http://127.0.0.1:50552/handoff.html', include_extracted_content_only_once=False, metadata=None, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:13.104442+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-y1xqu3_a.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:13.104442+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-y1xqu3_a.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:21.620502+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-j_3_7v1m.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:21.620502+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-j_3_7v1m.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:32.373790+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-yungd01f.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:32.373790+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-yungd01f.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:34.862540+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-9d9ch22_.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:34.862540+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-9d9ch22_.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:43.331594+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-_xdk_bpx.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:43.331594+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-_xdk_bpx.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:45.577595+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-an7psp44.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:45.577595+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-an7psp44.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:33:54.808108+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-n84emiep.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:33:54.808108+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-n84emiep.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:34:04.458965+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ldp9prdl.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:34:04.458965+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-ldp9prdl.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:34:13.430071+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-sttc7z_u.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:34:13.430071+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-sttc7z_u.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:34:22.179974+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-dyu7mxlf.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:34:22.179974+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-dyu7mxlf.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:capture ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"capture\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"frame\": {\\n      \"width\": 3420,\\n      \"height\": 2214,\\n      \"scale_factor\": 2.0,\\n      \"source\": \"screen:1\",\\n      \"captured_at\": \"2026-08-22T00:34:32.225441+00:00\",\\n      \"image_path\": \"/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-s5rcryuv.png\",\\n      \"metadata\": {\\n        \"backend\": \"screencapture\",\\n        \"display_index\": 1,\\n        \"physical_width\": 3420,\\n        \"physical_height\": 2214\\n      }\\n    },\\n    \"mode\": \"screen\"\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'capture', 'run_id': None, 'data': {'frame': {'width': 3420, 'height': 2214, 'scale_factor': 2.0, 'source': 'screen:1', 'captured_at': '2026-08-22T00:34:32.225441+00:00', 'image_path': '/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/openframe-s5rcryuv.png', 'metadata': {'backend': 'screencapture', 'display_index': 1, 'physical_width': 3420, 'physical_height': 2214}}, 'mode': 'screen'}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=False, success=None, judgement=None, error=None, attachments=None, images=None, long_term_memory='openframe:find ok', extracted_content='{\\n  \"ok\": true,\\n  \"tool\": \"find\",\\n  \"run_id\": null,\\n  \"data\": {\\n    \"query\": \"Notes\",\\n    \"strategy\": \"first\",\\n    \"source\": \"screen:1\",\\n    \"count\": 4,\\n    \"targets\": [\\n      {\\n        \"x\": 355,\\n        \"y\": 209,\\n        \"width\": 1000,\\n        \"height\": 660,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXWindow\",\\n        \"text\": \"Notes \\\\u2013 6 notes\"\\n      },\\n      {\\n        \"x\": 373,\\n        \"y\": 280,\\n        \"width\": 200,\\n        \"height\": 32,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXCell\",\\n        \"text\": \"Notes\"\\n      },\\n      {\\n        \"x\": 582,\\n        \"y\": 260,\\n        \"width\": 282,\\n        \"height\": 610,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXTable\",\\n        \"text\": \"My Notes as List\"\\n      },\\n      {\\n        \"x\": 587,\\n        \"y\": 209,\\n        \"width\": 228,\\n        \"height\": 52,\\n        \"confidence\": 0.95,\\n        \"source\": \"a11y:macos\",\\n        \"coordinate_space\": \"logical\",\\n        \"label\": \"AXStaticText\",\\n        \"text\": \"Notes\"\\n      }\\n    ]\\n  },\\n  \"error\": null,\\n  \"artifacts\": {}\\n}', include_extracted_content_only_once=False, metadata={'openframe': {'ok': True, 'tool': 'find', 'run_id': None, 'data': {'query': 'Notes', 'strategy': 'first', 'source': 'screen:1', 'count': 4, 'targets': [{'x': 355, 'y': 209, 'width': 1000, 'height': 660, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXWindow', 'text': 'Notes \u2013 6 notes'}, {'x': 373, 'y': 280, 'width': 200, 'height': 32, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXCell', 'text': 'Notes'}, {'x': 582, 'y': 260, 'width': 282, 'height': 610, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXTable', 'text': 'My Notes as List'}, {'x': 587, 'y': 209, 'width': 228, 'height': 52, 'confidence': 0.95, 'source': 'a11y:macos', 'coordinate_space': 'logical', 'label': 'AXStaticText', 'text': 'Notes'}]}, 'error': None, 'artifacts': {}}}, include_in_memory=False), ActionResult(is_done=True, success=True, judgement=None, error=None, attachments=[], images=None, long_term_memory='Task completed: True - PART 1 - Page Heading Confirmed:\\nThe page at http://127.0.0.1:50552/handoff.html displays the headin - 622 more characters', extracted_content='PART 1 - Page Heading Confirmed:\\nThe page at http://127.0.0.1:50552/handoff.html displays the heading: \"Open Frame handoff\"\\nFull descriptive text: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\nPART 2 - Open Frame Desktop Operations:\\nThe following desktop tools were successfully executed:\\n1. desktop_capture: Result - openframe:capture ok\\n2. desktop_find with query \"Notes\": Result - openframe:find ok\\n\\nBoth parts of the task have been completed. Part 1 confirms the page heading \"Open Frame handoff\" is present. Part 2 confirms the Open Frame tools (desktop_capture and desktop_find) were successfully called to locate the native Notes app on the desktop without clicking.', include_extracted_content_only_once=False, metadata=None, include_in_memory=False)], all_model_outputs=[{'navigate': {'url': 'http://127.0.0.1:50552/handoff.html', 'new_tab': False}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'desktop_capture': {'mode': 'screen'}, 'interacted_element': None}, {'desktop_find': {'query': 'Notes', 'strategy': 'first'}, 'interacted_element': None}, {'done': {'text': 'PART 1 - Page Heading Confirmed:\\nThe page at http://127.0.0.1:50552/handoff.html displays the heading: \"Open Frame handoff\"\\nFull descriptive text: \"Hybrid market-validation fixture \u2014 browser-use reads this page; Open Frame finds native UI.\"\\n\\nPART 2 - Open Frame Desktop Operations:\\nThe following desktop tools were successfully executed:\\n1. desktop_capture: Result - openframe:capture ok\\n2. desktop_find with query \"Notes\": Result - openframe:find ok\\n\\nBoth parts of the task have been completed. Part 1 confirms the page heading \"Open Frame handoff\" is present. Part 2 confirms the Open Frame tools (desktop_capture and desktop_find) were successfully called to locate the native Notes app on the desktop without clicking.', 'success': True, 'files_to_display': []}, 'interacted_element': None}])",
+    "metrics": {
+      "wall_seconds": 94.151,
+      "steps": 14,
+      "model": "claude-haiku-4-5-20251001",
+      "prompt_tokens": 93452,
+      "completion_tokens": 3111,
+      "total_tokens": 96563,
+      "cached_tokens": 92287,
+      "cost_usd": 0.0494512,
+      "usage_complete": true
+    }
+  }
+}

@@ -15,7 +15,7 @@ source .venv/bin/activate
 3. Install in editable mode:
 
 ```bash
-pip install -e ".[dev,ocr,act,flow]"
+pip install -e ".[dev,ocr,act,flow,mcp,template]"
 ```
 
 4. Use CLI via Python module if `open-frame` is not on PATH:
@@ -66,6 +66,8 @@ Without these permissions, capture/recognize/act steps may fail or return empty 
 - OCR support: install `.[ocr]` and Tesseract binary on macOS.
 - Input actions: install `.[act]`.
 - YAML flow loading: install `.[flow]`.
+- MCP server: install `.[mcp]`.
+- Template matching: install `.[template]`.
 
 ## Test guidance
 

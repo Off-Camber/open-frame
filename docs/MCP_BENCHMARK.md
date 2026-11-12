@@ -16,7 +16,7 @@ It is the evidence task for Action Plan checkpoint item `C.8`.
 Dry-run on deterministic MCP gate flows:
 
 ```bash
-.venv311/bin/python scripts/mcp_repeatability_benchmark.py \
+.venv/bin/python scripts/mcp_repeatability_benchmark.py \
   --flow examples/flows/mcp-dry-run-wait/flow.yaml \
   --flow examples/flows/mcp-dry-run-actions/flow.yaml \
   --repetitions 20 \
@@ -26,7 +26,7 @@ Dry-run on deterministic MCP gate flows:
 Dry-run on one app-dependent flow:
 
 ```bash
-.venv311/bin/python scripts/mcp_repeatability_benchmark.py \
+.venv/bin/python scripts/mcp_repeatability_benchmark.py \
   --flow examples/flows/outlook-new-email/flow.yaml \
   --repetitions 5 \
   --mode dry-run
@@ -35,7 +35,7 @@ Dry-run on one app-dependent flow:
 Dry-run on multiple representative flows:
 
 ```bash
-.venv311/bin/python scripts/mcp_repeatability_benchmark.py \
+.venv/bin/python scripts/mcp_repeatability_benchmark.py \
   --flow examples/flows/outlook-new-email/flow.yaml \
   --flow examples/flows/outlook-browser-outlook/flow.yaml \
   --flow examples/flows/outlook-m365-email/flow.yaml \
@@ -46,7 +46,7 @@ Dry-run on multiple representative flows:
 Live run (real actions):
 
 ```bash
-.venv311/bin/python scripts/mcp_repeatability_benchmark.py \
+.venv/bin/python scripts/mcp_repeatability_benchmark.py \
   --flow examples/flows/outlook-new-email/flow.yaml \
   --repetitions 3 \
   --mode live

@@ -7,11 +7,10 @@ SUMMARY_PATH="${OUT_DIR}/agent-acceptance-${STAMP}.md"
 
 mkdir -p "${OUT_DIR}"
 
-if [[ -x ".venv311/bin/python" ]]; then
-  PYTHON_BIN=".venv311/bin/python"
-else
-  PYTHON_BIN="python3"
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON_BIN="$(openframe_python_bin "${ROOT}")"
 
 MODEL="${OPENFRAME_AGENT_MODEL:-claude-haiku-4-5-20251001}"
 if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then

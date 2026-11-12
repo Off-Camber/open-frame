@@ -29,14 +29,11 @@ if [[ "${MODE}" == "dry-run" ]]; then
   FLAGS+=(--dry-run)
 fi
 
-RUNNER=()
-if command -v open-frame >/dev/null 2>&1; then
-  RUNNER=(open-frame)
-elif [[ -x ".venv311/bin/python" ]]; then
-  RUNNER=(".venv311/bin/python" -m openframe.cli)
-else
-  RUNNER=(python -m openframe.cli)
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=python_bin.sh
+source "${ROOT}/scripts/python_bin.sh"
+PYTHON_BIN="$(openframe_python_bin "${ROOT}")"
+RUNNER=("${PYTHON_BIN}" -m openframe.cli)
 
 for idx in 1 2 3; do
   RUN_ID="accept-${STAMP}-${idx}"
