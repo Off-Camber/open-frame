@@ -22,6 +22,7 @@ from openframe.recognize.defaults import build_default_locator, recognition_opti
 from openframe.recognize.locator import Locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
+from openframe.runs import lookup_run_directory, run_directory
 from openframe.types import Frame, StepResult
 from openframe.verify import write_step_artifacts
 
@@ -539,7 +540,7 @@ def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, di
         "steps": steps_payload,
         "step_details": "full" if include_step_details else "summary",
     }
-    artifacts = {"run_dir": f"runs/{run_id}"}
+    artifacts = {"run_dir": str(run_directory(run_id))}
     if failed:
         raise MCPToolError(
             code="flow_failed",
@@ -555,8 +556,8 @@ def _tool_get_run_artifacts(
     args: dict[str, Any],
 ) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     run_id = _required_string(args, "run_id")
-    run_dir = Path("runs") / run_id
-    if not run_dir.exists():
+    run_dir = lookup_run_directory(run_id)
+    if run_dir is None:
         raise MCPToolError(
             code="not_found", message=f"Run artifacts not found for run_id {run_id}.", run_id=run_id
         )

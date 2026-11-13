@@ -93,6 +93,10 @@ EOF
 open-frame run hello.yaml --dry-run --json
 ```
 
+Artifacts for that run are written to an absolute directory: `~/.openframe/runs`,
+or `OPENFRAME_RUNS_DIR` when that variable is set. Remove old runs with
+`open-frame runs prune --older-than 7d --keep 20`.
+
 If `open-frame` is not on your PATH yet:
 
 ```bash

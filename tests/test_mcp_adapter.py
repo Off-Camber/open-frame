@@ -72,7 +72,9 @@ def test_run_flow_failure_maps_to_flow_failed(monkeypatch) -> None:
     assert result["ok"] is False
     assert result["error"]["code"] == "flow_failed"
     assert result["run_id"] == "r1"
-    assert result["artifacts"]["run_dir"].endswith("runs/r1")
+    run_dir = Path(result["artifacts"]["run_dir"])
+    assert run_dir.is_absolute()
+    assert run_dir.name == "r1"
     assert result["data"]["step_details"] == "summary"
     assert result["data"]["steps"][0] == {
         "step_id": "one",
@@ -220,11 +222,15 @@ def test_get_run_artifacts_lists_step_files(tmp_path: Path, monkeypatch) -> None
     run_dir.mkdir(parents=True)
     (run_dir / "step.json").write_text("{}", encoding="utf-8")
     (run_dir / "before.png").write_text("png", encoding="utf-8")
-    monkeypatch.chdir(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
 
     result = call_mcp_tool("get_run_artifacts", {"run_id": "r1"})
     assert result["ok"] is True
     assert result["data"]["run_id"] == "r1"
+    assert Path(result["data"]["run_dir"]) == (tmp_path / "runs" / "r1").resolve()
+    assert Path(result["data"]["steps"][0]["step_dir"]).is_absolute()
     assert result["data"]["steps"][0]["step_id"] == "step-a"
     assert "step.json" in result["data"]["steps"][0]["files"]
     assert set(result.keys()) == {"ok", "tool", "run_id", "data", "error", "artifacts"}

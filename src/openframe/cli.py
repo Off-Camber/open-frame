@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openframe import __version__
@@ -30,6 +31,7 @@ from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
 from openframe.runner import FlowRunner
+from openframe.runs import prune_runs
 from openframe.types import Frame
 from openframe.verify import (
     ScreenshotDiffVerifier,
@@ -39,6 +41,19 @@ from openframe.verify import (
     VerifyResult,
     write_step_artifacts,
 )
+
+
+def _parse_age(value: str) -> timedelta:
+    match = re.fullmatch(r"(\d+)([dhm])", value.strip())
+    if match is None:
+        raise argparse.ArgumentTypeError("use a duration like 7d, 12h, or 30m")
+    amount = int(match.group(1))
+    unit = match.group(2)
+    if unit == "d":
+        return timedelta(days=amount)
+    if unit == "h":
+        return timedelta(hours=amount)
+    return timedelta(minutes=amount)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -152,6 +167,23 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_subparsers.add_parser(
         "serve",
         help="Run the MCP stdio server (requires the mcp extra)",
+    )
+
+    runs_parser = subparsers.add_parser("runs", help="Manage saved run artifacts")
+    runs_subparsers = runs_parser.add_subparsers(dest="runs_command", required=True)
+    prune_parser = runs_subparsers.add_parser(
+        "prune",
+        help="Delete run directories by age and by count",
+    )
+    prune_parser.add_argument(
+        "--older-than",
+        type=_parse_age,
+        help="Delete runs older than this duration, for example 7d, 12h, or 30m",
+    )
+    prune_parser.add_argument(
+        "--keep",
+        type=int,
+        help="After the age filter, keep this many of the newest runs",
     )
 
     doctor_parser = subparsers.add_parser(
@@ -431,6 +463,19 @@ def main() -> int:
 
         parser.error("Unknown mcp command")
         return 2
+
+    if args.command == "runs":
+        if args.runs_command != "prune":
+            parser.error("Unknown runs command")
+        if args.older_than is None and args.keep is None:
+            parser.error("runs prune requires --older-than, --keep, or both")
+        if args.keep is not None and args.keep < 0:
+            parser.error("--keep must be zero or greater")
+        deleted = prune_runs(older_than=args.older_than, keep=args.keep)
+        print(f"deleted {len(deleted)} run(s)")
+        for path in deleted:
+            print(path)
+        return 0
 
     if args.command == "doctor":
         checks = run_doctor(mcp=args.mcp)

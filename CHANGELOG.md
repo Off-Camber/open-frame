@@ -39,6 +39,7 @@ Guidelines:
 ### Changed
 - Doctor install hints use `pip install "off-camber-open-frame[extra]"`.
 - The README quickstart writes a one-step flow in the current directory so it works from a wheel, without the `examples/` tree.
+- Run artifacts go to an absolute directory (`~/.openframe/runs`, or `OPENFRAME_RUNS_DIR`). Tool results return those absolute paths. `open-frame runs prune` deletes runs by age and by count. Temporary capture images are removed once they have been copied into the run directory.
 
 ### Fixed
 - A flow window guard that names an app focuses that app once and checks again before the step fails ([#34](https://github.com/Off-Camber/open-frame/pull/34)).

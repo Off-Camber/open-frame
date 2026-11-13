@@ -21,6 +21,7 @@ from openframe.recognize.coords import (
 )
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
+from openframe.runs import run_directory
 from openframe.session import Session
 from openframe.types import Frame, StepResult, Target
 from openframe.verify import (
@@ -54,7 +55,7 @@ class FlowRunner:
         locator = build_default_locator()
         actuator = Actuator(dry_run=self.dry_run)
         previous_start: Frame | None = None
-        run_dir = f"runs/{run_id}"
+        run_dir = str(run_directory(run_id))
         substitution_base = {
             "run_id": run_id,
             "run_dir": run_dir,
