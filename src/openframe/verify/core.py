@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from openframe.capture.sidecar import sidecar_path
 from openframe.recognize import Locator
 from openframe.recognize.coords import target_logical_bounds
+from openframe.runs import run_directory
 from openframe.types import Frame, Target
 from openframe.verify.base import Verifier, VerifyResult
 from openframe.window import WindowState, WindowStateProvider, frontmost_window
@@ -280,12 +283,14 @@ def write_step_artifacts(
     after: Frame,
     verification: VerifyResult | None,
 ) -> Path:
-    """Write before/after screenshots and step.json to run directory."""
-    step_dir = Path("runs") / run_id / step_id
+    """Write before/after screenshots and step.json to the absolute run directory."""
+    step_dir = run_directory(run_id) / step_id
     step_dir.mkdir(parents=True, exist_ok=True)
 
     before_path = _copy_if_present(before.image_path, step_dir / "before.png")
     after_path = _copy_if_present(after.image_path, step_dir / "after.png")
+    _retire_temp_capture(before, before_path)
+    _retire_temp_capture(after, after_path)
 
     payload: dict[str, Any] = {
         "step_id": step_id,
@@ -308,7 +313,39 @@ def _copy_if_present(source: str | None, destination: Path) -> Path | None:
     if not src.exists():
         return None
     shutil.copy2(src, destination)
-    return destination
+    sidecar = sidecar_path(src)
+    if sidecar.is_file() and sidecar.resolve() != sidecar_path(destination).resolve():
+        shutil.copy2(sidecar, sidecar_path(destination))
+    return destination.resolve()
+
+
+def _retire_temp_capture(frame: Frame, copied: Path | None) -> None:
+    """Delete a temporary capture once its copy lives in the run directory."""
+    if copied is None or not frame.image_path:
+        return
+    source = Path(frame.image_path)
+    try:
+        same_file = source.resolve() == copied.resolve()
+    except OSError:
+        same_file = False
+    if same_file:
+        frame.image_path = str(copied)
+        return
+    if _is_temp_capture(source):
+        source.unlink(missing_ok=True)
+        sidecar_path(source).unlink(missing_ok=True)
+    frame.image_path = str(copied)
+
+
+def _is_temp_capture(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+    except OSError:
+        return False
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    if resolved.parent != temp_root:
+        return False
+    return resolved.name.startswith("openframe-") and resolved.suffix == ".png"
 
 
 def _bounds_details(bounds: MatchBounds | None) -> dict[str, Any] | None:
