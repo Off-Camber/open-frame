@@ -10,13 +10,13 @@ If you are new, start with the SDK quick start below, then move to MCP.
 ## Install
 
 ```bash
-pip install off-camber-open-frame
+pip install "off-camber-open-frame[mcp,ocr,act,flow]"
 ```
 
-For local development with extras:
+From a clone of this repo:
 
 ```bash
-pip install -e .[ocr,act,flow]
+pip install -e ".[ocr,act,flow]"
 ```
 
 ## SDK quick start (`Session`)
@@ -44,7 +44,7 @@ results = session.run(
         {"id": "wait", "kind": "wait", "ms": 300},
     ]
 )
-print([r.ok for r in results])
+print([r.success for r in results])
 ```
 
 `Session` also supports `register_recognizer(...)` for custom matching logic.
@@ -79,13 +79,14 @@ If `run_flow` returns `ok: false`, inspect artifacts:
 .venv/bin/python -m openframe.cli mcp call get_run_artifacts --args-json '{"run_id":"compose-dry-1"}'
 ```
 
-## MCP tool set (v0.2 checkpoint)
+## MCP tool set
 
 - `capture`
 - `find`
 - `click`
 - `type`
 - `key`
+- `scroll`
 - `run_flow`
 - `get_run_artifacts`
 
@@ -122,6 +123,8 @@ Stable error codes used by MCP tools include:
 - `runtime_error`
 - `timeout`
 - `busy`
+- `permission_denied`
+- `screen_unavailable`
 - `internal_error`
 
 `click` also accepts:

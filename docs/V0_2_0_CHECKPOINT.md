@@ -1,5 +1,9 @@
 # v0.2.0 checkpoint
 
+> Historical. This is the v0.2.0 checkpoint, not the current contract.
+> The tool list below is the MVP as written then. Current tools are in
+> [API.md](API.md) and also include `scroll`.
+
 This checkpoint defines Open Frame's next product shape after `v0.1.x`.
 
 ## Product definition

@@ -10,7 +10,9 @@ Use this runbook to validate the Phase 3 exit criteria safely on a real app.
 - Action dependencies installed:
 
 ```bash
-pip install -e .[act]
+pip install "off-camber-open-frame[act]"
+# from a clone of this repo:
+pip install -e ".[act]"
 ```
 
 - A visible app/window with a clickable text target (for example, a button labeled "OK")

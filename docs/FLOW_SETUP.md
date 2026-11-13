@@ -5,7 +5,9 @@ Phase 5 introduces YAML flow execution with `open-frame run`.
 ## Install flow dependency
 
 ```bash
-pip install -e .[flow]
+pip install "off-camber-open-frame[flow]"
+# from a clone of this repo:
+pip install -e ".[flow]"
 ```
 
 ## Minimal flow example

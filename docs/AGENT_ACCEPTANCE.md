@@ -5,7 +5,7 @@ failure behavior.
 
 ## Preconditions
 
-- `pip install -e ".[agent]"`
+- `pip install "off-camber-open-frame[agent]"` (from a clone: `pip install -e ".[agent]"`)
 - `ANTHROPIC_API_KEY` exported
 - `OPENFRAME_AGENT_MODEL` set (optional; defaults to `claude-haiku-4-5-20251001`)
 - macOS Screen Recording granted for your terminal/python process

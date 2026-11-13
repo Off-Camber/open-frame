@@ -15,7 +15,7 @@ See `docs/RELEASE_GATES.md`.
 
 - macOS with Screen Recording permission granted to the terminal or IDE running `open-frame`
 - At least one visible application window
-- Project virtualenv installed (`pip install -e ".[dev,ocr,act,flow]"`)
+- Open Frame installed (`pip install "off-camber-open-frame[ocr,act,flow]"`, or `pip install -e ".[dev,ocr,act,flow]"` from a clone)
 
 ## Commands
 

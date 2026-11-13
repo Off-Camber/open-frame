@@ -57,7 +57,8 @@ open-frame doctor
 ```
 
 All required checks should report `pass` (`overall: ok`). Optional extras that
-are not installed show as `skip` and do not fail the report.
+are not installed show as `skip` and do not fail the report. If a check fails,
+see [troubleshooting](docs/TROUBLESHOOTING.md).
 
 ### 3. Connect an MCP client
 
@@ -81,8 +82,14 @@ open-frame mcp serve
 
 ```bash
 open-frame find "Submit" --json
+```
 
-# Write a one-step flow in the current directory. It does not touch the screen.
+Exit 0 with `"count": 0` means the command worked and that text was not on
+screen. A missing permission or a capture failure is a non-zero exit.
+
+```bash
+# Write a one-step flow in the current directory. It does not click or type.
+# A dry-run still captures the screen before and after the step.
 cat > hello.yaml <<'EOF'
 name: hello
 steps:
@@ -92,6 +99,8 @@ steps:
 EOF
 open-frame run hello.yaml --dry-run --json
 ```
+
+Those before and after images are saved with the run.
 
 Artifacts for that run are written to an absolute directory: `~/.openframe/runs`,
 or `OPENFRAME_RUNS_DIR` when that variable is set. Remove old runs with
