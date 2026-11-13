@@ -14,6 +14,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-13 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `ecd041c`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-f-live-gate` and `/tmp/open-frame-f-app-matrix`. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each with an empty selection and range 5,4 inside `CALMARK89`. App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
 | 2026-11-13 | Clean venv, wheel from `ecd041c` | README quickstart. `OPENFRAME_RUNS_DIR=/tmp/open-frame-readme-runs`. Tesseract 5.5.2 already installed. | `open-frame doctor` **overall: ok**, including `display_power` awake and unlocked. `doctor --mcp` **overall: ok**, 8 tools. `find "Submit"` exit 0, count 0. Hello dry-run exit 0 and wrote before/after images of about 1.96 MB each. |
 | 2026-11-13 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `98342fb`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc1-live-gate` and `/tmp/open-frame-030rc1-app-matrix`. This is the `0.3.0rc1` commit. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each with an empty selection and range 5,4 inside `CALMARK89`. App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
+| 2026-11-13 | Clean venv, PyPI `0.3.0rc1` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc1"` into `/tmp/open-frame-030rc1-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc1-pypi-runs`. | `open-frame --version` printed `open-frame 0.3.0rc1`. `doctor --mcp` exit 0, **overall: ok**, 8 tools. One MCP `run_flow` call with `dry_run` true returned `isError` false and `success` true. Before/after images were about 1.78 MB each and were deleted after the size check. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -53,7 +54,7 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-f-live-gate`) and `
 
 ## macOS 27 gates (2026-11-13, `98342fb`, version `0.3.0rc1`)
 
-Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030rc1-live-gate`) and `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030rc1-app-matrix`). This is the commit prepared for the `v0.3.0rc1` tag. Nothing is tagged or published.
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030rc1-live-gate`) and `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030rc1-app-matrix`). This is the commit later tagged `v0.3.0rc1`. The PyPI install check is recorded below.
 
 - **calibration_5x, 5/5.**
 - **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped click at (336, 201). Region click at (328, 207). `frame_path` click at (331, 207).
@@ -71,6 +72,14 @@ Clean venv `/tmp/open-frame-readme-walk-venv`. Installed `/tmp/open-frame-readme
 - `open-frame mcp serve` stays running while stdin is open. A background launch in this shell exited because stdin closed.
 - `open-frame find "Submit" --json` exit 0, `count` 0, source `screen:1`.
 - `open-frame run hello.yaml --dry-run --json` exit 0, `success` true, `dry_run` true. `before.png` was 1,958,270 bytes and `after.png` was 1,958,100 bytes. Paths were absolute under `OPENFRAME_RUNS_DIR`.
+
+## PyPI install (2026-11-13, `0.3.0rc1`)
+
+Clean venv `/tmp/open-frame-030rc1-pypi-venv`, Python 3.11.15. Installed from PyPI with `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc1"`. `importlib.metadata` reported `0.3.0rc1`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc1-pypi-runs`, so the dry-run images did not go to `~/.openframe`. The png files were deleted after the size check. Tesseract 5.5.2 was already on `PATH`.
+
+- `open-frame --version` printed `open-frame 0.3.0rc1`.
+- `open-frame doctor --mcp` exit 0, `overall: ok`. `display_power` passed, awake and unlocked. Screen recording and accessibility passed. One display. `extra_agent` skipped. `mcp_server` listed 8 tools. The config command was `/private/tmp/open-frame-030rc1-pypi-venv/bin/python3.11`. stderr printed `Processing request of type ListToolsRequest`.
+- One MCP tool call, `run_flow` on `/tmp/open-frame-030rc1-pypi/hello.yaml` with `dry_run` true. The flow is a one-step wait and does not click or type. `isError` was false. The envelope had `ok` true, `dry_run` true, and `success` true. The pause step succeeded in 580 ms. `before.png` was 1,779,236 bytes and `after.png` was 1,781,152 bytes. stderr printed `Processing request of type CallToolRequest` and `Processing request of type ListToolsRequest`.
 
 ## Notes
 
