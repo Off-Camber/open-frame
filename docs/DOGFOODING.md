@@ -13,6 +13,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-12 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `c924fca`, Python 3.11.15 (`.venv`), Tesseract 5.5.2 | Live gate **pass** (calibration **5/5**; window click (336, 201), region (328, 207), `frame_path` (331, 207), each inside `CALMARK89`). App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. This is the run that backed 0.2.2. |
 | 2026-11-13 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `ecd041c`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-f-live-gate` and `/tmp/open-frame-f-app-matrix`. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each with an empty selection and range 5,4 inside `CALMARK89`. App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
 | 2026-11-13 | Clean venv, wheel from `ecd041c` | README quickstart. `OPENFRAME_RUNS_DIR=/tmp/open-frame-readme-runs`. Tesseract 5.5.2 already installed. | `open-frame doctor` **overall: ok**, including `display_power` awake and unlocked. `doctor --mcp` **overall: ok**, 8 tools. `find "Submit"` exit 0, count 0. Hello dry-run exit 0 and wrote before/after images of about 1.96 MB each. |
+| 2026-11-13 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `98342fb`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc1-live-gate` and `/tmp/open-frame-030rc1-app-matrix`. This is the `0.3.0rc1` commit. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each with an empty selection and range 5,4 inside `CALMARK89`. App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -48,6 +49,15 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-f-live-gate`) and `
 - **calibration_5x, 5/5.**
 - **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped click at (336, 201). Region click at (328, 207). `frame_path` click at (331, 207).
 - **intentional failure.** The flow exited 1 and wrote `/tmp/open-frame-f-live-gate/runs/live-gate-miss`. The gate's own check still looks for `runs/live-gate-miss` relative to the repo. That directory is from 2026-08-03, so the check passed against the leftover directory. This run's artifacts are the ones under `OPENFRAME_RUNS_DIR`.
+- **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, Calendar. Strict mode on.
+
+## macOS 27 gates (2026-11-13, `98342fb`, version `0.3.0rc1`)
+
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030rc1-live-gate`) and `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030rc1-app-matrix`). This is the commit prepared for the `v0.3.0rc1` tag. Nothing is tagged or published.
+
+- **calibration_5x, 5/5.**
+- **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped click at (336, 201). Region click at (328, 207). `frame_path` click at (331, 207).
+- **intentional failure.** The flow exited 1 and wrote `/tmp/open-frame-030rc1-live-gate/runs/live-gate-miss`. The gate's own check still looks for `runs/live-gate-miss` relative to the repo. That directory is from 2026-08-03, so the check passed against the leftover directory.
 - **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, Calendar. Strict mode on.
 
 ## README walk (2026-11-13, wheel from `ecd041c`)
