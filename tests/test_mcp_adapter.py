@@ -623,6 +623,7 @@ def test_run_flow_caps_full_step_details(monkeypatch) -> None:
 def test_locked_screen_is_not_permission_denied(monkeypatch) -> None:
     from openframe.desktop_access import DisplayPower
 
+    monkeypatch.setattr(adapter_mod.sys, "platform", "darwin")
     monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
     monkeypatch.setattr(
         adapter_mod,
@@ -639,6 +640,7 @@ def test_awake_permission_failure_names_the_host_process(monkeypatch) -> None:
     from openframe.desktop_access import DisplayPower, host_process_label
     from openframe.doctor import CheckResult
 
+    monkeypatch.setattr(adapter_mod.sys, "platform", "darwin")
     monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
     monkeypatch.setattr(
         adapter_mod,
@@ -672,6 +674,7 @@ def test_awake_accessibility_failure_is_permission_denied(monkeypatch) -> None:
             raise AssertionError(text)
 
     monkeypatch.setattr(adapter_mod, "Actuator", FakeActuator)
+    monkeypatch.setattr(adapter_mod.sys, "platform", "darwin")
     monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
     monkeypatch.setattr(
         adapter_mod,
