@@ -11,8 +11,8 @@ This is a thin protocol shim over the existing tool adapter. Tool results use
 the Open Frame envelope (`ok`, `tool`, `run_id`, `data`, `error`, `artifacts`).
 Failures stay in-band (`ok: false` + `error.code`), not as MCP protocol errors.
 
-Contract version: **`v0.2.2`** (envelope keys unchanged; adds `busy`.
-`timeout`, summarized `run_flow` steps, and wall-clock tool timeouts remain).
+Contract version: **`v0.3.0`**. Envelope keys are unchanged. See
+[Upgrade from 0.2.x](#upgrade-from-02x).
 
 ## Prerequisites
 
@@ -90,8 +90,8 @@ The server runs one tool call at a time. A call that arrives while another is
 running, or while a call that already returned `timeout` has not finished
 winding down, returns `ok: false` with `error.code: "busy"`.
 
-`click`, `type`, `key`, `scroll`, and `run_flow` send real clicks and
-keystrokes unless the arguments include `"dry_run": true`.
+`click`, `type`, `key`, `scroll`, and `run_flow` default `dry_run` to true.
+They send input only when the arguments include `"dry_run": false`.
 
 Long flows are bounded by a wall-clock timeout
 (`OPENFRAME_MCP_RUN_FLOW_TIMEOUT_SEC`, default 300s; other tools use
@@ -107,8 +107,9 @@ with the timeout's `run_id` lists whatever the run wrote.
 
 - `run_flow` returns **summarized** steps by default (`step_id`, `success`,
   `duration_ms`, `error`). Pass `include_step_details: true` only when you need
-  full inline details; prefer `get_run_artifacts` + `artifacts.run_dir` for
-  large runs.
+  full inline details. That payload is capped at 32,000 characters; the
+  response then sets `step_details_truncated: true` and `steps_omitted`. Prefer
+  `get_run_artifacts` and `artifacts.run_dir` for large runs.
 - `find` inlines at most 50 targets (`targets_truncated: true` when capped).
 
 ## First dry-run call
@@ -119,6 +120,17 @@ From any MCP client, prefer a non-actuating call first:
 - or `click` with `{"query": "Submit", "dry_run": true}` once Screen Recording
   is confirmed via `open-frame doctor`
 
+## Upgrade from 0.2.x
+
+Contract `v0.3.0`. Envelope keys are unchanged. An existing 0.2.x client must:
+
+- Send `"dry_run": false` on `click`, `type`, `key`, `scroll`, and `run_flow` when the call should send input. Omitting `dry_run` now previews the action.
+- Treat `permission_denied` as a missing Screen Recording or Accessibility grant. The message names the process that needs the grant.
+- Treat `screen_unavailable` as a locked or sleeping display. Wake and unlock the Mac. That code is not a missing grant.
+- Pass exactly one of `key` or `combo` to `key`.
+- Pass non-empty `text` to `type`.
+- Expect `run_flow` with `include_step_details: true` to set `step_details_truncated` and `steps_omitted` when the inline steps exceed 32,000 characters.
+
 ## Troubleshooting
 
 | Symptom | What to do |
@@ -126,6 +138,8 @@ From any MCP client, prefer a non-actuating call first:
 | Server won't start / import error for `mcp` | `pip install -e '.[mcp]'` then retry |
 | Client shows no tools | Confirm `command` points at the venv Python; restart the client |
 | Capture / find failures | Run `open-frame doctor` and fix Screen Recording / Accessibility / tesseract |
+| Tool returns `screen_unavailable` | The screen is locked or the display is asleep. Wake and unlock it. This is not a missing grant |
+| Tool returns `permission_denied` | Screen Recording or Accessibility is missing for the process named in the message |
 | Permission prompts never appear | Grant permissions to the **client host** process, not only Terminal |
 | Tool returns `busy` | Wait until the in-flight call finishes. A timed-out call still counts until its worker stops |
 | Tool returns `timeout` | The envelope `run_id` is the one `get_run_artifacts` accepts after the worker finishes. Raise `OPENFRAME_MCP_*_TIMEOUT_SEC` if the flow needs longer |

@@ -32,8 +32,8 @@ SYSTEM_PROMPT = (
     "reply with a short summary instead of calling a tool. If a tool returns "
     "ok=false, adapt once based on the error code/data/artifacts; do not repeat "
     "the exact same failing call in a loop. If blocked, explain why and finish. "
-    "If you are unsure "
-    'whether an action is safe, pass "dry_run": true.'
+    "click, type, key, scroll, and run_flow default dry_run to true and do not "
+    'send input. Pass "dry_run": false only when the action should really happen.'
 )
 
 _INT_ARGS = {"x", "y", "width", "height", "window_id"}

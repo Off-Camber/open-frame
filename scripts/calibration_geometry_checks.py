@@ -115,6 +115,8 @@ def _check_region(out_dir: Path) -> dict[str, str]:
     )
     if capture.returncode != 0:
         return _fail(f"region capture failed: {_flat(capture.stderr)}")
+    # Live CLI click. The CLI still actuates unless --dry-run is present.
+    # The MCP tool default is the opposite and does not apply to this command.
     click = _cli(
         "click", MARKER, "--frame", str(image), "--json", "--expect-one", "--kind", "double"
     )

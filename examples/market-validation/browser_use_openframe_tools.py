@@ -129,6 +129,8 @@ def register_openframe_tools(tools: Any | None = None) -> Any:
         y: int | None = None,
         dry_run: bool = False,
     ) -> Any:
+        # Always send dry_run. False keeps the historical live scroll; the MCP
+        # default is now true and must not be inherited by omission.
         args: dict[str, Any] = {"clicks": clicks, "dry_run": dry_run}
         if x is not None:
             args["x"] = x
