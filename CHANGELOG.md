@@ -31,6 +31,10 @@ Guidelines:
 
 ## Unreleased
 
+## v0.3.0rc1 - 2026-11-12
+
+Release candidate. The package is still Beta. The MCP contract label is `v0.3.0`.
+
 ### Added
 - `open-frame --version` prints the installed package version, and the MCP handshake reports that same version.
 - `open-frame doctor --mcp` fails when the mcp, act, or ocr extras are missing, starts the server and lists its tools, and prints a client config that uses the current interpreter. Screen Recording and Accessibility must be granted to the MCP client (Cursor or Claude Desktop).
