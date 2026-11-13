@@ -155,6 +155,10 @@ def test_check_screen_recording_fail_hint(monkeypatch: pytest.MonkeyPatch) -> No
     from openframe.capture import CaptureError
 
     monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        "openframe.doctor.read_display_power",
+        lambda: _awake_display(),
+    )
 
     def boom(**_kwargs: Any) -> None:
         raise CaptureError("Capture command failed")
@@ -174,6 +178,10 @@ def test_check_accessibility_fail_hint(monkeypatch: pytest.MonkeyPatch) -> None:
     from openframe import doctor as doctor_mod
 
     monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        "openframe.doctor.read_display_power",
+        lambda: _awake_display(),
+    )
 
     def boom() -> list[dict[str, Any]]:
         raise RuntimeError("macOS accessibility query failed: not allowed")
@@ -269,6 +277,51 @@ def test_displays_skip_when_the_probe_fails(monkeypatch: pytest.MonkeyPatch) -> 
     assert "display probe failed" in result.detail
 
 
+def test_unknown_display_power_skips_without_failing(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+    from openframe.desktop_access import DisplayPower
+
+    monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        "openframe.doctor.read_display_power",
+        lambda: DisplayPower(locked=False, asleep=False, known=False),
+    )
+    power = doctor_mod._check_display_power()
+    assert power.status == "skip"
+    assert power.required is False
+    assert "could not read" in power.detail
+
+
+def test_awake_display_passes_the_power_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+
+    monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+    monkeypatch.setattr("openframe.doctor.read_display_power", _awake_display)
+    power = doctor_mod._check_display_power()
+    assert power.status == "pass"
+    assert power.detail == "awake and unlocked"
+
+
+def test_locked_screen_is_not_a_missing_permission(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+    from openframe.desktop_access import DisplayPower
+
+    monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        "openframe.doctor.read_display_power",
+        lambda: DisplayPower(locked=True, asleep=False, known=True),
+    )
+    power = doctor_mod._check_display_power()
+    screen = doctor_mod._check_screen_recording()
+    accessibility = doctor_mod._check_accessibility()
+    assert power.status == "fail"
+    assert "not a missing Screen Recording or Accessibility grant" in power.detail
+    assert screen.hint is None
+    assert screen.status == "skip"
+    assert accessibility.status == "skip"
+    assert doctor_ok([power, screen, accessibility]) is False
+
+
 def test_displays_skip_off_macos(monkeypatch: pytest.MonkeyPatch) -> None:
     from openframe import doctor as doctor_mod
 
@@ -317,6 +370,7 @@ def test_doctor_mcp_lists_tools_and_prints_client_config(
     monkeypatch.setattr(doctor_mod, "_check_screen_recording", lambda: _pass("screen_recording"))
     monkeypatch.setattr(doctor_mod, "_check_accessibility", lambda: _pass("accessibility"))
     monkeypatch.setattr(doctor_mod, "_check_displays", lambda: _pass("displays", required=False))
+    monkeypatch.setattr(doctor_mod, "_check_display_power", lambda: _pass("display_power"))
     monkeypatch.setattr(
         doctor_mod,
         "_check_extras",
@@ -406,6 +460,12 @@ def test_version_flag(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFix
         main()
     assert exc.value.code == 0
     assert __version__ in capsys.readouterr().out
+
+
+def _awake_display() -> Any:
+    from openframe.desktop_access import DisplayPower
+
+    return DisplayPower(locked=False, asleep=False, known=True)
 
 
 def _pass(check_id: str, *, required: bool = True) -> CheckResult:

@@ -12,10 +12,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from openframe import doctor as doctor_mod
 from openframe.act import ActError, Actuator
 from openframe.cancel import bind_tool_cancellation, reset_tool_cancellation
 from openframe.capture import CaptureError, region, screen, window
 from openframe.capture.sidecar import load_frame_sidecar
+from openframe.desktop_access import (
+    read_display_power,
+    screen_unavailable_message,
+)
 from openframe.flow import load_flow
 from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
@@ -26,12 +31,13 @@ from openframe.runs import lookup_run_directory, run_directory
 from openframe.types import Frame, StepResult
 from openframe.verify import write_step_artifacts
 
-MCP_CONTRACT_VERSION = "v0.2.2"
+MCP_CONTRACT_VERSION = "v0.3.0"
 
 # Wall-clock defaults (seconds). Override via env for long flows.
 DEFAULT_TOOL_TIMEOUT_SEC = 60.0
 DEFAULT_RUN_FLOW_TIMEOUT_SEC = 300.0
 MAX_FIND_TARGETS_INLINE = 50
+MAX_RUN_FLOW_DETAIL_CHARS = 32_000
 _TOOLS_WITH_RUN_ID = frozenset({"click", "run_flow"})
 _mcp_call_lock = threading.Lock()
 _timeout_warnings_sent: set[str] = set()
@@ -54,6 +60,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "error_codes": [
             "validation_error",
             "capture_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -68,6 +76,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "error_codes": [
             "validation_error",
             "capture_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -76,7 +86,10 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "click",
-        "description": "Find and click a target by query. Sends a real click unless dry_run is true.",
+        "description": (
+            "Find and click a target by query. dry_run defaults to true; "
+            "pass dry_run=false to send the click."
+        ),
         "required_args": ["query"],
         "optional_args": [
             "anchor",
@@ -95,6 +108,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "validation_error",
             "capture_error",
             "action_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -103,12 +118,17 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "type",
-        "description": "Type text at current focus. Sends real keystrokes unless dry_run is true.",
+        "description": (
+            "Type text at the current focus. dry_run defaults to true; "
+            "pass dry_run=false to send keystrokes."
+        ),
         "required_args": [],
         "optional_args": ["text", "interval", "dry_run"],
         "error_codes": [
             "action_error",
             "validation_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -117,12 +137,17 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "key",
-        "description": "Press a key or key combo. Sends a real key unless dry_run is true.",
+        "description": (
+            "Press one key or one combo. dry_run defaults to true; "
+            "pass dry_run=false to send the key."
+        ),
         "required_args": [],
         "optional_args": ["key", "combo", "dry_run"],
         "error_codes": [
             "validation_error",
             "action_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -132,13 +157,16 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "name": "scroll",
         "description": (
-            "Scroll the mouse wheel at an optional point. Sends a real scroll unless dry_run is true."
+            "Scroll the mouse wheel at an optional point. dry_run defaults to true; "
+            "pass dry_run=false to scroll."
         ),
         "required_args": ["clicks"],
         "optional_args": ["x", "y", "dry_run"],
         "error_codes": [
             "validation_error",
             "action_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -147,7 +175,9 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "run_flow",
-        "description": "Run a YAML flow file. Runs the flow for real unless dry_run is true.",
+        "description": (
+            "Run a YAML flow file. dry_run defaults to true; pass dry_run=false to run it for real."
+        ),
         "required_args": ["flow_path"],
         "optional_args": ["dry_run", "run_id", "include_step_details"],
         "error_codes": [
@@ -155,6 +185,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "validation_error",
             "capture_error",
             "action_error",
+            "permission_denied",
+            "screen_unavailable",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -340,6 +372,60 @@ def _invoke_with_timeout(
         pool.shutdown(wait=False, cancel_futures=False)
 
 
+def _require_desktop(*, capture: bool, interact: bool) -> None:
+    """Reject a tool call that needs a display the process cannot use.
+
+    A locked or sleeping display is ``screen_unavailable``. A failed Screen
+    Recording or Accessibility probe, while the display is awake, is
+    ``permission_denied``.
+    """
+    if sys.platform != "darwin" or (not capture and not interact):
+        return
+    state = read_display_power()
+    if state.known and state.unavailable:
+        raise MCPToolError(code="screen_unavailable", message=screen_unavailable_message(state))
+    if capture:
+        screen_check = doctor_mod._check_screen_recording()
+        if screen_check.status == "fail":
+            raise MCPToolError(
+                code="permission_denied",
+                message=screen_check.hint or screen_check.detail,
+            )
+    if interact:
+        accessibility_check = doctor_mod._check_accessibility()
+        if accessibility_check.status == "fail":
+            raise MCPToolError(
+                code="permission_denied",
+                message=accessibility_check.hint or accessibility_check.detail,
+            )
+
+
+def _dry_run(args: dict[str, Any]) -> bool:
+    """Live input is opt-in. Omitting dry_run previews the action."""
+    return _as_bool(args.get("dry_run", True))
+
+
+def _cap_step_details(steps: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """Keep a prefix of full step records inside the inline character budget."""
+    import json
+
+    if len(json.dumps(steps)) <= MAX_RUN_FLOW_DETAIL_CHARS:
+        return steps, 0
+    kept: list[dict[str, Any]] = []
+    for step in steps:
+        trial = [*kept, step]
+        if len(json.dumps(trial)) > MAX_RUN_FLOW_DETAIL_CHARS:
+            break
+        kept.append(step)
+    if not kept and steps:
+        step_id = steps[0].get("step_id")
+        kept = [{"step_id": step_id, "truncated": True}]
+        if len(json.dumps(kept)) > MAX_RUN_FLOW_DETAIL_CHARS:
+            return [], len(steps)
+        return kept, len(steps) - 1
+    return kept, len(steps) - len(kept)
+
+
 def _summarize_step_result(step: StepResult) -> dict[str, Any]:
     return {
         "step_id": step.step_id,
@@ -350,6 +436,7 @@ def _summarize_step_result(step: StepResult) -> dict[str, Any]:
 
 
 def _tool_capture(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
+    _require_desktop(capture=True, interact=False)
     mode = str(args.get("mode", "screen")).strip().lower()
     out_path = args.get("out_path")
 
@@ -384,7 +471,10 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
     if strategy not in {"first", "all"}:
         raise ValueError("find strategy must be 'first' or 'all'.")
 
-    frame = _resolve_frame(_optional_string(args.get("frame_path")))
+    frame_path = _optional_string(args.get("frame_path"))
+    if frame_path is None:
+        _require_desktop(capture=True, interact=False)
+    frame = _resolve_frame(frame_path)
     locator = _build_locator()
     options = recognition_options_from_mapping(args)
     targets = locator.find(frame=frame, query=query, strategy=strategy, options=options)
@@ -413,12 +503,13 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
     query = _required_string(args, "query")
     anchor = str(args.get("anchor", "center")).strip()
     click_kind = str(args.get("kind", "click")).strip()
-    dry_run = _as_bool(args.get("dry_run", False))
+    dry_run = _dry_run(args)
     expect_one = _as_bool(args.get("expect_one", False))
     selector = explicit_selector(args.get("selector"))
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
 
     frame_path = _optional_string(args.get("frame_path"))
+    _require_desktop(capture=frame_path is None, interact=not dry_run)
     frame = _resolve_frame(frame_path, require_sidecar=bool(frame_path) and not dry_run)
     locator = _build_locator()
     options = recognition_options_from_mapping(args)
@@ -479,28 +570,38 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
 
 
 def _tool_type(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
-    text = str(args.get("text", ""))
+    text = str(args.get("text", "")).strip()
+    if not text:
+        raise ValueError("text must not be empty.")
     interval = float(args.get("interval", 0.0))
-    dry_run = _as_bool(args.get("dry_run", False))
+    dry_run = _dry_run(args)
+    _require_desktop(capture=False, interact=not dry_run)
     actuator = Actuator(dry_run=dry_run)
     actuator.type_text(text, interval=interval)
     return {"text_length": len(text), "interval": interval, "dry_run": dry_run}, None, {}
 
 
 def _tool_key(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
-    dry_run = _as_bool(args.get("dry_run", False))
-    actuator = Actuator(dry_run=dry_run)
+    dry_run = _dry_run(args)
+    key = _optional_string(args.get("key"))
     combo = args.get("combo")
-    if combo is not None:
+    has_combo = combo is not None
+    if has_combo and key is not None:
+        raise ValueError("key requires exactly one of key or combo.")
+    if has_combo:
         if not isinstance(combo, list) or not combo:
             raise ValueError("combo must be a non-empty list of keys.")
         keys = [str(item).strip() for item in combo if str(item).strip()]
         if not keys:
             raise ValueError("combo resolved to no usable keys.")
+        _require_desktop(capture=False, interact=not dry_run)
+        actuator = Actuator(dry_run=dry_run)
         actuator.key_combo(*keys)
         return {"combo": keys, "dry_run": dry_run}, None, {}
-
-    key = _required_string(args, "key")
+    if key is None:
+        raise ValueError("key requires exactly one of key or combo.")
+    _require_desktop(capture=False, interact=not dry_run)
+    actuator = Actuator(dry_run=dry_run)
     actuator.press_key(key)
     return {"key": key, "dry_run": dry_run}, None, {}
 
@@ -509,11 +610,12 @@ def _tool_scroll(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict
     if "clicks" not in args or args.get("clicks") is None:
         raise ValueError("clicks is required.")
     clicks = int(args["clicks"])
-    dry_run = _as_bool(args.get("dry_run", False))
+    dry_run = _dry_run(args)
     x = int(args["x"]) if args.get("x") is not None else None
     y = int(args["y"]) if args.get("y") is not None else None
     if (x is None) ^ (y is None):
         raise ValueError("scroll requires both x and y, or neither.")
+    _require_desktop(capture=False, interact=not dry_run)
     actuator = Actuator(dry_run=dry_run)
     actuator.scroll(clicks, x=x, y=y)
     return {"clicks": clicks, "x": x, "y": y, "dry_run": dry_run}, None, {}
@@ -521,15 +623,18 @@ def _tool_scroll(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict
 
 def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     flow_path = _required_string(args, "flow_path")
-    dry_run = _as_bool(args.get("dry_run", False))
+    dry_run = _dry_run(args)
     include_step_details = _as_bool(args.get("include_step_details", False))
     run_id = _optional_string(args.get("run_id")) or _default_run_id()
+    _require_desktop(capture=True, interact=not dry_run)
 
     flow = load_flow(flow_path)
     session = FlowRunner(dry_run=dry_run).run(flow, run_id=run_id)
     failed = any(not item.success for item in session.results)
+    omitted = 0
     if include_step_details:
-        steps_payload: list[dict[str, Any]] = [asdict(item) for item in session.results]
+        steps_payload = [asdict(item) for item in session.results]
+        steps_payload, omitted = _cap_step_details(steps_payload)
     else:
         steps_payload = [_summarize_step_result(item) for item in session.results]
     data = {
@@ -540,6 +645,9 @@ def _tool_run_flow(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, di
         "steps": steps_payload,
         "step_details": "full" if include_step_details else "summary",
     }
+    if omitted:
+        data["step_details_truncated"] = True
+        data["steps_omitted"] = omitted
     artifacts = {"run_dir": str(run_directory(run_id))}
     if failed:
         raise MCPToolError(

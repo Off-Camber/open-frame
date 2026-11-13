@@ -162,6 +162,10 @@ def _run_deterministic(scenario: dict[str, Any], *, work_dir: Path) -> dict[str,
         }.get(tool, tool)
         if mcp_tool == "click":
             args.setdefault("dry_run", True)
+        elif mcp_tool in {"type", "key", "scroll", "run_flow"}:
+            # These calls used to actuate when dry_run was omitted. Keep that
+            # behavior by sending the flag instead of inheriting the MCP default.
+            args.setdefault("dry_run", False)
         envelope = call_openframe(mcp_tool, args)
         envelopes.append({"step_tool": tool, "mcp_tool": mcp_tool, "envelope": envelope})
 

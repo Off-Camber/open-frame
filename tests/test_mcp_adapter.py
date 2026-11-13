@@ -3,8 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import ClassVar
 
+import openframe.integrations.mcp.adapter as adapter_mod
 from openframe.integrations.mcp.adapter import call_mcp_tool, list_mcp_tools
 from openframe.types import Frame, StepResult, Target
+
+_REAL_REQUIRE_DESKTOP = adapter_mod._require_desktop
 
 
 def test_list_mcp_tools_contains_expected_names() -> None:
@@ -20,7 +23,7 @@ def test_list_mcp_tools_contains_expected_names() -> None:
         "run_flow",
         "get_run_artifacts",
     }.issubset(names)
-    assert all(item["contract_version"] == "v0.2.2" for item in tools)
+    assert all(item["contract_version"] == "v0.3.0" for item in tools)
     assert all(
         "required_args" in item and "optional_args" in item and "error_codes" in item
         for item in tools
@@ -68,7 +71,7 @@ def test_run_flow_failure_maps_to_flow_failed(monkeypatch) -> None:
     monkeypatch.setattr("openframe.integrations.mcp.adapter.load_flow", lambda _path: FakeFlow())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.FlowRunner", FakeRunner)
 
-    result = call_mcp_tool("run_flow", {"flow_path": "flow.yaml", "run_id": "r1"})
+    result = call_mcp_tool("run_flow", {"flow_path": "flow.yaml", "run_id": "r1", "dry_run": False})
     assert result["ok"] is False
     assert result["error"]["code"] == "flow_failed"
     assert result["run_id"] == "r1"
@@ -112,7 +115,12 @@ def test_run_flow_include_step_details(monkeypatch) -> None:
 
     result = call_mcp_tool(
         "run_flow",
-        {"flow_path": "flow.yaml", "run_id": "r1", "include_step_details": True},
+        {
+            "flow_path": "flow.yaml",
+            "run_id": "r1",
+            "include_step_details": True,
+            "dry_run": False,
+        },
     )
     assert result["ok"] is True
     assert result["data"]["step_details"] == "full"
@@ -154,7 +162,7 @@ def test_timeout_does_not_actuate_and_carries_run_id(monkeypatch) -> None:
     holder: dict[str, dict[str, object]] = {}
 
     def invoke() -> None:
-        holder["result"] = call_mcp_tool("run_flow", {"flow_path": "flow.yaml"})
+        holder["result"] = call_mcp_tool("run_flow", {"flow_path": "flow.yaml", "dry_run": False})
 
     worker = threading.Thread(target=invoke)
     worker.start()
@@ -523,3 +531,163 @@ def test_find_includes_recognizer_errors_when_another_recognizer_matches(monkeyp
     assert result["ok"] is True
     assert result["data"]["recognizer_errors"] == ["a11y:macos: permission denied"]
     assert result["data"]["count"] == 1
+
+
+def test_omitted_dry_run_does_not_send_input(monkeypatch) -> None:
+    seen: list[bool] = []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            seen.append(dry_run)
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            _ = text, interval
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    result = call_mcp_tool("type", {"text": "hello"})
+    assert result["ok"] is True
+    assert result["data"]["dry_run"] is True
+    assert seen == [True]
+
+
+def test_explicit_dry_run_false_is_live(monkeypatch) -> None:
+    seen: list[bool] = []
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            seen.append(dry_run)
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            _ = text, interval
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    result = call_mcp_tool("type", {"text": "hello", "dry_run": False})
+    assert result["data"]["dry_run"] is False
+    assert seen == [False]
+
+
+def test_type_rejects_empty_text() -> None:
+    result = call_mcp_tool("type", {"text": "   ", "dry_run": True})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "validation_error"
+    assert "empty" in result["error"]["message"]
+
+
+def test_key_requires_exactly_one_of_key_or_combo() -> None:
+    missing = call_mcp_tool("key", {"dry_run": True})
+    assert missing["error"]["code"] == "validation_error"
+    both = call_mcp_tool("key", {"key": "a", "combo": ["cmd", "c"], "dry_run": True})
+    assert both["error"]["code"] == "validation_error"
+    combo = call_mcp_tool("key", {"combo": ["cmd", "c"], "dry_run": True})
+    assert combo["ok"] is True
+    assert combo["data"]["combo"] == ["cmd", "c"]
+    assert combo["data"]["dry_run"] is True
+
+
+def test_run_flow_caps_full_step_details(monkeypatch) -> None:
+    class FakeFlow:
+        name = "big"
+
+    class FakeRunner:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def run(self, flow, *, run_id: str):
+            _ = flow, run_id
+
+            class SessionObj:
+                results: ClassVar[list] = [
+                    StepResult(
+                        step_id=f"s{index}",
+                        success=True,
+                        duration_ms=1,
+                        details={"blob": "x" * 10_000},
+                    )
+                    for index in range(6)
+                ]
+
+            return SessionObj()
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.load_flow", lambda _path: FakeFlow())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.FlowRunner", FakeRunner)
+    result = call_mcp_tool(
+        "run_flow",
+        {"flow_path": "flow.yaml", "include_step_details": True, "dry_run": True},
+    )
+    assert result["ok"] is True
+    assert result["data"]["step_details_truncated"] is True
+    assert result["data"]["steps_omitted"] >= 1
+    assert len(result["data"]["steps"]) < 6
+
+
+def test_locked_screen_is_not_permission_denied(monkeypatch) -> None:
+    from openframe.desktop_access import DisplayPower
+
+    monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
+    monkeypatch.setattr(
+        adapter_mod,
+        "read_display_power",
+        lambda: DisplayPower(locked=True, asleep=False, known=True),
+    )
+    result = call_mcp_tool("capture", {})
+    assert result["ok"] is False
+    assert result["error"]["code"] == "screen_unavailable"
+    assert "not a missing Screen Recording or Accessibility grant" in result["error"]["message"]
+
+
+def test_awake_permission_failure_names_the_host_process(monkeypatch) -> None:
+    from openframe.desktop_access import DisplayPower, host_process_label
+    from openframe.doctor import CheckResult
+
+    monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
+    monkeypatch.setattr(
+        adapter_mod,
+        "read_display_power",
+        lambda: DisplayPower(locked=False, asleep=False, known=True),
+    )
+    monkeypatch.setattr(
+        "openframe.doctor._check_screen_recording",
+        lambda: CheckResult(
+            id="screen_recording",
+            status="fail",
+            detail="capture failed",
+            hint=f"Screen Recording is not available to {host_process_label()}.",
+            required=True,
+        ),
+    )
+    result = call_mcp_tool("capture", {})
+    assert result["error"]["code"] == "permission_denied"
+    assert host_process_label().split()[0] in result["error"]["message"]
+
+
+def test_awake_accessibility_failure_is_permission_denied(monkeypatch) -> None:
+    from openframe.desktop_access import DisplayPower
+    from openframe.doctor import CheckResult
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            raise AssertionError(text)
+
+    monkeypatch.setattr(adapter_mod, "Actuator", FakeActuator)
+    monkeypatch.setattr(adapter_mod, "_require_desktop", _REAL_REQUIRE_DESKTOP)
+    monkeypatch.setattr(
+        adapter_mod,
+        "read_display_power",
+        lambda: DisplayPower(locked=False, asleep=False, known=True),
+    )
+    monkeypatch.setattr(
+        "openframe.doctor._check_accessibility",
+        lambda: CheckResult(
+            id="accessibility",
+            status="fail",
+            detail="not allowed",
+            hint="Accessibility is not available to python.",
+            required=True,
+        ),
+    )
+    result = call_mcp_tool("type", {"text": "hello", "dry_run": False})
+    assert result["error"]["code"] == "permission_denied"
+    assert "Accessibility" in result["error"]["message"]

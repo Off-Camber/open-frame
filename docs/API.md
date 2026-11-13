@@ -89,7 +89,7 @@ If `run_flow` returns `ok: false`, inspect artifacts:
 - `run_flow`
 - `get_run_artifacts`
 
-The current frozen contract identifier is `v0.2.2`.
+The current frozen contract identifier is `v0.3.0`.
 
 For connecting Claude Desktop or Cursor, see [MCP server setup](MCP_SERVER.md).
 

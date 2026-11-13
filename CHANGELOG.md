@@ -37,6 +37,9 @@ Guidelines:
 - `open-frame doctor` warns when more than one display is online. Capture stays on the primary display.
 
 ### Changed
+- MCP contract `v0.3.0`. `click`, `type`, `key`, `scroll`, and `run_flow` now default `dry_run` to true. Live input requires `"dry_run": false`.
+- A missing Screen Recording or Accessibility grant returns `permission_denied` and names the host process. A locked or sleeping display returns `screen_unavailable` instead of a permission error.
+- `key` requires exactly one of `key` or `combo`. `type` rejects empty text. Full `run_flow` step details are capped at 32,000 characters.
 - Doctor install hints use `pip install "off-camber-open-frame[extra]"`.
 - The README quickstart writes a one-step flow in the current directory so it works from a wheel, without the `examples/` tree.
 - Run artifacts go to an absolute directory (`~/.openframe/runs`, or `OPENFRAME_RUNS_DIR`). Tool results return those absolute paths. `open-frame runs prune` deletes runs by age and by count. Temporary capture images are removed once they have been copied into the run directory.

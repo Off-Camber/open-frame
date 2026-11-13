@@ -57,6 +57,9 @@ def test_create_mcp_server_lists_tools_with_schemas() -> None:
             props = click_schema["properties"]
             assert props["query"]["type"] == "string"
             assert props["dry_run"]["type"] == "boolean"
+            for name in ("click", "type", "key", "scroll", "run_flow"):
+                dry_run = by_name[name].inputSchema["properties"]["dry_run"]
+                assert dry_run.get("default") is True
             assert {"first", "top_most", "highest_confidence"}.issubset(
                 _schema_enums(props["selector"])
             )

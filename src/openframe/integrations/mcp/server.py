@@ -45,7 +45,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
             "Every tool result is an Open Frame envelope with keys "
             "ok, tool, run_id, data, error, and artifacts. "
             "Failures are in-band (ok=false + error.code), not protocol errors. "
-            "Prefer dry_run=true when unsure before actuating."
+            "dry_run defaults to true. Pass dry_run=false to send a click, keystroke, scroll, or flow."
         ),
     )
     # mcp 1.x FastMCP has no version argument. The handshake reads the low-level server.
@@ -111,7 +111,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         query: str,
         anchor: ClickAnchor = "center",
         kind: ClickKind = "click",
-        dry_run: bool = False,
+        dry_run: bool = True,
         run_id: str | None = None,
         frame_path: str | None = None,
         expect_one: bool = False,
@@ -142,7 +142,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
     def type_text(
         text: str = "",
         interval: float = 0.0,
-        dry_run: bool = False,
+        dry_run: bool = True,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "type",
@@ -156,7 +156,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
     def key(
         key: str | None = None,
         combo: list[str] | None = None,
-        dry_run: bool = False,
+        dry_run: bool = True,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "key",
@@ -171,7 +171,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         clicks: int,
         x: int | None = None,
         y: int | None = None,
-        dry_run: bool = False,
+        dry_run: bool = True,
     ) -> dict[str, Any]:
         return call_mcp_tool(
             "scroll",
@@ -184,7 +184,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
     )
     def run_flow(
         flow_path: str,
-        dry_run: bool = False,
+        dry_run: bool = True,
         run_id: str | None = None,
         include_step_details: bool = False,
     ) -> dict[str, Any]:

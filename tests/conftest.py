@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import openframe.integrations.mcp.adapter as adapter_mod
 from openframe import runs as runs_mod
 
 
@@ -16,5 +17,6 @@ def isolated_runs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterat
     root = tmp_path / "runs"
     monkeypatch.setenv("OPENFRAME_RUNS_DIR", str(root))
     runs_mod._session_runs.clear()
+    monkeypatch.setattr(adapter_mod, "_require_desktop", lambda **_kwargs: None)
     yield root
     runs_mod._session_runs.clear()

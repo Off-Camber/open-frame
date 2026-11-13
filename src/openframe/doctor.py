@@ -13,6 +13,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from openframe.desktop_access import (
+    permission_denied_message,
+    read_display_power,
+    screen_unavailable_message,
+)
+
 CheckStatus = Literal["pass", "fail", "skip"]
 
 _PACKAGE = "off-camber-open-frame"
@@ -69,6 +75,7 @@ def run_doctor(*, mcp: bool = False) -> list[CheckResult]:
         _check_tesseract(),
     ]
     checks.extend(_check_extras())
+    checks.append(_check_display_power())
     checks.append(_check_screen_recording())
     checks.append(_check_accessibility())
     checks.append(_check_displays())
@@ -187,6 +194,56 @@ def _check_extras() -> list[CheckResult]:
     return results
 
 
+def _check_display_power() -> CheckResult:
+    """Fail when the screen is locked or the display is asleep.
+
+    That state is not a missing privacy grant. The permission probes are skipped
+    until the display is awake and unlocked.
+    """
+    if sys.platform != "darwin":
+        return CheckResult(
+            id="display_power",
+            status="skip",
+            detail="skipped on non-macOS",
+            required=False,
+        )
+    state = read_display_power()
+    if not state.known:
+        return CheckResult(
+            id="display_power",
+            status="skip",
+            detail="could not read whether the display is awake",
+            required=False,
+        )
+    if state.unavailable:
+        return CheckResult(
+            id="display_power",
+            status="fail",
+            detail=screen_unavailable_message(state),
+            required=True,
+        )
+    return CheckResult(
+        id="display_power",
+        status="pass",
+        detail="awake and unlocked",
+        required=True,
+    )
+
+
+def _permission_probe_blocked(check_id: str) -> CheckResult | None:
+    if sys.platform != "darwin":
+        return None
+    state = read_display_power()
+    if not state.unavailable:
+        return None
+    return CheckResult(
+        id=check_id,
+        status="skip",
+        detail="not checked while the screen is locked or the display is asleep",
+        required=False,
+    )
+
+
 def _check_screen_recording() -> CheckResult:
     if sys.platform != "darwin":
         return CheckResult(
@@ -195,6 +252,9 @@ def _check_screen_recording() -> CheckResult:
             detail="skipped on non-macOS",
             required=False,
         )
+    blocked = _permission_probe_blocked("screen_recording")
+    if blocked is not None:
+        return blocked
 
     try:
         from openframe.capture import CaptureError, region
@@ -219,10 +279,7 @@ def _check_screen_recording() -> CheckResult:
             id="screen_recording",
             status="fail",
             detail=str(exc),
-            hint=(
-                "System Settings → Privacy & Security → Screen Recording — "
-                "enable your terminal/IDE host, then restart it"
-            ),
+            hint=permission_denied_message("Screen Recording"),
             required=True,
         )
 
@@ -242,6 +299,9 @@ def _check_accessibility() -> CheckResult:
             detail="skipped on non-macOS",
             required=False,
         )
+    blocked = _permission_probe_blocked("accessibility")
+    if blocked is not None:
+        return blocked
 
     try:
         from openframe.recognize.a11y.macos import _list_frontmost_elements
@@ -254,10 +314,7 @@ def _check_accessibility() -> CheckResult:
             required=True,
         )
 
-    hint = (
-        "System Settings → Privacy & Security → Accessibility — "
-        "enable your terminal/IDE host, then restart it"
-    )
+    hint = permission_denied_message("Accessibility")
     try:
         elements = _list_frontmost_elements()
     except (RuntimeError, TypeError, ValueError) as exc:
