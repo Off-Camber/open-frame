@@ -44,6 +44,10 @@ Guidelines:
 - The README quickstart writes a one-step flow in the current directory so it works from a wheel, without the `examples/` tree.
 - Run artifacts go to an absolute directory (`~/.openframe/runs`, or `OPENFRAME_RUNS_DIR`). Tool results return those absolute paths. `open-frame runs prune` deletes runs by age and by count. Temporary capture images are removed once they have been copied into the run directory.
 
+### Docs
+- The README quickstart says a dry-run flow still captures the screen, and that `find` exiting 0 with `count` 0 means the text was not on screen.
+- API, MCP, verify, and setup docs match the current tools, defaults, and install command. A locked screen is documented separately from a missing permission.
+
 ### Fixed
 - A flow window guard that names an app focuses that app once and checks again before the step fails ([#34](https://github.com/Off-Camber/open-frame/pull/34)).
 

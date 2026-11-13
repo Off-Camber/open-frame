@@ -67,6 +67,55 @@ Use the Python interpreter from the virtualenv where Open Frame is installed.
 After saving, restart Claude Desktop and confirm the Open Frame tools appear
 (`capture`, `find`, `click`, `type`, `key`, `scroll`, `run_flow`, `get_run_artifacts`).
 
+## Tool arguments
+
+These are the MCP defaults. `open-frame click` and `open-frame run` on the
+command line still send input unless you pass `--dry-run`.
+
+### `capture`
+
+`mode` defaults to `screen` (`screen`, `window`, or `region`). `window_title`
+and `window_id` select a window. `x`, `y`, `width`, and `height` select a
+region. `out_path` is optional.
+
+### `find`
+
+`query` is required. `strategy` defaults to `first` (`first` or `all`).
+`frame_path` omitted captures the screen. `template` and `template_threshold`
+are optional. `ok: true` with `count` 0 means the text was not on screen.
+
+### `click`
+
+`query` is required. `anchor` defaults to `center`. `kind` defaults to `click`
+(`click`, `double`, or `right`). `dry_run` defaults to `true`; pass `false` to
+send the click. `expect_one` defaults to `false`. `selector` is optional
+(`first`, `top_most`, `left_most`, `right_most`, `highest_confidence`).
+`frame_path`, `template`, `template_threshold`, and `run_id` are optional.
+
+### `type`
+
+`text` must be non-empty. `interval` defaults to `0`. `dry_run` defaults to
+`true`; pass `false` to send keystrokes.
+
+### `key`
+
+Pass exactly one of `key` or `combo`. `dry_run` defaults to `true`; pass
+`false` to send the key.
+
+### `scroll`
+
+`clicks` is required (positive up, negative down). `x` and `y` are optional.
+`dry_run` defaults to `true`; pass `false` to scroll.
+
+### `run_flow`
+
+`flow_path` is required. `dry_run` defaults to `true`; pass `false` to run the
+flow for real. `include_step_details` defaults to `false`. `run_id` is optional.
+
+### `get_run_artifacts`
+
+`run_id` is required.
+
 ## Cursor
 
 Add an MCP server entry in Cursor settings (MCP servers JSON), for example:
@@ -145,6 +194,7 @@ Contract `v0.3.0`. Envelope keys are unchanged. An existing 0.2.x client must:
 | Tool returns `timeout` | The envelope `run_id` is the one `get_run_artifacts` accepts after the worker finishes. Raise `OPENFRAME_MCP_*_TIMEOUT_SEC` if the flow needs longer |
 | Huge `run_flow` payloads | Default is summarized steps; use `get_run_artifacts` or opt into `include_step_details` |
 
-See also [Contributing](CONTRIBUTING.md) for permission setup details and
+See also [Troubleshooting](TROUBLESHOOTING.md),
+[Contributing](CONTRIBUTING.md) for permission setup details, and
 [Release gates](RELEASE_GATES.md) for the local live gate that includes an MCP
 stdio smoke check.

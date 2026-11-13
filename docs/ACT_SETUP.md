@@ -5,6 +5,8 @@ Action execution uses `pyautogui` for mouse and keyboard control.
 ## Install dependencies
 
 ```bash
+pip install "off-camber-open-frame[act]"
+# from a clone of this repo:
 pip install -e ".[act]"
 ```
 

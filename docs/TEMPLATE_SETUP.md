@@ -6,9 +6,11 @@ the current frame (normalized cross-correlation, with a flat-template fallback).
 ## Install
 
 ```bash
-pip install -e ".[template]"
+pip install "off-camber-open-frame[template]"
 # or with other extras:
 pip install "off-camber-open-frame[template,ocr,act,flow]"
+# from a clone of this repo:
+pip install -e ".[template]"
 ```
 
 ## Usage

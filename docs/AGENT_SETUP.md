@@ -12,6 +12,8 @@ the agent only decides what to do next.
 ## Install
 
 ```bash
+pip install "off-camber-open-frame[agent]"
+# from a clone of this repo:
 pip install -e ".[agent]"
 ```
 
@@ -38,7 +40,8 @@ call_mcp_tool(tool, args)  ──▶  structured envelope recorded in history
 
 - **Engine boundary:** the agent never touches the screen directly. It only
   issues deterministic MCP tool calls (`capture`, `find`, `click`, `type`,
-  `key`, `run_flow`, `get_run_artifacts`) and reads their structured responses.
+  `key`, `scroll`, `run_flow`, `get_run_artifacts`) and reads their structured
+  responses.
 - **Evidence:** tool responses carry artifact paths, so an agent run is
   auditable the same way a flow run is.
 

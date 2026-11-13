@@ -5,6 +5,8 @@ Phase 2 OCR uses Python bindings plus the system `tesseract` binary.
 ## Install Python extras
 
 ```bash
+pip install "off-camber-open-frame[ocr]"
+# from a clone of this repo:
 pip install -e ".[ocr]"
 ```
 
