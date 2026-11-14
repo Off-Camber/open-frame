@@ -6,8 +6,9 @@ the next action each turn, and translates the response back into an
 history on every call, so the provider holds no mutable run state itself.
 
 The ``anthropic`` SDK is imported lazily so the rest of the agent layer (and
-the test suite) works without it installed. Install with ``pip install
-".[agent]"``.
+the test suite) works without it installed. From PyPI, install with
+``python -m pip install "off-camber-open-frame[agent]"``. A checkout of this
+repository uses ``python -m pip install -e ".[agent]"``.
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ def _load_anthropic() -> Any:
     except ImportError as error:  # pragma: no cover - exercised via monkeypatch
         raise RuntimeError(
             'The Anthropic provider requires the "anthropic" package. '
-            'Install it with: pip install ".[agent]"'
+            'Install it with: python -m pip install "off-camber-open-frame[agent]"'
         ) from error
     return anthropic
 
