@@ -63,6 +63,6 @@ def _load_yaml(text: str) -> Any:
         import yaml
     except ImportError as exc:
         raise RuntimeError(
-            "Flow loading requires PyYAML. Install with: pip install -e .[flow]"
+            'Flow loading requires PyYAML. Install with: pip install "off-camber-open-frame[flow]"'
         ) from exc
     return yaml.safe_load(text)

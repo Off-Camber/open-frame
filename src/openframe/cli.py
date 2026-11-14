@@ -452,7 +452,7 @@ def main() -> int:
             except ImportError as error:
                 parser.error(
                     "MCP server requires the mcp extra. "
-                    "Install with: pip install -e '.[mcp]' "
+                    'Install with: pip install "off-camber-open-frame[mcp]" '
                     f"({error})"
                 )
             try:

@@ -49,7 +49,7 @@ class TesseractRecognizer(Recognizer):
             from pytesseract import Output
         except ImportError as exc:
             raise RuntimeError(
-                "OCR dependencies are missing. Install with: pip install -e .[ocr]"
+                'OCR dependencies are missing. Install with: pip install "off-camber-open-frame[ocr]"'
             ) from exc
 
         # Grayscale keeps a caret from becoming an extra digit. A hard
