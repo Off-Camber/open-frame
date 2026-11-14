@@ -25,6 +25,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Fresh macOS account `ben2`, PyPI | README quickstart. macOS 27.0.1, Python 3.11.15, venv `~/open-frame-env`. | **Pass.** The first install failed on pip 21.2.4 (`no matching distribution`); a venv recreated with Python 3.11 installed. This account cannot write `/opt/homebrew/Cellar`; Tesseract was installed by the Homebrew owner. The unpinned install command installed `0.2.2`, the latest stable release. `python -m openframe.cli doctor` was **overall: ok**. An earlier `doctor` that skipped `mcp` and `template` was `/opt/homebrew/bin/open-frame`. |
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `476d474`, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate` and `/tmp/open-frame-030-app-matrix`. This is the `0.3.0` version commit. | Live gate **fail**. Calibration **5/5**. The three geometry clicks failed. `frame_path` returned `permission_denied` for Homebrew Python `3.11.15_3`. No-`TMPDIR` check **pass**. App matrix **6/6**. |
 | 2026-11-14 | Local CLI | Live gate rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate-2`. The script recorded SHA `fe9cd05`. `git diff 476d474..fe9cd05` is only `docs/DOGFOODING.md`. | Live gate **fail**. Calibration **0/5**. The three geometry clicks failed. `frame_path` returned `permission_denied`. No-`TMPDIR` check **pass**. App matrix was not rerun. |
+| 2026-11-14 | Local CLI | Live gate rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate-3`. The script recorded SHA `ee91218`. `git diff 476d474..ee91218` is only `docs/DOGFOODING.md`. TextEdit had been quit first. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. No-`TMPDIR` check **pass**. App matrix was not rerun. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -205,6 +206,17 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030-live-gate-2`). 
 - **gui_client_env, pass.** OCR, screen recording, and `doctor --mcp` passed without `TMPDIR`.
 - **mcp_stdio, pass.**
 - The check was not weakened.
+
+## macOS 27 gates (2026-11-14, live gate pass, version `0.3.0`)
+
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030-live-gate-3`). The script recorded SHA `ee91218a4b0a106f50e9debd8506cb0028b25c70`. `git diff 476d474d74397a3eefc5056a8fd707b101bceec7..ee91218a4b0a106f50e9debd8506cb0028b25c70` is only this file. The product code is the version commit `476d474`. It was not tagged. Tesseract is 5.5.4. One display. TextEdit had been quit before this run. The strict app matrix was not rerun; it was already 6/6 on `476d474`.
+
+- **calibration_5x, 5/5.**
+- **geometry clicks, pass.** Window-scoped click at (336, 201), region click at (328, 207), `frame_path` click at (331, 207). Each had an empty selection and range 5,4.
+- **intentional failure, pass.** The flow exited 1 and wrote `/private/tmp/open-frame-030-live-gate-3/runs/live-gate-miss`.
+- **gui_client_env, pass.** OCR, screen recording, and `doctor --mcp` passed without `TMPDIR`.
+- **mcp_stdio, pass.**
+- **a11y_bounds, pass.** 48 elements with bounds. The frontmost window was TextEdit "Untitled 206".
 
 ## Notes
 
