@@ -2,7 +2,7 @@
 
 The server is a thin protocol shim: every tool delegates to
 ``call_mcp_tool()`` and returns the existing envelope unchanged.
-Requires the optional ``mcp`` extra (``pip install -e '.[mcp]'``).
+Requires the optional ``mcp`` extra (``pip install "off-camber-open-frame[mcp]"``).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def _require_fastmcp():  # type: ignore[no-untyped-def]
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:  # pragma: no cover - exercised via monkeypatch / missing extra
         raise RuntimeError(
-            "MCP server requires the mcp extra. Install with: pip install -e '.[mcp]'"
+            'MCP server requires the mcp extra. Install with: pip install "off-camber-open-frame[mcp]"'
         ) from exc
     return FastMCP
 

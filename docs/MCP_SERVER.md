@@ -92,6 +92,19 @@ send the click. `expect_one` defaults to `false`. `selector` is optional
 (`first`, `top_most`, `left_most`, `right_most`, `highest_confidence`).
 `frame_path`, `template`, `template_threshold`, and `run_id` are optional.
 
+A full-screen `find` searches the whole display, including the chat that asked
+for the text. That extra match makes `click` with `expect_one` return
+`ambiguous_target`, and a `selector` such as `left_most` can choose the chat
+text instead of the window you meant. Capture the target window, then pass
+that frame's `image_path` as `frame_path` to `find` and `click`:
+
+```json
+{"mode": "window", "window_title": "TextEdit"}
+```
+
+Use the returned `frame.image_path` on the later calls. A dry-run `click` and
+a live `click` can share that same path.
+
 ### `type`
 
 `text` must be non-empty. `interval` defaults to `0`. `dry_run` defaults to
@@ -184,7 +197,7 @@ Contract `v0.3.0`. Envelope keys are unchanged. An existing 0.2.x client must:
 
 | Symptom | What to do |
 |---|---|
-| Server won't start / import error for `mcp` | `pip install -e '.[mcp]'` then retry |
+| Server won't start / import error for `mcp` | `pip install "off-camber-open-frame[mcp]"` then retry |
 | Client shows no tools | Confirm `command` points at the venv Python; restart the client |
 | Capture / find failures | Run `open-frame doctor` and fix Screen Recording / Accessibility / tesseract |
 | Tool returns `screen_unavailable` | The screen is locked or the display is asleep. Wake and unlock it. This is not a missing grant |

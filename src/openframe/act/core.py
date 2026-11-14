@@ -190,7 +190,9 @@ def _load_pyautogui():  # type: ignore[no-untyped-def]
     try:
         import pyautogui
     except ImportError as exc:
-        raise ActError("Action dependencies missing. Install with: pip install -e .[act]") from exc
+        raise ActError(
+            'Action dependencies missing. Install with: pip install "off-camber-open-frame[act]"'
+        ) from exc
     return pyautogui
 
 

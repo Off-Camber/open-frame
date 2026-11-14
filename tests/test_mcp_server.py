@@ -156,7 +156,7 @@ def test_require_fastmcp_missing_extra(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(builtins, "__import__", fake_import)
     from openframe.integrations.mcp import server as server_mod
 
-    with pytest.raises(RuntimeError, match=r"pip install -e '\.\[mcp\]'"):
+    with pytest.raises(RuntimeError, match=r'pip install "off-camber-open-frame\[mcp\]"'):
         server_mod._require_fastmcp()
 
 

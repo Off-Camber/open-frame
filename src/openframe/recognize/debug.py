@@ -15,7 +15,7 @@ def draw_debug_overlay(
         from PIL import Image, ImageDraw
     except ImportError as exc:
         raise RuntimeError(
-            "Overlay drawing requires Pillow. Install with: pip install -e .[ocr]"
+            'Overlay drawing requires Pillow. Install with: pip install "off-camber-open-frame[ocr]"'
         ) from exc
 
     source = Path(frame_path).expanduser().resolve()

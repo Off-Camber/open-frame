@@ -50,7 +50,7 @@ class TemplateRecognizer(Recognizer):
         except ImportError as exc:
             raise RuntimeError(
                 "Template matching dependencies are missing. "
-                "Install with: pip install -e '.[template]'"
+                'Install with: pip install "off-camber-open-frame[template]"'
             ) from exc
 
         path = Path(template_path).expanduser().resolve()
