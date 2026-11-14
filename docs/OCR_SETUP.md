@@ -13,11 +13,19 @@ pip install -e ".[ocr]"
 ## Install `tesseract` on macOS
 
 ```bash
+tesseract --version
+```
+
+When that command is missing and this account can write to Homebrew:
+
+```bash
 brew install tesseract
 ```
 
 `pytesseract` is the Python wrapper; OCR will still fail unless the
-system `tesseract` binary is installed and on your PATH.
+system `tesseract` binary is installed and on your PATH. When `brew` cannot
+write to `/opt/homebrew/Cellar`, the account that owns Homebrew has to install
+Tesseract. See [troubleshooting](TROUBLESHOOTING.md).
 
 ## Quick check
 

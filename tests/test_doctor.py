@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Any
 
 import pytest
@@ -67,6 +68,25 @@ def test_format_doctor_text_includes_hints_for_non_pass() -> None:
     assert "overall: not ready" in text
 
 
+def test_format_doctor_text_marks_optional_extra_as_a_note() -> None:
+    text = format_doctor_text(
+        [
+            CheckResult(id="platform", status="pass", detail="Darwin", required=True),
+            CheckResult(
+                id="extra_agent",
+                status="skip",
+                detail="optional, not installed (anthropic)",
+                hint='python -m pip install "off-camber-open-frame[agent]"',
+                required=False,
+            ),
+        ]
+    )
+    assert "[skip]" in text
+    assert "note: python -m pip install" in text
+    assert "hint:" not in text
+    assert "overall: ok" in text
+
+
 def test_run_doctor_monkeypatched_probes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "openframe.doctor._check_platform", lambda: CheckResult("platform", "pass", "Darwin")
@@ -128,6 +148,42 @@ def test_check_python_too_old(monkeypatch: pytest.MonkeyPatch) -> None:
     result = doctor_mod._check_python()
     assert result.status == "fail"
     assert "3.11" in (result.hint or "")
+    assert sys.executable in result.detail
+
+
+def test_check_python_names_the_interpreter(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+
+    monkeypatch.setattr(doctor_mod, "_python_version", lambda: (3, 11, 15))
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+    monkeypatch.setattr(doctor_mod.sys, "executable", "/tmp/open-frame-env/bin/python")
+    result = doctor_mod._check_python()
+    assert result.status == "pass"
+    assert result.detail == "Python 3.11.15 (/tmp/open-frame-env/bin/python)"
+
+
+def test_check_python_fails_when_process_is_outside_virtual_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from openframe import doctor as doctor_mod
+
+    monkeypatch.setattr(doctor_mod, "_python_version", lambda: (3, 11, 15))
+    monkeypatch.setenv("VIRTUAL_ENV", "/Users/example/open-frame-env")
+    monkeypatch.setattr(
+        doctor_mod.sys,
+        "prefix",
+        "/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11",
+    )
+    monkeypatch.setattr(
+        doctor_mod.sys,
+        "executable",
+        "/opt/homebrew/opt/python@3.11/bin/python3.11",
+    )
+    result = doctor_mod._check_python()
+    assert result.status == "fail"
+    assert "/Users/example/open-frame-env" in result.detail
+    assert "/opt/homebrew/opt/python@3.11/bin/python3.11" in result.detail
+    assert "python -m openframe.cli doctor" in (result.hint or "")
 
 
 def test_check_extras_skip_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -139,15 +195,59 @@ def test_check_extras_skip_when_missing(monkeypatch: pytest.MonkeyPatch) -> None
         return object()
 
     monkeypatch.setattr(doctor_mod.importlib.util, "find_spec", fake_find_spec)
+    monkeypatch.setattr(doctor_mod, "_distribution_version", lambda _name: None)
+    monkeypatch.setattr(doctor_mod, "_foreign_interpreter_note", lambda: None)
     results = {item.id: item for item in doctor_mod._check_extras()}
     assert results["extra_agent"].status == "skip"
     assert results["extra_agent"].required is False
+    assert results["extra_agent"].detail == "optional, not installed (anthropic)"
     assert results["extra_mcp"].status == "skip"
     assert results["extra_ocr"].status == "pass"
-    assert results["extra_mcp"].hint == 'pip install "off-camber-open-frame[mcp]"'
+    assert results["extra_mcp"].hint == 'python -m pip install "off-camber-open-frame[mcp]"'
     hints = {check_id: hint for check_id, _modules, hint in doctor_mod._EXTRA_CHECKS}
-    assert hints["extra_ocr"] == 'pip install "off-camber-open-frame[ocr]"'
+    assert hints["extra_ocr"] == 'python -m pip install "off-camber-open-frame[ocr]"'
+    assert hints["extra_agent"] == 'python -m pip install "off-camber-open-frame[agent]"'
     assert "pip install -e" not in " ".join(hints.values())
+
+
+def test_check_extras_metadata_is_not_reported_as_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+
+    def fake_find_spec(name: str) -> Any:
+        if name in {"mcp", "numpy"}:
+            return None
+        return object()
+
+    def fake_version(name: str) -> str | None:
+        return {"mcp": "1.30.0", "numpy": "2.4.6"}.get(name, "1")
+
+    monkeypatch.setattr(doctor_mod.importlib.util, "find_spec", fake_find_spec)
+    monkeypatch.setattr(doctor_mod, "_distribution_version", fake_version)
+    monkeypatch.setattr(doctor_mod, "_foreign_interpreter_note", lambda: None)
+    results = {item.id: item for item in doctor_mod._check_extras()}
+    assert results["extra_mcp"].status == "fail"
+    assert "not installed" not in results["extra_mcp"].detail
+    assert "mcp 1.30.0" in results["extra_mcp"].detail
+    assert "pip install" not in (results["extra_mcp"].hint or "")
+    assert results["extra_template"].status == "fail"
+    assert "numpy 2.4.6" in results["extra_template"].detail
+    assert results["extra_ocr"].status == "pass"
+
+
+def test_check_extras_names_the_other_interpreter(monkeypatch: pytest.MonkeyPatch) -> None:
+    from openframe import doctor as doctor_mod
+
+    monkeypatch.setattr(doctor_mod.importlib.util, "find_spec", lambda _name: None)
+    monkeypatch.setattr(doctor_mod, "_distribution_version", lambda _name: None)
+    monkeypatch.setattr(
+        doctor_mod,
+        "_foreign_interpreter_note",
+        lambda: "this process is /opt/homebrew/bin/python3.11, not /Users/example/open-frame-env",
+    )
+    results = {item.id: item for item in doctor_mod._check_extras()}
+    assert results["extra_mcp"].status == "skip"
+    assert "not installed (mcp)" in results["extra_mcp"].detail
+    assert "/Users/example/open-frame-env" in results["extra_mcp"].detail
 
 
 def test_check_screen_recording_fail_hint(monkeypatch: pytest.MonkeyPatch) -> None:

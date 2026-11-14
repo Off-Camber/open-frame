@@ -21,7 +21,8 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `ae5c426`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-live-gate-2` and `/tmp/open-frame-030rc2-app-matrix-2`. | Live gate **pass**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. `gui_client_env` **pass**: OCR read `HELLO`, screen recording passed, `doctor --mcp` listed 8 tools. Accessibility in that check was `seen=0` and did not fail it. App matrix **5/6**. Finder's accessibility query timed out after 30s. The Recents list-view header on screen was `Date Last Opened`. |
 | 2026-11-14 | Local CLI | Strict app matrix rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-app-matrix-3`. The script recorded SHA `e28dbb9`. `git diff ae5c426..e28dbb9` is only `docs/DOGFOODING.md`. | App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. Finder, Safari, Mail, System Settings, Notes, and Calendar passed. |
 | 2026-11-14 | Clean venv, PyPI `0.3.0rc2` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc2"` into `/tmp/open-frame-030rc2-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc2-pypi-runs`. `TMPDIR` unset for `doctor --mcp` and `find`. | `open-frame --version` printed `open-frame 0.3.0rc2`. `doctor --mcp` exit 0, **overall: ok**, OCR read `HELLO`, 8 tools. `find "Finder"` exit 0, count 0, source `screen:1`. |
-| 2026-11-14 | Cursor and Claude Desktop, PyPI `0.3.0rc2` | Short check with no `TMPDIR` workaround. Each client: TextEdit window capture, `find` `CALMARK89`, dry-run click, live click, all on the same `frame_path`. The fresh-account README check was not done. | Both live clicks returned ok at (336, 201). Claude run `20261114T160819Z`. Cursor run `20261114T161035Z`. Ben confirmed by eye that TextEdit took focus and the caret landed in `CALMARK89` in both clients. |
+| 2026-11-14 | Cursor and Claude Desktop, PyPI `0.3.0rc2` | Short check with no `TMPDIR` workaround. Each client: TextEdit window capture, `find` `CALMARK89`, dry-run click, live click, all on the same `frame_path`. | Both live clicks returned ok at (336, 201). Claude run `20261114T160819Z`. Cursor run `20261114T161035Z`. Ben confirmed by eye that TextEdit took focus and the caret landed in `CALMARK89` in both clients. |
+| 2026-11-14 | Fresh macOS account `ben2`, PyPI | README quickstart. macOS 27.0.1, Python 3.11.15, venv `~/open-frame-env`. | **Pass.** The first install failed on pip 21.2.4 (`no matching distribution`); a venv recreated with Python 3.11 installed. This account cannot write `/opt/homebrew/Cellar`; Tesseract was installed by the Homebrew owner. The unpinned install command installed `0.2.2`, the latest stable release. `python -m openframe.cli doctor` was **overall: ok**. An earlier `doctor` that skipped `mcp` and `template` was `/opt/homebrew/bin/open-frame`. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -160,7 +161,7 @@ The JSON API listed `0.3.0rc2` before pip's simple index did. The first install 
 
 ## rc2 short check (2026-11-14, PyPI `0.3.0rc2`)
 
-Ben ran this against `0.3.0rc2`. Claude Desktop's config had no `TMPDIR` entry. The README check from a macOS account that has never had Open Frame installed was not done.
+Ben ran this against `0.3.0rc2`. Claude Desktop's config had no `TMPDIR` entry. The fresh-account README check is recorded below.
 
 ### Claude Desktop
 
@@ -169,6 +170,16 @@ Window capture, `find` for `CALMARK89`, dry-run click, and live click all succee
 ### Cursor
 
 The same sequence succeeded. The live click returned ok at (336, 201), run `20261114T161035Z`. Ben confirmed by eye that TextEdit received focus and the caret landed in `CALMARK89`.
+
+## Fresh-account README (2026-11-14, account `ben2`)
+
+macOS 27.0.1. Standard account `ben2`. Python 3.11.15. Virtual environment `~/open-frame-env`. The check passed.
+
+- The first install failed. pip 21.2.4 reported no matching distribution. Recreating the virtual environment with Python 3.11 fixed it.
+- This account cannot write `/opt/homebrew/Cellar`. Tesseract was installed from the account that owns Homebrew.
+- The unpinned install command installed `0.2.2`, the latest stable release, not `0.3.0rc2`.
+- `python -m openframe.cli doctor` returned `overall: ok`. OCR, ACT, FLOW, MCP, Template, screen recording, and Accessibility passed. `extra_agent` skipped because `anthropic` was not in the install command.
+- An earlier `doctor` run that skipped MCP and Template was `/opt/homebrew/bin/open-frame`, a different interpreter. The venv's own `doctor` reports both as installed.
 
 ## Notes
 
