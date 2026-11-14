@@ -15,7 +15,7 @@ source .venv/bin/activate
 3. Install in editable mode:
 
 ```bash
-pip install -e ".[dev,ocr,act,flow,mcp,template]"
+python -m pip install -e ".[dev,ocr,act,flow,mcp,template]"
 ```
 
 4. Use CLI via Python module if `open-frame` is not on PATH:

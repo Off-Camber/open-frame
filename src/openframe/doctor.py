@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.metadata
 import importlib.util
 import os
 import platform
@@ -31,17 +32,20 @@ MCP_CLIENT_PERMISSION_NOTE = (
 
 
 def _extra_hint(extra: str) -> str:
-    return f'pip install "{_PACKAGE}[{extra}]"'
+    """Install command for a published package. A checkout uses `pip install -e`."""
+    return f'python -m pip install "{_PACKAGE}[{extra}]"'
 
 
 # Optional extras: absent → skip (informational), not a failure.
-_EXTRA_CHECKS: tuple[tuple[str, tuple[str, ...], str], ...] = (
-    ("extra_ocr", ("PIL", "pytesseract"), _extra_hint("ocr")),
-    ("extra_act", ("pyautogui",), _extra_hint("act")),
-    ("extra_flow", ("yaml",), _extra_hint("flow")),
-    ("extra_agent", ("anthropic",), _extra_hint("agent")),
-    ("extra_mcp", ("mcp",), _extra_hint("mcp")),
-    ("extra_template", ("PIL", "numpy"), _extra_hint("template")),
+# Each pair is (distribution name, import name), matching pyproject.toml extras.
+# Pillow and PyYAML install under different import names than their packages.
+_EXTRA_CHECKS: tuple[tuple[str, tuple[tuple[str, str], ...], str], ...] = (
+    ("extra_ocr", (("Pillow", "PIL"), ("pytesseract", "pytesseract")), _extra_hint("ocr")),
+    ("extra_act", (("PyAutoGUI", "pyautogui"),), _extra_hint("act")),
+    ("extra_flow", (("PyYAML", "yaml"),), _extra_hint("flow")),
+    ("extra_agent", (("anthropic", "anthropic"),), _extra_hint("agent")),
+    ("extra_mcp", (("mcp", "mcp"),), _extra_hint("mcp")),
+    ("extra_template", (("Pillow", "PIL"), ("numpy", "numpy")), _extra_hint("template")),
 )
 
 
@@ -98,8 +102,10 @@ def format_doctor_text(checks: list[CheckResult]) -> str:
     width = max(len(item.id) for item in checks)
     for item in checks:
         lines.append(f"  [{item.status:<4}] {item.id:<{width}}  {item.detail}")
-        if item.hint and item.status != "pass":
+        if item.hint and item.status == "fail":
             lines.append(f"         hint: {item.hint}")
+        elif item.hint and item.status == "skip":
+            lines.append(f"         note: {item.hint}")
     overall = "ok" if doctor_ok(checks) else "not ready"
     lines.append(f"overall: {overall}")
     return "\n".join(lines)
@@ -134,7 +140,7 @@ def _check_platform() -> CheckResult:
 
 def _check_python() -> CheckResult:
     major, minor, micro = _python_version()
-    detail = f"{major}.{minor}.{micro}"
+    detail = f"{major}.{minor}.{micro} ({sys.executable})"
     if (major, minor) < (3, 11):
         return CheckResult(
             id="python",
@@ -143,7 +149,34 @@ def _check_python() -> CheckResult:
             hint="Install Python 3.11+ and recreate your virtualenv.",
             required=True,
         )
+    other_env = _venv_mismatch()
+    if other_env is not None:
+        return CheckResult(
+            id="python",
+            status="fail",
+            detail=f"Python {detail} is not the active virtual environment ({other_env})",
+            hint="Run `python -m openframe.cli doctor` so the check uses the environment you installed into.",
+            required=True,
+        )
     return CheckResult(id="python", status="pass", detail=f"Python {detail}", required=True)
+
+
+def _venv_mismatch() -> str | None:
+    """Return VIRTUAL_ENV when this process is some other interpreter."""
+    raw = os.environ.get("VIRTUAL_ENV")
+    if not raw:
+        return None
+    active = Path(raw).expanduser().resolve()
+    if Path(sys.prefix).resolve() == active:
+        return None
+    return str(active)
+
+
+def _distribution_version(name: str) -> str | None:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
 def _python_version() -> tuple[int, int, int]:
@@ -245,15 +278,53 @@ def _write_ocr_probe(path: Path, image_cls: Any, draw_cls: Any, font_cls: Any) -
 
 
 def _check_extras() -> list[CheckResult]:
+    """Report extras from install metadata and from whether Python can import them.
+
+    `skip` means the distribution is absent from this interpreter. A distribution
+    that is installed but cannot be imported is a failure for this process, not
+    a missing install. `VIRTUAL_ENV` pointing at a different interpreter is named
+    in the detail so a Homebrew `open-frame` is not mistaken for the venv.
+    """
+    note = _foreign_interpreter_note()
     results: list[CheckResult] = []
-    for check_id, modules, install_hint in _EXTRA_CHECKS:
-        missing = [name for name in modules if importlib.util.find_spec(name) is None]
-        if missing:
+    for check_id, packages, install_hint in _EXTRA_CHECKS:
+        missing: list[str] = []
+        broken: list[str] = []
+        for dist_name, module_name in packages:
+            version = _distribution_version(dist_name)
+            importable = importlib.util.find_spec(module_name) is not None
+            if importable:
+                continue
+            if version is None:
+                missing.append(dist_name)
+            else:
+                broken.append(f"{dist_name} {version}")
+        if broken:
+            detail = f"installed but not importable ({', '.join(broken)})"
+            if missing:
+                detail = f"{detail}; not installed ({', '.join(missing)})"
+            results.append(
+                CheckResult(
+                    id=check_id,
+                    status="fail",
+                    detail=detail,
+                    hint=(
+                        "The distribution is installed for this interpreter, but Python "
+                        "cannot import it. Run `python -m openframe.cli doctor` with the "
+                        "same interpreter you used for pip."
+                    ),
+                    required=False,
+                )
+            )
+        elif missing:
+            detail = f"optional, not installed ({', '.join(missing)})"
+            if note:
+                detail = f"{detail}; {note}"
             results.append(
                 CheckResult(
                     id=check_id,
                     status="skip",
-                    detail=f"not installed ({', '.join(missing)})",
+                    detail=detail,
                     hint=install_hint,
                     required=False,
                 )
@@ -268,6 +339,13 @@ def _check_extras() -> list[CheckResult]:
                 )
             )
     return results
+
+
+def _foreign_interpreter_note() -> str | None:
+    other_env = _venv_mismatch()
+    if other_env is None:
+        return None
+    return f"this process is {sys.executable}, not {other_env}"
 
 
 def _check_display_power() -> CheckResult:

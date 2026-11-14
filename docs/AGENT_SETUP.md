@@ -11,10 +11,14 @@ the agent only decides what to do next.
 
 ## Install
 
+The standard install (`ocr`, `act`, `flow`, `mcp`, `template`) does not include
+this extra. `open-frame doctor` then reports `extra_agent` as `skip` /
+`optional, not installed (anthropic)`, and `overall` stays `ok`.
+
 ```bash
-pip install "off-camber-open-frame[agent]"
+python -m pip install "off-camber-open-frame[agent]"
 # from a clone of this repo:
-pip install -e ".[agent]"
+python -m pip install -e ".[agent]"
 ```
 
 The Anthropic provider reads your API key from the `ANTHROPIC_API_KEY`

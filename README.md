@@ -40,30 +40,136 @@ MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
 
 ## Quickstart (beta funnel)
 
-### 1. Install
+Open Frame requires **Python 3.11 or newer**. That requirement is
+`requires-python` in the package metadata. Releases are tested on Python 3.11
+and 3.12. macOS only.
+
+`python3` on a Mac is often older than that. Pip 21.x then reports
+`No matching distribution found` and `from versions: none`, because it never
+reads the current package index. Check `python3.11` before installing.
+
+### 1. Check Python
 
 ```bash
-pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
-brew install tesseract
+python3.11 --version
 ```
+
+If that command is not found, Homebrew's interpreter may still be installed
+for another account:
+
+```bash
+/opt/homebrew/bin/python3.11 --version
+```
+
+You want a version of 3.11 or newer. If neither command works, install Python
+from the macOS account that owns Homebrew:
+
+```bash
+brew install python@3.11
+```
+
+Installing the official macOS package from [python.org](https://www.python.org/downloads/macos/)
+also works. Leave `/opt/homebrew` owned by the account that installed Homebrew.
+
+### 2. Check Tesseract
+
+```bash
+tesseract --version
+```
+
+When the command is missing and this account can write to Homebrew:
+
+```bash
+brew install tesseract
+tesseract --version
+```
+
+When `brew` cannot write to `/opt/homebrew/Cellar`, Homebrew belongs to another
+account on this Mac. From that account, run `brew install tesseract`, or
+`brew upgrade tesseract` when an older copy is already installed. Leave
+ownership of `/opt/homebrew` unchanged. The binary is then shared. If the
+shell still cannot find `tesseract`, call `/opt/homebrew/bin/tesseract`.
+
+### 3. Create a virtual environment
+
+Do this once, using the interpreter from step 1:
+
+```bash
+python3.11 -m venv ~/open-frame-env
+```
+
+When `python3.11` is not on `PATH`:
+
+```bash
+/opt/homebrew/bin/python3.11 -m venv ~/open-frame-env
+```
+
+### 4. Activate that environment
+
+Do this in every new terminal. Activating an environment that already exists
+is a separate step from creating it, and it applies only to the current terminal:
+
+```bash
+source ~/open-frame-env/bin/activate
+```
+
+### 5. Upgrade pip and install
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
+```
+
+`python -m pip` installs into the environment you just activated. The command
+installs the latest stable release. The current beta is a pre-release, so pip
+selects it only with `--pre` or an exact version such as `==0.3.0rc2`.
+
+That command installs the standard extras: `ocr`, `act`, `flow`, `mcp`, and
+`template`.
+
+The `agent` extra is not part of it. That extra installs the Anthropic SDK for
+the optional agent loop. Leave it out unless you want that loop. In the same
+activated environment:
+
+```bash
+python -m pip install "off-camber-open-frame[agent]"
+```
+
+From a clone of this repository the editable form is
+`python -m pip install -e ".[agent]"`. That form is for a checkout, not for a
+copy installed from PyPI. See [agent setup](docs/AGENT_SETUP.md).
+
+### 6. Diagnose
+
+```bash
+python -m openframe.cli doctor
+```
+
+Run doctor with this environment's Python. A shell can still resolve a bare
+`open-frame` to another install, such as `/opt/homebrew/bin/open-frame` from a
+different account. That process checks the other Python and reports `mcp` and
+`template` as missing even when this environment has them. The `python` line
+of the report includes the interpreter path. It should sit inside
+`~/open-frame-env`.
+
+All required checks should report `pass` (`overall: ok`). After the standard
+install, `extra_agent` is `skip` with `optional, not installed (anthropic)`.
+That row is a `note`, not a `hint`, and it does not change `overall`. A `fail`
+is a problem to fix: a missing Tesseract binary, a privacy denial, or a package
+this environment cannot import. Screen Recording and Accessibility show up as
+their own checks.
 
 On macOS, grant your terminal or IDE host **Screen Recording** and
 **Accessibility** (System Settings → Privacy & Security), then restart that app.
+Those are privacy permissions. They are separate from a failed install and from
+a missing Tesseract binary.
 
-### 2. Diagnose
+If a required check fails, see [troubleshooting](docs/TROUBLESHOOTING.md).
 
-```bash
-open-frame doctor
-```
-
-All required checks should report `pass` (`overall: ok`). Optional extras that
-are not installed show as `skip` and do not fail the report. If a check fails,
-see [troubleshooting](docs/TROUBLESHOOTING.md).
-
-### 3. Connect an MCP client
+### 7. Connect an MCP client
 
 ```bash
-open-frame doctor --mcp
+python -m openframe.cli doctor --mcp
 ```
 
 This fails when the `mcp`, `act`, or `ocr` extras are missing. When they are
@@ -78,7 +184,7 @@ More client examples: [MCP server setup](docs/MCP_SERVER.md).
 open-frame mcp serve
 ```
 
-### 4. Run a first flow
+### 8. Run a first flow
 
 ```bash
 open-frame find "Submit" --json
@@ -106,18 +212,16 @@ Artifacts for that run are written to an absolute directory: `~/.openframe/runs`
 or `OPENFRAME_RUNS_DIR` when that variable is set. Remove old runs with
 `open-frame runs prune --older-than 7d --keep 20`.
 
-If `open-frame` is not on your PATH yet:
-
-```bash
-python -m openframe.cli doctor
-```
+With the environment activated, `open-frame` is the same program. Prefer
+`python -m openframe.cli` when a machine has more than one install, so the
+command cannot pick up a different interpreter.
 
 ## Local development (repo clone)
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,ocr,act,flow,mcp,template]"
+python -m pip install -e ".[dev,ocr,act,flow,mcp,template]"
 open-frame doctor
 open-frame mcp list-tools --json
 ```
