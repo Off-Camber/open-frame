@@ -19,6 +19,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Local CLI | Live gate on macOS 27.0.1, SHA `a524c7d`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-rc1-fixes-live-gate`. `OPENFRAME_RUNS_DIR` pointed at that evidence directory. | Live gate **fail**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. Intentional failure wrote `/private/tmp/open-frame-rc1-fixes-live-gate/runs/live-gate-miss` and the check found that directory. OCR without `TMPDIR` **pass**. `gui_client_env` **fail**: accessibility saw 0 elements. |
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `292f468`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-live-gate` and `/tmp/open-frame-030rc2-app-matrix`. This is the `0.3.0rc2` version commit. | Live gate **fail**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. OCR without `TMPDIR` **pass**. `gui_client_env` **fail**: accessibility saw 0 elements after the gate closed the TextEdit document. App matrix **5/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. Finder was in icon view, so `Date Added` was not on screen. |
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `ae5c426`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-live-gate-2` and `/tmp/open-frame-030rc2-app-matrix-2`. | Live gate **pass**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. `gui_client_env` **pass**: OCR read `HELLO`, screen recording passed, `doctor --mcp` listed 8 tools. Accessibility in that check was `seen=0` and did not fail it. App matrix **5/6**. Finder's accessibility query timed out after 30s. The Recents list-view header on screen was `Date Last Opened`. |
+| 2026-11-14 | Local CLI | Strict app matrix rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-app-matrix-3`. The script recorded SHA `e28dbb9`. `git diff ae5c426..e28dbb9` is only `docs/DOGFOODING.md`. | App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. Finder, Safari, Mail, System Settings, Notes, and Calendar passed. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -138,6 +139,12 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030rc2-live-gate-2`
 - **gui_client_env, pass.** Under `HOME`, `LOGNAME`, `PATH`, `SHELL`, and `USER` only, OCR read `HELLO`, screen recording passed, and `doctor --mcp` listed 8 tools. `accessibility` was `no elements with usable bounds (seen=0)`. That result was recorded and did not fail the check. `doctor_ok` was false for the same reason. The earlier `a11y_bounds` check in this run passed with 50 elements.
 - **mcp_stdio, pass.**
 - **app matrix, 5/6.** Safari, Mail, System Settings, Notes, and Calendar passed. Finder failed `find-finder-chrome` because the accessibility query timed out after 30s. The step took 33,030 ms. The frame is Recents in list view. Tesseract read the headers `Name`, `Kind`, and `Date Last Opened`. `Date Added` was not on screen. The matrix was not rerun.
+
+## Strict app matrix rerun (2026-11-14, code of `ae5c426`)
+
+Evidence from `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030rc2-app-matrix-3`). The script recorded SHA `e28dbb9` because that was HEAD. `git diff ae5c426b1e25bf5963d20f033c85846d35a72f88..e28dbb97af3f8fffc8fe660044c08b2802070241` is `docs/DOGFOODING.md` only. The live gate for this code is the pass recorded above on `ae5c426`.
+
+- **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, and Calendar. Strict mode on.
 
 ## Notes
 
