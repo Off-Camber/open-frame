@@ -282,6 +282,7 @@ def write_step_artifacts(
     before: Frame,
     after: Frame,
     verification: VerifyResult | None,
+    retain_paths: tuple[str, ...] | None = None,
 ) -> Path:
     """Write before/after screenshots and step.json to the absolute run directory."""
     step_dir = run_directory(run_id) / step_id
@@ -289,8 +290,9 @@ def write_step_artifacts(
 
     before_path = _copy_if_present(before.image_path, step_dir / "before.png")
     after_path = _copy_if_present(after.image_path, step_dir / "after.png")
-    _retire_temp_capture(before, before_path)
-    _retire_temp_capture(after, after_path)
+    retain = _resolved_paths(retain_paths)
+    _retire_temp_capture(before, before_path, retain=retain)
+    _retire_temp_capture(after, after_path, retain=retain)
 
     payload: dict[str, Any] = {
         "step_id": step_id,
@@ -319,17 +321,35 @@ def _copy_if_present(source: str | None, destination: Path) -> Path | None:
     return destination.resolve()
 
 
-def _retire_temp_capture(frame: Frame, copied: Path | None) -> None:
-    """Delete a temporary capture once its copy lives in the run directory."""
+def _resolved_paths(paths: tuple[str, ...] | None) -> set[str]:
+    retained: set[str] = set()
+    for item in paths or ():
+        try:
+            retained.add(str(Path(item).resolve()))
+        except OSError:
+            retained.add(str(item))
+    return retained
+
+
+def _retire_temp_capture(frame: Frame, copied: Path | None, *, retain: set[str]) -> None:
+    """Delete a temporary capture once its copy lives in the run directory.
+
+    Paths in ``retain`` were supplied by the caller. Those files stay where
+    they are, including a capture the client will pass to a later tool.
+    """
     if copied is None or not frame.image_path:
         return
     source = Path(frame.image_path)
     try:
-        same_file = source.resolve() == copied.resolve()
+        resolved = str(source.resolve())
+        same_file = resolved == str(copied.resolve())
     except OSError:
+        resolved = str(source)
         same_file = False
     if same_file:
         frame.image_path = str(copied)
+        return
+    if resolved in retain:
         return
     if _is_temp_capture(source):
         source.unlink(missing_ok=True)
