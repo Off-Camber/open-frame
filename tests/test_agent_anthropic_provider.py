@@ -239,7 +239,7 @@ def test_missing_anthropic_raises_clear_error(monkeypatch: pytest.MonkeyPatch) -
     def boom() -> Any:
         raise RuntimeError(
             'The Anthropic provider requires the "anthropic" package. '
-            'Install it with: pip install ".[agent]"'
+            'Install it with: python -m pip install "off-camber-open-frame[agent]"'
         )
 
     monkeypatch.setattr(anthropic_provider, "_load_anthropic", boom)
