@@ -23,6 +23,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Clean venv, PyPI `0.3.0rc2` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc2"` into `/tmp/open-frame-030rc2-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc2-pypi-runs`. `TMPDIR` unset for `doctor --mcp` and `find`. | `open-frame --version` printed `open-frame 0.3.0rc2`. `doctor --mcp` exit 0, **overall: ok**, OCR read `HELLO`, 8 tools. `find "Finder"` exit 0, count 0, source `screen:1`. |
 | 2026-11-14 | Cursor and Claude Desktop, PyPI `0.3.0rc2` | Short check with no `TMPDIR` workaround. Each client: TextEdit window capture, `find` `CALMARK89`, dry-run click, live click, all on the same `frame_path`. | Both live clicks returned ok at (336, 201). Claude run `20261114T160819Z`. Cursor run `20261114T161035Z`. Ben confirmed by eye that TextEdit took focus and the caret landed in `CALMARK89` in both clients. |
 | 2026-11-14 | Fresh macOS account `ben2`, PyPI | README quickstart. macOS 27.0.1, Python 3.11.15, venv `~/open-frame-env`. | **Pass.** The first install failed on pip 21.2.4 (`no matching distribution`); a venv recreated with Python 3.11 installed. This account cannot write `/opt/homebrew/Cellar`; Tesseract was installed by the Homebrew owner. The unpinned install command installed `0.2.2`, the latest stable release. `python -m openframe.cli doctor` was **overall: ok**. An earlier `doctor` that skipped `mcp` and `template` was `/opt/homebrew/bin/open-frame`. |
+| 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `476d474`, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate` and `/tmp/open-frame-030-app-matrix`. This is the `0.3.0` version commit. | Live gate **fail**. Calibration **5/5**. The three geometry clicks failed. `frame_path` returned `permission_denied` for Homebrew Python `3.11.15_3`. No-`TMPDIR` check **pass**. App matrix **6/6**. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -180,6 +181,17 @@ macOS 27.0.1. Standard account `ben2`. Python 3.11.15. Virtual environment `~/op
 - The unpinned install command installed `0.2.2`, the latest stable release, not `0.3.0rc2`.
 - `python -m openframe.cli doctor` returned `overall: ok`. OCR, ACT, FLOW, MCP, Template, screen recording, and Accessibility passed. `extra_agent` skipped because `anthropic` was not in the install command.
 - An earlier `doctor` run that skipped MCP and Template was `/opt/homebrew/bin/open-frame`, a different interpreter. The venv's own `doctor` reports both as installed.
+
+## macOS 27 gates (2026-11-14, `476d474`, version `0.3.0`)
+
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030-live-gate`) and `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030-app-matrix`). `OPENFRAME_RUNS_DIR` pointed at each evidence directory's `runs`. This is the version commit that would be tagged `v0.3.0`. It was not tagged. Tesseract is 5.5.4.
+
+- **calibration_5x, 5/5.**
+- **geometry clicks, fail.** Window-scoped click: the frontmost window could not be read, so the gate refused to actuate. Region click landed at (328, 207) and the TextEdit text area was not found. `frame_path` click returned `permission_denied`. Accessibility is not available to `python3.11` at `/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/bin/python3.11`, started by that framework's `Python.app`. The gate's reported interpreter was `.venv/bin/python` (3.11.15).
+- **intentional failure, pass.** The flow exited 1 and wrote `/private/tmp/open-frame-030-live-gate/runs/live-gate-miss`.
+- **gui_client_env, pass.** OCR, screen recording, and `doctor --mcp` passed without `TMPDIR`.
+- **mcp_stdio, pass.**
+- **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, and Calendar. Strict mode on.
 
 ## Notes
 
