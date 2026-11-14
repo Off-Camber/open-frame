@@ -412,7 +412,7 @@ check_intentional_failure() {
   code=$?
   echo "${code}" >"${base}.exit"
 
-  if ! python3 - <<'PY'
+  if ! "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -426,20 +426,22 @@ try:
 except Exception:
     pass
 success = payload.get("success")
-artifact = Path("runs/live-gate-miss")
-has_artifact = artifact.exists()
+from openframe.runs import lookup_run_directory
+
+artifact = lookup_run_directory("live-gate-miss")
+has_artifact = artifact is not None
 summary = {
     "exit_code": code,
     "nonzero": code != 0,
     "reported_success": success,
     "artifact_exists": has_artifact,
-    "artifact": str(artifact.resolve()) if has_artifact else None,
+    "artifact": str(artifact) if artifact is not None else None,
 }
 (out_dir / "intentional-failure-summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 if code == 0 or success is True:
     raise SystemExit("intentional failure unexpectedly succeeded")
 if not has_artifact:
-    raise SystemExit("intentional failure missing run artifacts under runs/live-gate-miss")
+    raise SystemExit("intentional failure missing run artifacts under the configured runs directory")
 print(json.dumps(summary))
 PY
   then
@@ -449,6 +451,47 @@ PY
   fi
   record_check "intentional_failure" "pass" "nonzero exit with artifacts" \
     "${OUT_DIR}/intentional-failure-summary.json"
+}
+
+check_gui_client_env() {
+  local base="${OUT_DIR}/gui-client-env"
+  # Claude Desktop and Cursor start the server with this environment and no TMPDIR.
+  if ! env -i \
+    HOME="${HOME}" \
+    LOGNAME="${LOGNAME:-${USER}}" \
+    PATH="${PATH}" \
+    SHELL="${SHELL:-/bin/sh}" \
+    USER="${USER}" \
+    "${PYTHON_BIN}" - <<'PY' >"${base}.out" 2>"${base}.err"
+import json
+
+from openframe.doctor import doctor_ok, run_doctor
+
+def rows(checks):
+    return [{"id": item.id, "status": item.status, "detail": item.detail} for item in checks]
+
+doctor = run_doctor(mcp=False)
+with_mcp = run_doctor(mcp=True)
+ocr = next(item for item in doctor if item.id == "ocr")
+payload = {
+    "doctor_ok": doctor_ok(doctor),
+    "doctor_mcp_ok": doctor_ok(with_mcp),
+    "ocr_status": ocr.status,
+    "ocr_detail": ocr.detail,
+    "doctor": rows(doctor),
+    "doctor_mcp": rows(with_mcp),
+}
+print(json.dumps(payload, indent=2))
+if not payload["doctor_ok"] or not payload["doctor_mcp_ok"] or ocr.status != "pass":
+    raise SystemExit("gui client environment check failed")
+PY
+  then
+    record_check "gui_client_env" "fail" "doctor, doctor --mcp, or OCR failed without TMPDIR" \
+      "${base}.out"
+    return 1
+  fi
+  record_check "gui_client_env" "pass" "doctor, doctor --mcp, and OCR passed without TMPDIR" \
+    "${base}.out"
 }
 
 check_mcp_stdio() {
@@ -634,6 +677,7 @@ run_check check_safe_matching
 run_check check_calibration
 run_check check_geometry_clicks
 run_check check_intentional_failure
+run_check check_gui_client_env
 run_check check_mcp_stdio
 finalize
 FINAL_CODE=$?

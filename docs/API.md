@@ -121,6 +121,7 @@ Stable error codes used by MCP tools include:
 - `not_found`
 - `flow_failed`
 - `runtime_error`
+- `ocr_error`
 - `timeout`
 - `busy`
 - `permission_denied`

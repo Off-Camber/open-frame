@@ -31,6 +31,13 @@ Guidelines:
 
 ## Unreleased
 
+### Fixed
+- OCR works when a GUI client starts the server without `TMPDIR`. Tesseract input is written under `~/.openframe/tmp`, because Leptonica rewrites paths that start with `/tmp` and then cannot open the file Python wrote.
+- A Tesseract failure is `ocr_error` with a readable message.
+- A frame passed as `frame_path` is not deleted after a click. A `capture` with no `out_path` is stored in the runs directory until `open-frame runs prune`.
+- `open-frame doctor` reads a generated image, so a broken OCR setup fails before a client calls `find`.
+- The live gate's intentional-failure check looks in the configured runs directory, and a new check runs doctor, `doctor --mcp`, and that OCR read with the environment a GUI client provides.
+
 ## v0.3.0rc1 - 2026-11-12
 
 Release candidate. The package is still Beta. The MCP contract label is `v0.3.0`.

@@ -12,12 +12,17 @@ from openframe.recognize.match import (
     text_matches_query,
     tokenize,
 )
+from openframe.recognize.ocr.workspace import ocr_scratch_dir
 from openframe.types import Frame, Target
 
 # Measured on the macOS 27 TextEdit frames: 80 keeps CALMARK89, Example
 # Domain, and the Finder "Date Added" header. 60 drops "Example". 100 splits
 # the caret fixture into CALMARK8.
 _INK_THRESHOLD = 80
+
+
+class OcrError(RuntimeError):
+    """Tesseract failed to read an image."""
 
 
 class TesseractRecognizer(Recognizer):
@@ -67,7 +72,11 @@ class TesseractRecognizer(Recognizer):
         match_mode = _match_mode(options)
         targets: list[Target] = []
         for variant in rendered:
-            data = pytesseract.image_to_data(variant, output_type=Output.DICT)
+            try:
+                with ocr_scratch_dir():
+                    data = pytesseract.image_to_data(variant, output_type=Output.DICT)
+            except (UnicodeDecodeError, pytesseract.TesseractError) as exc:
+                raise OcrError(_ocr_failure_message(exc)) from exc
             word_targets = _targets_from_words(
                 data, query=query, source=self.name, match_mode=match_mode
             )
@@ -88,6 +97,24 @@ class TesseractRecognizer(Recognizer):
             targets=targets,
             metadata={"query": query, "match_count": len(targets), "match_mode": match_mode},
         )
+
+
+def _ocr_failure_message(exc: BaseException) -> str:
+    """Turn a Tesseract or decode failure into one readable sentence."""
+    if isinstance(exc, UnicodeDecodeError):
+        return (
+            "Tesseract failed to read the image. Its error output was not text, "
+            "which means Leptonica could not open the OCR input."
+        )
+    raw = getattr(exc, "message", None)
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", errors="replace")
+    if not isinstance(raw, str) or not raw.strip():
+        raw = str(exc)
+    cleaned = " ".join("".join(char if char.isprintable() else " " for char in raw).split())
+    if not cleaned:
+        return "Tesseract failed to read the image."
+    return f"Tesseract failed to read the image: {cleaned}"
 
 
 def _dedupe_targets(targets: list[Target]) -> list[Target]:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import os
 import platform
 import shutil
 import subprocess
@@ -73,6 +74,7 @@ def run_doctor(*, mcp: bool = False) -> list[CheckResult]:
         _check_platform(),
         _check_python(),
         _check_tesseract(),
+        _check_ocr(),
     ]
     checks.extend(_check_extras())
     checks.append(_check_display_power())
@@ -166,6 +168,80 @@ def _check_tesseract() -> CheckResult:
         detail=f"{binary} ({version})",
         required=True,
     )
+
+
+def _check_ocr() -> CheckResult:
+    """Read a generated image. This fails when Tesseract cannot open its input."""
+    if shutil.which("tesseract") is None:
+        return CheckResult(
+            id="ocr",
+            status="skip",
+            detail="tesseract is not installed",
+            required=False,
+        )
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return CheckResult(
+            id="ocr",
+            status="skip",
+            detail="ocr extra is not installed",
+            hint=_extra_hint("ocr"),
+            required=False,
+        )
+    from openframe.recognize.ocr.tesseract import OcrError, TesseractRecognizer
+
+    probe_fd, probe_name = tempfile.mkstemp(prefix="openframe-doctor-ocr-", suffix=".png")
+    os.close(probe_fd)
+    probe = Path(probe_name)
+    try:
+        _write_ocr_probe(probe, Image, ImageDraw, ImageFont)
+        frame_width, frame_height = 600, 160
+        from openframe.types import Frame
+
+        result = TesseractRecognizer().find(
+            frame=Frame(
+                width=frame_width,
+                height=frame_height,
+                scale_factor=1.0,
+                source="doctor:ocr",
+                image_path=str(probe),
+            ),
+            query="HELLO",
+        )
+    except (OcrError, OSError, RuntimeError, ValueError) as exc:
+        return CheckResult(
+            id="ocr",
+            status="fail",
+            detail=str(exc),
+            required=True,
+        )
+    finally:
+        probe.unlink(missing_ok=True)
+    if not any("HELLO".casefold() in (target.text or "").casefold() for target in result.targets):
+        return CheckResult(
+            id="ocr",
+            status="fail",
+            detail="tesseract did not read the generated text",
+            required=True,
+        )
+    return CheckResult(
+        id="ocr",
+        status="pass",
+        detail="read HELLO from a generated image",
+        required=True,
+    )
+
+
+def _write_ocr_probe(path: Path, image_cls: Any, draw_cls: Any, font_cls: Any) -> None:
+    image = image_cls.new("L", (600, 160), 255)
+    draw = draw_cls.Draw(image)
+    try:
+        font = font_cls.load_default(size=72)
+    except TypeError:
+        font = font_cls.load_default()
+    draw.text((20, 30), "HELLO", fill=0, font=font)
+    image.save(path)
 
 
 def _check_extras() -> list[CheckResult]:
