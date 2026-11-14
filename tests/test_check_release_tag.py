@@ -52,10 +52,10 @@ def test_tag_without_v_and_refs_prefix_match(tmp_path: Path) -> None:
 
 
 def test_release_candidate_tag_matches(tmp_path: Path) -> None:
-    pyproject = _write_pyproject(tmp_path, "0.3.0rc1")
-    result = _run("v0.3.0rc1", pyproject)
+    pyproject = _write_pyproject(tmp_path, "0.3.0rc2")
+    result = _run("v0.3.0rc2", pyproject)
     assert result.returncode == 0
-    assert "matches pyproject version 0.3.0rc1" in result.stdout
+    assert "matches pyproject version 0.3.0rc2" in result.stdout
 
 
 def test_empty_tag_fails(tmp_path: Path) -> None:
