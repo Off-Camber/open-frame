@@ -20,6 +20,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `292f468`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-live-gate` and `/tmp/open-frame-030rc2-app-matrix`. This is the `0.3.0rc2` version commit. | Live gate **fail**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. OCR without `TMPDIR` **pass**. `gui_client_env` **fail**: accessibility saw 0 elements after the gate closed the TextEdit document. App matrix **5/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. Finder was in icon view, so `Date Added` was not on screen. |
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `ae5c426`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-live-gate-2` and `/tmp/open-frame-030rc2-app-matrix-2`. | Live gate **pass**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. `gui_client_env` **pass**: OCR read `HELLO`, screen recording passed, `doctor --mcp` listed 8 tools. Accessibility in that check was `seen=0` and did not fail it. App matrix **5/6**. Finder's accessibility query timed out after 30s. The Recents list-view header on screen was `Date Last Opened`. |
 | 2026-11-14 | Local CLI | Strict app matrix rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc2-app-matrix-3`. The script recorded SHA `e28dbb9`. `git diff ae5c426..e28dbb9` is only `docs/DOGFOODING.md`. | App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. Finder, Safari, Mail, System Settings, Notes, and Calendar passed. |
+| 2026-11-14 | Clean venv, PyPI `0.3.0rc2` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc2"` into `/tmp/open-frame-030rc2-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc2-pypi-runs`. `TMPDIR` unset for `doctor --mcp` and `find`. | `open-frame --version` printed `open-frame 0.3.0rc2`. `doctor --mcp` exit 0, **overall: ok**, OCR read `HELLO`, 8 tools. `find "Finder"` exit 0, count 0, source `screen:1`. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -145,6 +146,16 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030rc2-live-gate-2`
 Evidence from `scripts/app_matrix_gate.sh` with `OPENFRAME_APP_MATRIX_STRICT=1` (`/tmp/open-frame-030rc2-app-matrix-3`). The script recorded SHA `e28dbb9` because that was HEAD. `git diff ae5c426b1e25bf5963d20f033c85846d35a72f88..e28dbb97af3f8fffc8fe660044c08b2802070241` is `docs/DOGFOODING.md` only. The live gate for this code is the pass recorded above on `ae5c426`.
 
 - **app matrix, 6/6.** Finder, Safari, Mail, System Settings, Notes, and Calendar. Strict mode on.
+
+## PyPI install (2026-11-14, `0.3.0rc2`)
+
+Clean venv `/tmp/open-frame-030rc2-pypi-venv`, Python 3.11.15. Installed from PyPI with `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc2"`. `importlib.metadata` reported `0.3.0rc2`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc2-pypi-runs`. `TMPDIR` was unset for the two commands below. The parent shell had `TMPDIR=/var/folders/8h/b60cv25s0b7cz7295wt0_kh40000gn/T/`. Tesseract 5.5.2 was already on `PATH`.
+
+The JSON API listed `0.3.0rc2` before pip's simple index did. The first install attempt saw versions through `0.3.0rc1`. A retry about a minute later installed the wheel.
+
+- `open-frame --version` printed `open-frame 0.3.0rc2`.
+- `open-frame doctor --mcp` exit 0, `overall: ok`. `ocr` passed, `read HELLO from a generated image`. `display_power` passed, awake and unlocked. Screen recording passed. Accessibility passed, 11 elements with bounds. One display. `extra_agent` skipped. `mcp_server` listed 8 tools. The config command was `/private/tmp/open-frame-030rc2-pypi-venv/bin/python`. stderr printed `Processing request of type ListToolsRequest`.
+- `open-frame find "Finder" --json` exit 0, `count` 0, source `screen:1`, no targets. stderr was empty.
 
 ## Notes
 
