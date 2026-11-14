@@ -26,6 +26,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-14 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `476d474`, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate` and `/tmp/open-frame-030-app-matrix`. This is the `0.3.0` version commit. | Live gate **fail**. Calibration **5/5**. The three geometry clicks failed. `frame_path` returned `permission_denied` for Homebrew Python `3.11.15_3`. No-`TMPDIR` check **pass**. App matrix **6/6**. |
 | 2026-11-14 | Local CLI | Live gate rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate-2`. The script recorded SHA `fe9cd05`. `git diff 476d474..fe9cd05` is only `docs/DOGFOODING.md`. | Live gate **fail**. Calibration **0/5**. The three geometry clicks failed. `frame_path` returned `permission_denied`. No-`TMPDIR` check **pass**. App matrix was not rerun. |
 | 2026-11-14 | Local CLI | Live gate rerun on macOS 27.0.1, Python 3.11.15 (`.venv`), Tesseract 5.5.4, one display. Evidence `/tmp/open-frame-030-live-gate-3`. The script recorded SHA `ee91218`. `git diff 476d474..ee91218` is only `docs/DOGFOODING.md`. TextEdit had been quit first. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. No-`TMPDIR` check **pass**. App matrix was not rerun. |
+| 2026-11-14 | Clean venv, PyPI `0.3.0` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0"` into `/tmp/open-frame-030-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030-pypi-runs`. `TMPDIR` unset for `doctor --mcp` and `find`. | `open-frame --version` printed `open-frame 0.3.0`. `doctor --mcp` exit 0, **overall: ok**, OCR read `HELLO`, accessibility 11 elements, 8 tools. `extra_agent` skipped. `find "Finder" --json` exit 0, count 0, source `screen:1`. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -217,6 +218,16 @@ Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-030-live-gate-3`). 
 - **gui_client_env, pass.** OCR, screen recording, and `doctor --mcp` passed without `TMPDIR`.
 - **mcp_stdio, pass.**
 - **a11y_bounds, pass.** 48 elements with bounds. The frontmost window was TextEdit "Untitled 206".
+
+## PyPI `0.3.0` (2026-11-14)
+
+Tag `v0.3.0` is `476d474d74397a3eefc5056a8fd707b101bceec7`. GitHub release https://github.com/Off-Camber/open-frame/releases/tag/v0.3.0. Publish run https://github.com/Off-Camber/open-frame/actions/runs/43630363840 succeeded after the `pypi` environment was approved. PyPI lists `0.3.0` as the latest release, classifier Development Status :: 4 - Beta. Wheel `off_camber_open_frame-0.3.0-py3-none-any.whl` and sdist `off_camber_open_frame-0.3.0.tar.gz`.
+
+Clean install into `/tmp/open-frame-030-pypi-venv` with Python 3.11.15. `TMPDIR` was unset.
+
+- `open-frame --version` printed `open-frame 0.3.0`.
+- `open-frame doctor --mcp` exited 0, **overall: ok**. OCR read `HELLO`. Accessibility saw 11 elements. The server listed 8 tools. `extra_agent` skipped because `anthropic` was not in the install command, and doctor printed the `python -m pip install "off-camber-open-frame[agent]"` note.
+- `open-frame find "Finder" --json` exited 0, count 0, source `screen:1`.
 
 ## Notes
 
