@@ -26,6 +26,7 @@ from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.locator import Locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
+from openframe.recognize.ocr.tesseract import OcrError
 from openframe.runner import FlowRunner
 from openframe.runs import lookup_run_directory, run_directory
 from openframe.types import Frame, StepResult
@@ -78,6 +79,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "capture_error",
             "permission_denied",
             "screen_unavailable",
+            "ocr_error",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -110,6 +112,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "action_error",
             "permission_denied",
             "screen_unavailable",
+            "ocr_error",
             "runtime_error",
             "timeout",
             "internal_error",
@@ -285,6 +288,8 @@ def call_mcp_tool(tool: str, args: dict[str, Any] | None = None) -> dict[str, An
         return _response_error(tool=tool, code="action_error", message=str(error))
     except ValueError as error:
         return _response_error(tool=tool, code="validation_error", message=str(error))
+    except OcrError as error:
+        return _response_error(tool=tool, code="ocr_error", message=str(error))
     except RuntimeError as error:
         return _response_error(tool=tool, code="runtime_error", message=str(error))
     except Exception as error:  # noqa: BLE001
@@ -438,21 +443,21 @@ def _summarize_step_result(step: StepResult) -> dict[str, Any]:
 def _tool_capture(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     _require_desktop(capture=True, interact=False)
     mode = str(args.get("mode", "screen")).strip().lower()
-    out_path = args.get("out_path")
+    out_path = _optional_string(args.get("out_path"))
+    run_id: str | None = None
+    if out_path is None:
+        run_id = _default_run_id()
+        out_path = str(run_directory(run_id) / "capture.png")
 
     if mode == "screen":
         frame = screen(out_path=out_path)
-        return {"frame": _frame_to_dict(frame), "mode": mode}, None, {}
-
-    if mode == "window":
+    elif mode == "window":
         frame = window(
             title=_optional_string(args.get("window_title")),
             window_id=_optional_int(args.get("window_id")),
             out_path=out_path,
         )
-        return {"frame": _frame_to_dict(frame), "mode": mode}, None, {}
-
-    if mode == "region":
+    elif mode == "region":
         frame = region(
             x=_required_int(args, "x"),
             y=_required_int(args, "y"),
@@ -460,9 +465,11 @@ def _tool_capture(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dic
             height=_required_int(args, "height"),
             out_path=out_path,
         )
-        return {"frame": _frame_to_dict(frame), "mode": mode}, None, {}
+    else:
+        raise ValueError(f"Unsupported capture mode: {mode}")
 
-    raise ValueError(f"Unsupported capture mode: {mode}")
+    artifacts = {"run_dir": str(run_directory(run_id))} if run_id else {}
+    return {"frame": _frame_to_dict(frame), "mode": mode}, run_id, artifacts
 
 
 def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
@@ -544,12 +551,14 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         origin=(frame.origin_x, frame.origin_y),
     )
     after = frame if dry_run else screen()
+    retain_paths = (frame.image_path,) if frame_path and frame.image_path else None
     artifact_dir = write_step_artifacts(
         run_id=run_id,
         step_id="mcp-click",
         before=frame,
         after=after,
         verification=None,
+        retain_paths=retain_paths,
     )
 
     data = {
