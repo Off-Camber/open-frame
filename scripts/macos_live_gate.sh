@@ -470,27 +470,36 @@ from openframe.doctor import doctor_ok, run_doctor
 def rows(checks):
     return [{"id": item.id, "status": item.status, "detail": item.detail} for item in checks]
 
+def status(checks, check_id):
+    return next(item for item in checks if item.id == check_id).status
+
 doctor = run_doctor(mcp=False)
 with_mcp = run_doctor(mcp=True)
-ocr = next(item for item in doctor if item.id == "ocr")
+ocr = status(doctor, "ocr")
+screen = status(doctor, "screen_recording")
+mcp = status(with_mcp, "mcp_server")
 payload = {
     "doctor_ok": doctor_ok(doctor),
     "doctor_mcp_ok": doctor_ok(with_mcp),
-    "ocr_status": ocr.status,
-    "ocr_detail": ocr.detail,
+    "ocr_status": ocr,
+    "ocr_detail": next(item for item in doctor if item.id == "ocr").detail,
+    "screen_recording_status": screen,
+    "mcp_server_status": mcp,
     "doctor": rows(doctor),
     "doctor_mcp": rows(with_mcp),
 }
 print(json.dumps(payload, indent=2))
-if not payload["doctor_ok"] or not payload["doctor_mcp_ok"] or ocr.status != "pass":
+# Accessibility is proved earlier in this gate, while a window is open.
+# An empty tree here is recorded and does not fail this check.
+if ocr != "pass" or screen != "pass" or mcp != "pass":
     raise SystemExit("gui client environment check failed")
 PY
   then
-    record_check "gui_client_env" "fail" "doctor, doctor --mcp, or OCR failed without TMPDIR" \
+    record_check "gui_client_env" "fail" "OCR, screen recording, or doctor --mcp failed without TMPDIR" \
       "${base}.out"
     return 1
   fi
-  record_check "gui_client_env" "pass" "doctor, doctor --mcp, and OCR passed without TMPDIR" \
+  record_check "gui_client_env" "pass" "OCR, screen recording, and doctor --mcp passed without TMPDIR" \
     "${base}.out"
 }
 

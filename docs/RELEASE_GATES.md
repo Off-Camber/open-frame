@@ -66,6 +66,7 @@ already has Accessibility enabled rather than treating OCR-only success as enoug
 | Region click | double-click from a region capture of that window leaves the insertion point or selection on that token |
 | `frame_path` click | MCP `click` with the window capture's `frame_path` leaves the insertion point or selection on that token |
 | Intentional failure | `examples/flows/calibration-token-miss/flow.yaml` exits nonzero with artifacts |
+| GUI client environment | With only `HOME`, `LOGNAME`, `PATH`, `SHELL`, and `USER`, OCR reads a generated image, screen recording passes, and `doctor --mcp` lists its tools. An empty accessibility tree is recorded and does not fail this check. |
 | MCP stdio | `open-frame mcp serve` handshake succeeds; dry-run `type` returns `ok: true` envelope |
 
 Outputs:

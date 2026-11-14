@@ -40,7 +40,7 @@ Release candidate. The package is still Beta. The MCP contract label stays `v0.3
 - A Tesseract failure is `ocr_error` with a readable message.
 - A frame passed as `frame_path` is not deleted after a click. A `capture` with no `out_path` is stored in the runs directory until `open-frame runs prune`.
 - `open-frame doctor` reads a generated image, so a broken OCR setup fails before a client calls `find`.
-- The live gate's intentional-failure check looks in the configured runs directory, and a new check runs doctor, `doctor --mcp`, and that OCR read with the environment a GUI client provides.
+- The live gate's intentional-failure check looks in the configured runs directory. Its no-`TMPDIR` check passes when OCR reads a generated image, screen recording works, and `doctor --mcp` lists its tools. An empty accessibility tree is recorded and does not fail that check.
 
 ### Docs
 - The MCP server docs say a full-screen find also matches text in the chat that asked for it, and show capturing the target window and passing that `frame_path` to find and click.

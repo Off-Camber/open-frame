@@ -213,3 +213,5 @@ def test_live_gate_uses_the_configured_runs_directory_and_gui_env() -> None:
     assert 'lookup_run_directory("live-gate-miss")' in script
     assert "env -i" in script
     assert "check_gui_client_env" in script
+    assert 'if ocr != "pass" or screen != "pass" or mcp != "pass":' in script
+    assert 'payload["doctor_ok"]' not in script
