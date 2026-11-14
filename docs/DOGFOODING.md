@@ -16,6 +16,7 @@ Short evidence that Open Frame MCP tools work from a real client host.
 | 2026-11-13 | Local CLI | Live gate and strict app matrix on macOS 27.0.1, SHA `98342fb`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-030rc1-live-gate` and `/tmp/open-frame-030rc1-app-matrix`. This is the `0.3.0rc1` commit. | Live gate **pass**. Calibration **5/5**. Window click (336, 201), region (328, 207), `frame_path` (331, 207), each with an empty selection and range 5,4 inside `CALMARK89`. App matrix **6/6** with `OPENFRAME_APP_MATRIX_STRICT=1`. |
 | 2026-11-13 | Clean venv, PyPI `0.3.0rc1` | `pip install "off-camber-open-frame[mcp,ocr,act,flow,template]==0.3.0rc1"` into `/tmp/open-frame-030rc1-pypi-venv`. `OPENFRAME_RUNS_DIR=/tmp/open-frame-030rc1-pypi-runs`. | `open-frame --version` printed `open-frame 0.3.0rc1`. `doctor --mcp` exit 0, **overall: ok**, 8 tools. One MCP `run_flow` call with `dry_run` true returned `isError` false and `success` true. Before/after images were about 1.78 MB each and were deleted after the size check. |
 | 2026-11-14 | Cursor and Claude Desktop, PyPI `0.3.0rc1` in `~/of-rc` | Short check. Cursor: full-screen `find` and `click` on `CALMARK89`. Claude Desktop: `find`, then a window capture, `find`, and `click` on that path. The fresh-account README check was not done. | Cursor connected with 8 tools. Full-screen `find` returned 3 matches; `expect_one` returned `ambiguous_target` (4 matches) and sent no click. `left_most` dry-run and live click returned ok at (100, 228) for a target at physical (138, 448), 126×18 (run `20261114T023512Z`). Not confirmed by eye. Claude `find` failed with `validation_error` until `TMPDIR` was set; a click then deleted the capture path. With an `out_path` outside the temp directory, the live click returned ok at (197, 240) (run `20261114T041857Z`). Not confirmed by eye. `doctor` and `doctor --mcp` passed from a terminal that had `TMPDIR` and did not run OCR. |
+| 2026-11-14 | Local CLI | Live gate on macOS 27.0.1, SHA `a524c7d`, Python 3.11.15 (`.venv`), Tesseract 5.5.2, one display. Evidence `/tmp/open-frame-rc1-fixes-live-gate`. `OPENFRAME_RUNS_DIR` pointed at that evidence directory. | Live gate **fail**. Calibration **5/5**. Geometry clicks window (331, 207), region (328, 207), `frame_path` (331, 207), each empty selection and range 5,4. Intentional failure wrote `/private/tmp/open-frame-rc1-fixes-live-gate/runs/live-gate-miss` and the check found that directory. OCR without `TMPDIR` **pass**. `gui_client_env` **fail**: accessibility saw 0 elements. |
 
 ## macOS 27 baseline (2026-11-12, `038aba5`)
 
@@ -103,6 +104,16 @@ After a window capture and a successful `find` on its `image_path`, a click on t
 `doctor` and `doctor --mcp` passed on this install. Neither ran OCR, and both ran from a terminal with `TMPDIR` set.
 
 A live click with `left_most` returned ok at (894, 427) on a match whose text was `"CALMARK89"` with quotes, which is Claude's own chat text rather than TextEdit. The token at 12pt and selected was not read in a window capture (count 0); at 48pt and unselected it was read with confidence 0.92.
+
+## macOS 27 gates (2026-11-14, `a524c7d`)
+
+Evidence from `scripts/macos_live_gate.sh` (`/tmp/open-frame-rc1-fixes-live-gate`). `OPENFRAME_RUNS_DIR=/tmp/open-frame-rc1-fixes-live-gate/runs`. This is `main` after the rc1 defect fixes. The strict app matrix was not run.
+
+- **calibration_5x, 5/5.**
+- **geometry clicks.** Each double-click left the TextEdit insertion point inside `CALMARK89` (selected text empty, range 5,4). Window-scoped click at (331, 207). Region click at (328, 207). `frame_path` click at (331, 207).
+- **intentional failure.** The flow exited 1 and wrote `/private/tmp/open-frame-rc1-fixes-live-gate/runs/live-gate-miss`. The gate check resolved that directory through `lookup_run_directory` and passed.
+- **gui_client_env, fail.** Under `HOME`, `LOGNAME`, `PATH`, `SHELL`, and `USER` only, `ocr` passed (`read HELLO from a generated image`), `display_power` was awake and unlocked, screen recording passed, and `doctor --mcp` listed 8 tools. `accessibility` failed with `no elements with usable bounds (seen=0)`, so doctor was not overall ok. A later probe, with and without that stripped environment, saw TextEdit frontmost and `windows: 0`.
+- **mcp_stdio, pass.**
 
 ## Notes
 
