@@ -26,7 +26,7 @@ Open Frame is the deterministic execution layer behind AI agents, not the agent 
 
 ## Status
 
-**Beta** (`v0.3.0rc2`) — macOS-first. Available on PyPI as
+**Beta** (`v0.3.0`) — macOS-first. Available on PyPI as
 [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 Evidence for this release comes from CI plus a local macOS live gate (including
 MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
@@ -121,8 +121,8 @@ python -m pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
 ```
 
 `python -m pip` installs into the environment you just activated. The command
-installs the latest stable release. The current beta is a pre-release, so pip
-selects it only with `--pre` or an exact version such as `==0.3.0rc2`.
+installs the latest stable release, which is `0.3.0`. The package is still
+labelled Beta.
 
 That command installs the standard extras: `ocr`, `act`, `flow`, `mcp`, and
 `template`.

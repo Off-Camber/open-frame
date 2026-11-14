@@ -31,12 +31,17 @@ Guidelines:
 
 ## Unreleased
 
+## v0.3.0 - 2026-11-14
+
+Stable version number. The package is still Beta. The MCP contract label stays `v0.3.0`.
+
 ### Fixed
 - `open-frame doctor` names the interpreter it checked. A `skip` for `mcp` or `template` means that distribution is absent from that interpreter. An installed distribution that cannot be imported is reported separately, and a `VIRTUAL_ENV` that does not match the running process fails the `python` check.
 
 ### Docs
 - The quickstart checks Python 3.11 before install, creates and activates a virtual environment, upgrades pip, and installs with `python -m pip`. It also explains a shared Homebrew that a standard account cannot write to.
 - The standard extras (`ocr`, `act`, `flow`, `mcp`, `template`) are documented separately from the optional `agent` extra. Doctor prints a `note` for an optional extra that was not installed, and a `hint` for a failure. Published installs are told `python -m pip install "off-camber-open-frame[agent]"`; `pip install -e ".[agent]"` stays the checkout command.
+- An unpinned install selects this release. `0.3.0rc2` was a pre-release, so the quickstart no longer tells you to pin it.
 
 ## v0.3.0rc2 - 2026-11-14
 
