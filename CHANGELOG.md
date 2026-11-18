@@ -31,6 +31,9 @@ Guidelines:
 
 ## Unreleased
 
+### Changed
+- A live `click` result includes `clicked_label`, the control's label after the click. `target` remains the match chosen before the click. A dry run does not include `clicked_label`.
+
 ## v0.3.0 - 2026-11-14
 
 Stable version number. The package is still Beta. The MCP contract label stays `v0.3.0`.

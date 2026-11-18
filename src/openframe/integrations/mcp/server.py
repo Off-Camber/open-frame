@@ -105,7 +105,10 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="click",
-        description="Find and click a target by query (envelope response; supports dry_run).",
+        description=(
+            "Find and click a target by query (envelope response; supports dry_run). "
+            "A live click includes clicked_label, the control's label after the click."
+        ),
     )
     def click(
         query: str,

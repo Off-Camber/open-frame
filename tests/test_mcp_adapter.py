@@ -466,6 +466,7 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
         "openframe.integrations.mcp.adapter.write_step_artifacts",
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.label_at_point", lambda _x, _y: None)
     result = call_mcp_tool(
         "click", {"query": "Save", "frame_path": str(image), "dry_run": False, "run_id": "r1"}
     )
@@ -474,6 +475,181 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
     assert seen["origin"] == (40, 80)
     assert seen["scale_factor"] == 2.0
     assert result["data"]["point"] == {"x": 50, "y": 85}
+    assert result["data"]["clicked_label"] is None
+
+
+def test_live_click_reports_the_control_label_after_it_changes(monkeypatch) -> None:
+    frame = Frame(
+        width=200, height=80, scale_factor=2.0, source="window:9", image_path="/tmp/f.png"
+    )
+    queries: list[str] = []
+    listed = {"count": 0}
+
+    class FakeLocator:
+        def find(self, frame, query, strategy="all", options=None):
+            _ = frame, strategy, options
+            queries.append(query)
+            return [
+                Target(
+                    x=1580,
+                    y=146,
+                    width=166,
+                    height=21,
+                    confidence=0.5,
+                    source="ocr:tesseract",
+                    text="Mark Unread",
+                )
+            ]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, target: Target, **kwargs: object) -> tuple[int, int]:
+            _ = target, kwargs
+            return (1075, 210)
+
+    def elements() -> list[dict[str, object]]:
+        listed["count"] += 1
+        return [
+            {
+                "title": "Inbox • ben@off-camber.dev",
+                "x": 0,
+                "y": 0,
+                "width": 2000,
+                "height": 1200,
+                "position_read": True,
+            },
+            {
+                "title": "Mark Unread",
+                "x": 10,
+                "y": 10,
+                "width": 140,
+                "height": 34,
+                "position_read": True,
+            },
+            {
+                "title": "Mark Read",
+                "x": 993,
+                "y": 193,
+                "width": 125,
+                "height": 34,
+                "position_read": True,
+            },
+        ]
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: frame
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", lambda **_kwargs: frame)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.write_step_artifacts",
+        lambda **_kwargs: Path("runs/r1/mcp-click"),
+    )
+    monkeypatch.setattr("openframe.recognize.a11y.macos._is_macos", lambda: True)
+    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+
+    result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": False, "run_id": "r1"})
+
+    assert result["ok"] is True
+    assert result["data"]["target"]["text"] == "Mark Unread"
+    assert result["data"]["clicked_label"] == "Mark Read"
+    assert result["data"]["point"] == {"x": 1075, "y": 210}
+    assert queries == ["Mark Unread"]
+    assert listed["count"] == 1
+
+
+def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
+    listed = {"count": 0}
+
+    class FakeLocator:
+        def find(self, frame, query, strategy="all", options=None):
+            _ = frame, query, strategy, options
+            return [
+                Target(
+                    x=10,
+                    y=20,
+                    width=30,
+                    height=40,
+                    confidence=0.9,
+                    source="ocr",
+                    text="Mark Unread",
+                )
+            ]
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def click_target(self, target: Target, **kwargs: object) -> tuple[int, int]:
+            _ = target, kwargs
+            return (25, 40)
+
+    def elements() -> list[dict[str, object]]:
+        listed["count"] += 1
+        return []
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: frame
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.write_step_artifacts",
+        lambda **_kwargs: Path("runs/r1/mcp-click"),
+    )
+    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+
+    result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": True, "run_id": "r1"})
+
+    assert result["ok"] is True
+    assert result["data"]["target"]["text"] == "Mark Unread"
+    assert "clicked_label" not in result["data"]
+    assert listed["count"] == 0
+
+
+def test_click_missing_target_stays_not_found(monkeypatch) -> None:
+    frame = Frame(
+        width=100, height=100, scale_factor=1.0, source="screen:1", image_path="/tmp/f.png"
+    )
+    listed = {"count": 0}
+
+    class FakeLocator:
+        def find(self, frame, query, strategy="all", options=None):
+            _ = frame, query, strategy, options
+            return []
+
+    def elements() -> list[dict[str, object]]:
+        listed["count"] += 1
+        return [
+            {"title": "Mark Read", "x": 0, "y": 0, "width": 10, "height": 10, "position_read": True}
+        ]
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: frame
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
+    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+
+    result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": False, "run_id": "r1"})
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "not_found"
+    assert listed["count"] == 0
 
 
 def test_scroll_tool_requires_clicks() -> None:
