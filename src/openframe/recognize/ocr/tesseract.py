@@ -237,6 +237,125 @@ def _line_key(data: dict[str, Any], idx: int) -> tuple[int, int, int, int]:
     return (at("page_num"), at("block_num"), at("par_num"), at("line_num"))
 
 
+def image_words(image_path: str) -> list[dict[str, Any]]:
+    """Read every OCR word in an image, with pixel boxes and a line key."""
+    try:
+        import pytesseract
+        from PIL import Image
+        from pytesseract import Output
+    except ImportError as exc:
+        raise RuntimeError(
+            'OCR dependencies are missing. Install with: pip install "off-camber-open-frame[ocr]"'
+        ) from exc
+
+    image = Image.open(image_path).convert("L")
+    try:
+        with ocr_scratch_dir():
+            data = pytesseract.image_to_data(image, output_type=Output.DICT)
+    except (UnicodeDecodeError, pytesseract.TesseractError, OSError) as exc:
+        raise OcrError(_ocr_failure_message(exc)) from exc
+
+    words: list[dict[str, Any]] = []
+    total = len(data.get("text", []))
+    for idx in range(total):
+        text = str(data["text"][idx]).strip()
+        if not text:
+            continue
+        raw_conf = data.get("conf", [])[idx] if idx < len(data.get("conf", [])) else ""
+        try:
+            if float(raw_conf) < 0:
+                continue
+        except (TypeError, ValueError):
+            pass
+        try:
+            left = int(data["left"][idx])
+            top = int(data["top"][idx])
+            width = int(data["width"][idx])
+            height = int(data["height"][idx])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if width <= 0 or height <= 0:
+            continue
+        words.append(
+            {
+                "text": text,
+                "left": left,
+                "top": top,
+                "width": width,
+                "height": height,
+                "line": _line_key(data, idx),
+            }
+        )
+    return words
+
+
+def label_from_words(words: list[dict[str, Any]], x: int, y: int) -> str | None:
+    """Join the OCR line whose box contains an image pixel, or None."""
+    lines: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for word in words:
+        if not isinstance(word, dict):
+            continue
+        text = str(word.get("text") or "").strip()
+        if not text:
+            continue
+        try:
+            left = int(word["left"])
+            top = int(word["top"])
+            width = int(word["width"])
+            height = int(word["height"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if width <= 0 or height <= 0:
+            continue
+        line = word.get("line")
+        key = line if isinstance(line, tuple) else (0,)
+        lines.setdefault(key, []).append(
+            {"text": text, "left": left, "top": top, "width": width, "height": height}
+        )
+
+    hits: list[list[dict[str, Any]]] = []
+    for group in lines.values():
+        if any(_word_contains(item, x, y) for item in group):
+            hits.append(group)
+    if not hits:
+        return None
+    chosen = min(hits, key=_line_area)
+    chosen.sort(key=lambda item: (item["left"], item["top"]))
+    return " ".join(str(item["text"]) for item in chosen)
+
+
+def label_in_frame(frame: Frame, x: int, y: int) -> str | None:
+    """Read the words at a logical screen point from a captured image.
+
+    The point is converted into that image's pixels. A missing image, an OCR
+    failure, or a point with no words returns None.
+    """
+    if not frame.image_path:
+        return None
+    try:
+        words = image_words(frame.image_path)
+    except (OcrError, OSError, RuntimeError):
+        return None
+    scale = frame.scale_factor if frame.scale_factor > 0 else 1.0
+    pixel_x = round((x - frame.origin_x) * scale)
+    pixel_y = round((y - frame.origin_y) * scale)
+    return label_from_words(words, pixel_x, pixel_y)
+
+
+def _word_contains(word: dict[str, Any], x: int, y: int) -> bool:
+    left = int(word["left"])
+    top = int(word["top"])
+    return left <= x <= left + int(word["width"]) and top <= y <= top + int(word["height"])
+
+
+def _line_area(words: list[dict[str, Any]]) -> int:
+    left = min(int(item["left"]) for item in words)
+    top = min(int(item["top"]) for item in words)
+    right = max(int(item["left"]) + int(item["width"]) for item in words)
+    bottom = max(int(item["top"]) + int(item["height"]) for item in words)
+    return max(1, right - left) * max(1, bottom - top)
+
+
 def _parse_confidence(value: str) -> float:
     try:
         numeric = float(value)

@@ -93,10 +93,12 @@ send the click. `expect_one` defaults to `false`. `selector` is optional
 `frame_path`, `template`, `template_threshold`, and `run_id` are optional.
 
 A successful result includes `target`, the match chosen before the click, and
-`point`. A live click also includes `clicked_label`, the label of the control
-at that point after the click. A button that read `Mark Unread` can come back
-as `Mark Read` in that same result. A dry run does not include `clicked_label`.
-`not_found` is still the error when the query matches nothing.
+`point`. A live click also includes `clicked_label`, read from the after
+screenshot at the click point. When that image shows `Mark Read` there, the
+field is `Mark Read`. When it still shows `Mark Unread`, the field is
+`Mark Unread`. The field is null when the image has no readable words at the
+point. A dry run does not include `clicked_label`. `not_found` is still the
+error when the query matches nothing.
 
 A full-screen `find` searches the whole display, including the chat that asked
 for the text. That extra match makes `click` with `expect_one` return

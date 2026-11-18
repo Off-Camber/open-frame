@@ -22,12 +22,11 @@ from openframe.desktop_access import (
     screen_unavailable_message,
 )
 from openframe.flow import load_flow
-from openframe.recognize.a11y.macos import label_at_point
 from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.locator import Locator
 from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
-from openframe.recognize.ocr.tesseract import OcrError
+from openframe.recognize.ocr.tesseract import OcrError, label_in_frame
 from openframe.runner import FlowRunner
 from openframe.runs import lookup_run_directory, run_directory
 from openframe.types import Frame, StepResult
@@ -92,7 +91,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": (
             "Find and click a target by query. dry_run defaults to true; "
             "pass dry_run=false to send the click. A live click includes "
-            "clicked_label, the control's label after the click."
+            "clicked_label, read from the after screenshot at the click point."
         ),
         "required_args": ["query"],
         "optional_args": [
@@ -553,6 +552,7 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         origin=(frame.origin_x, frame.origin_y),
     )
     after = frame if dry_run else screen()
+    clicked_label = None if dry_run else label_in_frame(after, point[0], point[1])
     retain_paths = (frame.image_path,) if frame_path and frame.image_path else None
     artifact_dir = write_step_artifacts(
         run_id=run_id,
@@ -574,7 +574,7 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         "target": asdict(selected_target),
     }
     if not dry_run:
-        data["clicked_label"] = label_at_point(point[0], point[1])
+        data["clicked_label"] = clicked_label
     recognizer_errors = getattr(locator, "recognizer_errors", None)
     if recognizer_errors:
         data["recognizer_errors"] = list(recognizer_errors)

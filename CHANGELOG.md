@@ -32,7 +32,7 @@ Guidelines:
 ## Unreleased
 
 ### Changed
-- A live `click` result includes `clicked_label`, the control's label after the click. `target` remains the match chosen before the click. A dry run does not include `clicked_label`.
+- A live `click` result includes `clicked_label`, read from the after screenshot at the click point. The field is null when that image has no readable words there. `target` remains the match chosen before the click. A dry run does not include `clicked_label`.
 
 ## v0.3.0 - 2026-11-14
 

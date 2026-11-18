@@ -466,7 +466,6 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
         "openframe.integrations.mcp.adapter.write_step_artifacts",
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
-    monkeypatch.setattr("openframe.integrations.mcp.adapter.label_at_point", lambda _x, _y: None)
     result = call_mcp_tool(
         "click", {"query": "Save", "frame_path": str(image), "dry_run": False, "run_id": "r1"}
     )
@@ -478,12 +477,45 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
     assert result["data"]["clicked_label"] is None
 
 
-def test_live_click_reports_the_control_label_after_it_changes(monkeypatch) -> None:
-    frame = Frame(
-        width=200, height=80, scale_factor=2.0, source="window:9", image_path="/tmp/f.png"
+def _toolbar_words(second_word: str) -> list[dict[str, object]]:
+    """OCR boxes for a toolbar line, plus a Mark Read line that misses the click."""
+    return [
+        {
+            "text": "Mark",
+            "left": 2000,
+            "top": 400,
+            "width": 160,
+            "height": 40,
+            "line": (1, 1, 1, 1),
+        },
+        {
+            "text": second_word,
+            "left": 2170,
+            "top": 400,
+            "width": 180,
+            "height": 40,
+            "line": (1, 1, 1, 1),
+        },
+        {"text": "Mark", "left": 10, "top": 800, "width": 80, "height": 20, "line": (2, 2, 2, 2)},
+        {"text": "Read", "left": 100, "top": 800, "width": 80, "height": 20, "line": (2, 2, 2, 2)},
+    ]
+
+
+def _live_click_with_after_words(monkeypatch, words: list[dict[str, object]]) -> dict:
+    before = Frame(
+        width=200, height=80, scale_factor=2.0, source="window:9", image_path="/tmp/before.png"
+    )
+    after = Frame(
+        width=3440,
+        height=1440,
+        scale_factor=2.0,
+        source="screen:1",
+        image_path="/tmp/after.png",
+        origin_x=0,
+        origin_y=0,
     )
     queries: list[str] = []
-    listed = {"count": 0}
+    read_paths: list[str] = []
 
     class FakeLocator:
         def find(self, frame, query, strategy="all", options=None):
@@ -509,59 +541,63 @@ def test_live_click_reports_the_control_label_after_it_changes(monkeypatch) -> N
             _ = target, kwargs
             return (1075, 210)
 
-    def elements() -> list[dict[str, object]]:
-        listed["count"] += 1
-        return [
-            {
-                "title": "Inbox • ben@off-camber.dev",
-                "x": 0,
-                "y": 0,
-                "width": 2000,
-                "height": 1200,
-                "position_read": True,
-            },
-            {
-                "title": "Mark Unread",
-                "x": 10,
-                "y": 10,
-                "width": 140,
-                "height": 34,
-                "position_read": True,
-            },
-            {
-                "title": "Mark Read",
-                "x": 993,
-                "y": 193,
-                "width": 125,
-                "height": 34,
-                "position_read": True,
-            },
-        ]
+    def image_words(image_path: str) -> list[dict[str, object]]:
+        read_paths.append(image_path)
+        return words
 
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
     )
     monkeypatch.setattr(
-        "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: frame
+        "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: before
     )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", lambda **_kwargs: frame)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", lambda **_kwargs: after)
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter.write_step_artifacts",
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
-    monkeypatch.setattr("openframe.recognize.a11y.macos._is_macos", lambda: True)
-    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+    monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
+
+    def accessibility_query() -> list[dict[str, object]]:
+        raise AssertionError("clicked_label must be read from the after image")
+
+    monkeypatch.setattr(
+        "openframe.recognize.a11y.macos._list_frontmost_elements", accessibility_query
+    )
 
     result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": False, "run_id": "r1"})
+    assert queries == ["Mark Unread"]
+    assert read_paths == ["/tmp/after.png"]
+    return result
+
+
+def test_live_click_reads_mark_read_from_the_after_image(monkeypatch) -> None:
+    result = _live_click_with_after_words(monkeypatch, _toolbar_words("Read"))
 
     assert result["ok"] is True
     assert result["data"]["target"]["text"] == "Mark Unread"
     assert result["data"]["clicked_label"] == "Mark Read"
     assert result["data"]["point"] == {"x": 1075, "y": 210}
-    assert queries == ["Mark Unread"]
-    assert listed["count"] == 1
+
+
+def test_live_click_keeps_mark_unread_when_the_after_image_still_shows_it(monkeypatch) -> None:
+    result = _live_click_with_after_words(monkeypatch, _toolbar_words("Unread"))
+
+    assert result["ok"] is True
+    assert result["data"]["target"]["text"] == "Mark Unread"
+    assert result["data"]["clicked_label"] == "Mark Unread"
+
+
+def test_live_click_sets_clicked_label_null_when_the_point_has_no_words(monkeypatch) -> None:
+    words = [
+        {"text": "Inbox", "left": 10, "top": 10, "width": 40, "height": 20, "line": (9, 9, 9, 9)}
+    ]
+    result = _live_click_with_after_words(monkeypatch, words)
+
+    assert result["ok"] is True
+    assert result["data"]["clicked_label"] is None
 
 
 def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
@@ -593,9 +629,10 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
             _ = target, kwargs
             return (25, 40)
 
-    def elements() -> list[dict[str, object]]:
+    def image_words(image_path: str) -> list[dict[str, object]]:
+        _ = image_path
         listed["count"] += 1
-        return []
+        return _toolbar_words("Read")
 
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
@@ -609,7 +646,7 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
         "openframe.integrations.mcp.adapter.write_step_artifacts",
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
-    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+    monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
 
     result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": True, "run_id": "r1"})
 
@@ -630,11 +667,10 @@ def test_click_missing_target_stays_not_found(monkeypatch) -> None:
             _ = frame, query, strategy, options
             return []
 
-    def elements() -> list[dict[str, object]]:
+    def image_words(image_path: str) -> list[dict[str, object]]:
+        _ = image_path
         listed["count"] += 1
-        return [
-            {"title": "Mark Read", "x": 0, "y": 0, "width": 10, "height": 10, "position_read": True}
-        ]
+        return _toolbar_words("Read")
 
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
@@ -643,7 +679,7 @@ def test_click_missing_target_stays_not_found(monkeypatch) -> None:
         "openframe.integrations.mcp.adapter._resolve_frame", lambda *_args, **_kwargs: frame
     )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
-    monkeypatch.setattr("openframe.recognize.a11y.macos._list_frontmost_elements", elements)
+    monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
 
     result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": False, "run_id": "r1"})
 
