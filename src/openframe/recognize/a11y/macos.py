@@ -153,49 +153,6 @@ if (procs.length === 0) {
 """.strip()
 
 
-def clicked_label_at_point(elements: list[dict[str, Any]], x: int, y: int) -> str | None:
-    """Return the title of the smallest accessibility element that contains a point.
-
-    The point is a logical screen coordinate. The search does not use the text
-    that was clicked, so a control can report a new title after its label changes.
-    """
-    best_title: str | None = None
-    best_area: int | None = None
-    for item in elements:
-        if not isinstance(item, dict) or item.get("position_read") is False:
-            continue
-        title = str(item.get("title") or "").strip()
-        if not title:
-            continue
-        try:
-            left = int(item.get("x", 0))
-            top = int(item.get("y", 0))
-            width = int(item.get("width", 0))
-            height = int(item.get("height", 0))
-        except (TypeError, ValueError):
-            continue
-        if width <= 0 or height <= 0:
-            continue
-        if not (left <= x <= left + width and top <= y <= top + height):
-            continue
-        area = width * height
-        if best_area is None or area < best_area:
-            best_area = area
-            best_title = title
-    return best_title
-
-
-def label_at_point(x: int, y: int) -> str | None:
-    """Read the frontmost control at a logical screen point, or None when it cannot be read."""
-    if not _is_macos():
-        return None
-    try:
-        elements = _list_frontmost_elements()
-    except (RuntimeError, TypeError, ValueError):
-        return None
-    return clicked_label_at_point(elements, x, y)
-
-
 def _list_frontmost_elements() -> list[dict[str, Any]]:
     try:
         completed = subprocess.run(
