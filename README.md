@@ -4,29 +4,40 @@
 
 # Open Frame
 
-Open-source desktop automation engine for AI agents and scripts.
-
-**Open Frame** sees what is on screen, finds targets, interacts with UI, and verifies outcomes. It is built to be deterministic, scriptable, and auditable.
+Open Frame is how an agent uses a Mac. It finds what is on screen, does the step, and checks the result. The model plans. Open Frame executes.
 
 <p align="center">
-  <img src="docs/assets/invoice-approve.gif" alt="Open Frame approving an invoice in the browser" width="720" />
+  <a href="https://pypi.org/project/off-camber-open-frame/"><img src="https://img.shields.io/pypi/v/off-camber-open-frame" alt="PyPI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="Apache 2.0" /></a>
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey" alt="macOS" />
+  <img src="https://img.shields.io/badge/status-Beta-orange" alt="Beta" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/invoice-approve.gif" alt="Open Frame finding, clicking, and verifying Post payment on an invoice" width="720" />
 </p>
 
 <sub>Above: Open Frame drives a live invoice UI — <strong>FIND</strong> “Post payment”, <strong>CLICK</strong> the match, <strong>VERIFY</strong> “Payment posted to Northline.”</sub>
 
+- **Anything on the display.** Outlook, Finder, Calendar, a browser. The target is the pixels, not a DOM.
+- **MCP tools dry-run unless you send the action.**
+- **A failed step keeps before and after screenshots.**
+
+```bash
+python -m pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
+```
+
+macOS, Python 3.11 or newer, Beta. The [install steps](#install-on-a-mac) cover the Python version and the case where Homebrew belongs to another account.
+
 > Open Frame is an independent project and is not affiliated with or endorsed by any third-party automation vendor.
 
-Open Frame is the deterministic execution layer behind AI agents, not the agent itself.
+## Why this exists
 
-### How this differs from assistant UX tools
-
-- Open Frame executes deterministic capture/recognize/act/verify primitives.
-- External LLM agents (or scripts) decide what tool call to make next.
-- The engine returns compact structured outputs and artifact paths for debugging.
+Browser agents read a page's structure. They stop where there is no DOM: a mail client, Finder, a system dialog. Licensed RPA sells that capture-and-click loop per bot. Open Frame is the open execution layer an agent calls over MCP: find a target on the screen, perform the step, and return a structured result with the screenshots.
 
 ## Status
 
-**Beta** (`v0.3.0`) — macOS-first. Available on PyPI as
+**Beta** (`v0.3.1`) — macOS-first. Available on PyPI as
 [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 Evidence for this release comes from CI plus a local macOS live gate (including
 MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
@@ -38,7 +49,7 @@ MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:
 - Teams who want agent-callable UI execution without bloating context windows.
 - Contributors building recognizers, flows, or integrations.
 
-## Quickstart (beta funnel)
+## Install on a Mac
 
 Open Frame requires **Python 3.11 or newer**. That requirement is
 `requires-python` in the package metadata. Releases are tested on Python 3.11
@@ -121,7 +132,7 @@ python -m pip install "off-camber-open-frame[mcp,ocr,act,flow,template]"
 ```
 
 `python -m pip` installs into the environment you just activated. The command
-installs the latest stable release, which is `0.3.0`. The package is still
+installs the latest stable release, which is `0.3.1`. The package is still
 labelled Beta.
 
 That command installs the standard extras: `ocr`, `act`, `flow`, `mcp`, and
@@ -239,7 +250,7 @@ brew install python@3.11
 - [Template setup](docs/TEMPLATE_SETUP.md) — optional icon/image matching.
 - [API](docs/API.md) — use `Session` and MCP-oriented integration guidance.
 - [Act setup](docs/ACT_SETUP.md) and [Verify setup](docs/VERIFY_SETUP.md) — run safely with evidence.
-- [Full docs index](docs/README.md) — contributor and planning docs.
+- [Full docs index](docs/README.md) — start here, then the project record.
 
 ## License
 

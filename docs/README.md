@@ -1,18 +1,19 @@
 # Open Frame — documentation
 
-Primary docs for the project.
+Primary docs for the project. Start with a guide. The project record is the history and the evidence behind releases.
 
-## User guides
+## Start here
 
 - **[MCP server setup](MCP_SERVER.md)** — run `open-frame mcp serve` with Claude Desktop / Cursor
 - **[Flow setup](FLOW_SETUP.md)** — define and run YAML flows
-- **[API](API.md)** — programmatic `Session` API and integration guidance
-- **[Agent setup](AGENT_SETUP.md)** — run model-driven tasks via deterministic MCP tools
 - **[Act setup](ACT_SETUP.md)** — configure and safely run input actions
 - **[Verify setup](VERIFY_SETUP.md)** — verify outcomes and inspect run artifacts
+- **[Troubleshooting](TROUBLESHOOTING.md)** — install, permissions, and doctor failures
+- **[API](API.md)** — programmatic `Session` API and integration guidance
+- **[Agent setup](AGENT_SETUP.md)** — run model-driven tasks via deterministic MCP tools
 - **[OCR setup](OCR_SETUP.md)** / **[A11Y setup](A11Y_SETUP.md)** / **[Template setup](TEMPLATE_SETUP.md)** — recognizer prerequisites
 
-## Developer docs
+## Working on Open Frame
 
 - **[Contributing](CONTRIBUTING.md)** — local setup, tests, and macOS permissions
 - **[Changelog](../CHANGELOG.md)** — release notes and entry format
@@ -20,13 +21,13 @@ Primary docs for the project.
 - **[Architecture](ARCHITECTURE.md)** — engine layers and extension points
 - **[Agent acceptance](AGENT_ACCEPTANCE.md)** — A.7 acceptance checks and pass criteria
 - **[MCP benchmark](MCP_BENCHMARK.md)** — repeatability benchmark for `run_flow` via MCP
+
+## Project record
+
 - **[Release gates](RELEASE_GATES.md)** — CI matrix + local macOS live gate checklist
 - **[Robustness triage](ROBUSTNESS_TRIAGE.md)** — app-matrix defect burn-down (PR 4)
 - **[Dogfooding](DOGFOODING.md)** — short real-client MCP evidence log
 - **[Market validation](MARKET_VALIDATION.md)** — user profiles + browser-use hybrid harness
-
-## Product/planning docs
-
 - **[Vision](VISION.md)** — positioning, audience, and product direction
 - **[MVP goalpost](MVP_GOALPOST.md)** — historical v0.1 milestone criteria and reference flow context
 - **[Decisions](DECISIONS.md)** — key product and technical decisions
