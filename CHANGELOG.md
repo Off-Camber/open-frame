@@ -31,6 +31,10 @@ Guidelines:
 
 ## Unreleased
 
+## v0.3.1 - 2026-11-18
+
+The package is still Beta. The MCP contract label stays `v0.3.0`.
+
 ### Changed
 - A live `click` result includes `clicked_label`, the words of the control at the click point, read from an after screenshot taken after that control has changed. The field is null when that image has no readable words there. `target` remains the match chosen before the click. A dry run does not include `clicked_label`.
 
