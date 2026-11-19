@@ -107,8 +107,8 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
         name="click",
         description=(
             "Find and click a target by query (envelope response; supports dry_run). "
-            "A live click includes clicked_label, read from the after screenshot "
-            "at the click point."
+            "A live click includes clicked_label, the control's words at the click "
+            "point, read from an after screenshot taken after that control changes."
         ),
     )
     def click(

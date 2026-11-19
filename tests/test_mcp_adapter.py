@@ -478,7 +478,7 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
 
 
 def _toolbar_words(second_word: str) -> list[dict[str, object]]:
-    """OCR boxes for a toolbar line, plus a Mark Read line that misses the click."""
+    """OCR boxes for one button, plus a Mark Read line that misses the click."""
     return [
         {
             "text": "Mark",
@@ -501,21 +501,66 @@ def _toolbar_words(second_word: str) -> list[dict[str, object]]:
     ]
 
 
-def _live_click_with_after_words(monkeypatch, words: list[dict[str, object]]) -> dict:
+def _outlook_toolbar_words(second_word: str) -> list[dict[str, object]]:
+    """One Outlook toolbar OCR line. The click pixel lands in the Mark button."""
+    specs = (
+        ("Archive", 1425, 98, 405, 38),
+        ("&6", 1592, 34, 406, 32),
+        ("Move", 1646, 68, 411, 21),
+        ("Fe", 1790, 24, 406, 20),
+        ("Flag", 1838, 52, 409, 28),
+        ("VY", 1928, 24, 415, 13),
+        ("©&", 2011, 38, 401, 32),
+        ("Mark", 2068, 63, 410, 21),
+        (second_word, 2141, 92, 410, 22),
+        ("©", 2305, 30, 401, 38),
+        ("Sync", 2357, 63, 411, 25),
+        ("&", 2490, 34, 404, 34),
+        ("Block", 2544, 70, 410, 21),
+        ("®®", 2680, 35, 401, 37),
+        ("send", 2737, 65, 410, 22),
+        ("to", 2812, 25, 412, 19),
+        ("OneNote", 2847, 115, 411, 21),
+        ("O00", 3027, 26, 417, 6),
+    )
+    return [
+        {
+            "text": text,
+            "left": left,
+            "top": top,
+            "width": width,
+            "height": height,
+            "line": (1, 45, 1, 1),
+        }
+        for text, left, width, top, height in specs
+    ]
+
+
+def _live_click_with_after_words(
+    monkeypatch,
+    words: list,
+    *,
+    frames: list[Frame] | None = None,
+) -> tuple[dict, dict[str, object]]:
+    sequences = words if words and isinstance(words[0], list) else [words]
+    if frames is None:
+        frames = [
+            Frame(
+                width=3440,
+                height=1440,
+                scale_factor=2.0,
+                source="screen:1",
+                image_path="/tmp/after.png" if len(sequences) == 1 else f"/tmp/after-{index}.png",
+                origin_x=0,
+                origin_y=0,
+            )
+            for index in range(len(sequences))
+        ]
     before = Frame(
         width=200, height=80, scale_factor=2.0, source="window:9", image_path="/tmp/before.png"
     )
-    after = Frame(
-        width=3440,
-        height=1440,
-        scale_factor=2.0,
-        source="screen:1",
-        image_path="/tmp/after.png",
-        origin_x=0,
-        origin_y=0,
-    )
     queries: list[str] = []
-    read_paths: list[str] = []
+    info: dict[str, object] = {"reads": [], "sleeps": [], "after": None}
 
     class FakeLocator:
         def find(self, frame, query, strategy="all", options=None):
@@ -542,8 +587,21 @@ def _live_click_with_after_words(monkeypatch, words: list[dict[str, object]]) ->
             return (1075, 210)
 
     def image_words(image_path: str) -> list[dict[str, object]]:
-        read_paths.append(image_path)
-        return words
+        reads = info["reads"]
+        assert isinstance(reads, list)
+        reads.append(image_path)
+        return sequences[min(len(reads) - 1, len(sequences) - 1)]
+
+    def screen(**_kwargs: object) -> Frame:
+        screens = info.setdefault("screens", [])
+        assert isinstance(screens, list)
+        frame = frames[min(len(screens), len(frames) - 1)]
+        screens.append(frame.image_path)
+        return frame
+
+    def write_step_artifacts(**kwargs: object) -> Path:
+        info["after"] = kwargs["after"]
+        return Path("runs/r1/mcp-click")
 
     monkeypatch.setattr(
         "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
@@ -553,12 +611,18 @@ def _live_click_with_after_words(monkeypatch, words: list[dict[str, object]]) ->
     )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
-    monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", lambda **_kwargs: after)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", screen)
     monkeypatch.setattr(
-        "openframe.integrations.mcp.adapter.write_step_artifacts",
-        lambda **_kwargs: Path("runs/r1/mcp-click"),
+        "openframe.integrations.mcp.adapter.write_step_artifacts", write_step_artifacts
     )
     monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
+
+    def record_sleep(seconds: float) -> None:
+        sleeps = info["sleeps"]
+        assert isinstance(sleeps, list)
+        sleeps.append(seconds)
+
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.time.sleep", record_sleep)
 
     def accessibility_query() -> list[dict[str, object]]:
         raise AssertionError("clicked_label must be read from the after image")
@@ -569,35 +633,60 @@ def _live_click_with_after_words(monkeypatch, words: list[dict[str, object]]) ->
 
     result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": False, "run_id": "r1"})
     assert queries == ["Mark Unread"]
-    assert read_paths == ["/tmp/after.png"]
-    return result
+    return result, info
 
 
 def test_live_click_reads_mark_read_from_the_after_image(monkeypatch) -> None:
-    result = _live_click_with_after_words(monkeypatch, _toolbar_words("Read"))
+    result, info = _live_click_with_after_words(monkeypatch, _toolbar_words("Read"))
 
     assert result["ok"] is True
     assert result["data"]["target"]["text"] == "Mark Unread"
     assert result["data"]["clicked_label"] == "Mark Read"
     assert result["data"]["point"] == {"x": 1075, "y": 210}
+    assert info["reads"] == ["/tmp/after.png"]
+    assert info["sleeps"] == []
 
 
 def test_live_click_keeps_mark_unread_when_the_after_image_still_shows_it(monkeypatch) -> None:
-    result = _live_click_with_after_words(monkeypatch, _toolbar_words("Unread"))
+    result, info = _live_click_with_after_words(monkeypatch, _toolbar_words("Unread"))
 
     assert result["ok"] is True
     assert result["data"]["target"]["text"] == "Mark Unread"
     assert result["data"]["clicked_label"] == "Mark Unread"
+    assert info["reads"] == ["/tmp/after.png"] * 5
+
+
+def test_live_click_label_is_only_the_button_on_the_toolbar_line(monkeypatch) -> None:
+    result, _info = _live_click_with_after_words(monkeypatch, _outlook_toolbar_words("Unread"))
+
+    assert result["ok"] is True
+    assert result["data"]["clicked_label"] == "Mark Unread"
+
+
+def test_live_click_waits_until_the_after_image_shows_the_changed_button(monkeypatch) -> None:
+    result, info = _live_click_with_after_words(
+        monkeypatch,
+        [_outlook_toolbar_words("Unread"), _outlook_toolbar_words("Read")],
+    )
+
+    assert result["ok"] is True
+    assert result["data"]["target"]["text"] == "Mark Unread"
+    assert result["data"]["clicked_label"] == "Mark Read"
+    after = info["after"]
+    assert isinstance(after, Frame)
+    assert after.image_path == "/tmp/after-1.png"
+    assert info["reads"] == ["/tmp/after-0.png", "/tmp/after-1.png"]
 
 
 def test_live_click_sets_clicked_label_null_when_the_point_has_no_words(monkeypatch) -> None:
     words = [
         {"text": "Inbox", "left": 10, "top": 10, "width": 40, "height": 20, "line": (9, 9, 9, 9)}
     ]
-    result = _live_click_with_after_words(monkeypatch, words)
+    result, info = _live_click_with_after_words(monkeypatch, words)
 
     assert result["ok"] is True
     assert result["data"]["clicked_label"] is None
+    assert info["reads"] == ["/tmp/after.png"]
 
 
 def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
@@ -629,6 +718,8 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
             _ = target, kwargs
             return (25, 40)
 
+    sleeps = {"count": 0}
+
     def image_words(image_path: str) -> list[dict[str, object]]:
         _ = image_path
         listed["count"] += 1
@@ -647,6 +738,10 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
     monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.time.sleep",
+        lambda _seconds: sleeps.__setitem__("count", sleeps["count"] + 1),
+    )
 
     result = call_mcp_tool("click", {"query": "Mark Unread", "dry_run": True, "run_id": "r1"})
 
@@ -654,6 +749,7 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
     assert result["data"]["target"]["text"] == "Mark Unread"
     assert "clicked_label" not in result["data"]
     assert listed["count"] == 0
+    assert sleeps["count"] == 0
 
 
 def test_click_missing_target_stays_not_found(monkeypatch) -> None:
