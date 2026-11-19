@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import asdict
@@ -16,7 +18,7 @@ from openframe import doctor as doctor_mod
 from openframe.act import ActError, Actuator
 from openframe.cancel import bind_tool_cancellation, reset_tool_cancellation
 from openframe.capture import CaptureError, region, screen, window
-from openframe.capture.sidecar import load_frame_sidecar
+from openframe.capture.sidecar import load_frame_sidecar, sidecar_path
 from openframe.desktop_access import (
     read_display_power,
     screen_unavailable_message,
@@ -25,7 +27,11 @@ from openframe.flow import load_flow
 from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.locator import Locator
-from openframe.recognize.match import ensure_actionable_match_count, explicit_selector
+from openframe.recognize.match import (
+    ensure_actionable_match_count,
+    explicit_selector,
+    normalize_text,
+)
 from openframe.recognize.ocr.tesseract import OcrError, label_in_frame
 from openframe.runner import FlowRunner
 from openframe.runs import lookup_run_directory, run_directory
@@ -39,6 +45,9 @@ DEFAULT_TOOL_TIMEOUT_SEC = 60.0
 DEFAULT_RUN_FLOW_TIMEOUT_SEC = 300.0
 MAX_FIND_TARGETS_INLINE = 50
 MAX_RUN_FLOW_DETAIL_CHARS = 32_000
+# A live click keeps capturing until the control's words change, or this budget ends.
+_CLICK_LABEL_ATTEMPTS = 5
+_CLICK_LABEL_WAIT_SEC = 0.3
 _TOOLS_WITH_RUN_ID = frozenset({"click", "run_flow"})
 _mcp_call_lock = threading.Lock()
 _timeout_warnings_sent: set[str] = set()
@@ -91,7 +100,8 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": (
             "Find and click a target by query. dry_run defaults to true; "
             "pass dry_run=false to send the click. A live click includes "
-            "clicked_label, read from the after screenshot at the click point."
+            "clicked_label, the control's words at the click point, read "
+            "from an after screenshot taken after that control changes."
         ),
         "required_args": ["query"],
         "optional_args": [
@@ -507,6 +517,60 @@ def _tool_find(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
     return data, None, {}
 
 
+def _after_click(
+    frame: Frame,
+    point: tuple[int, int],
+    previous_text: str | None,
+    *,
+    dry_run: bool,
+) -> tuple[Frame, str | None]:
+    """Return the after frame and the control's words at the click point.
+
+    A dry run keeps the pre-click frame and reports no new label. A live click
+    captures again while the control still shows its previous words, so the
+    saved image is one taken after the control has changed.
+    """
+    if dry_run:
+        return frame, None
+    after = screen()
+    label = label_in_frame(after, point[0], point[1])
+    for _attempt in range(_CLICK_LABEL_ATTEMPTS - 1):
+        if not _label_still_previous(label, previous_text):
+            break
+        time.sleep(_CLICK_LABEL_WAIT_SEC)
+        nxt = screen()
+        _discard_temp_capture(after)
+        after = nxt
+        label = label_in_frame(after, point[0], point[1])
+    return after, label
+
+
+def _label_still_previous(label: str | None, previous_text: str | None) -> bool:
+    if label is None or previous_text is None:
+        return False
+    previous = normalize_text(previous_text)
+    if not previous:
+        return False
+    return normalize_text(label) == previous
+
+
+def _discard_temp_capture(frame: Frame) -> None:
+    if not frame.image_path:
+        return
+    path = Path(frame.image_path)
+    try:
+        resolved = path.resolve()
+        temp_root = Path(tempfile.gettempdir()).resolve()
+    except OSError:
+        return
+    if resolved.parent != temp_root:
+        return
+    if not (resolved.name.startswith("openframe-") and resolved.suffix == ".png"):
+        return
+    path.unlink(missing_ok=True)
+    sidecar_path(path).unlink(missing_ok=True)
+
+
 def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
     query = _required_string(args, "query")
     anchor = str(args.get("anchor", "center")).strip()
@@ -551,8 +615,7 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
         scale_factor=frame.scale_factor,
         origin=(frame.origin_x, frame.origin_y),
     )
-    after = frame if dry_run else screen()
-    clicked_label = None if dry_run else label_in_frame(after, point[0], point[1])
+    after, clicked_label = _after_click(frame, point, selected_target.text, dry_run=dry_run)
     retain_paths = (frame.image_path,) if frame_path and frame.image_path else None
     artifact_dir = write_step_artifacts(
         run_id=run_id,

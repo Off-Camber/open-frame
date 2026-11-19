@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from openframe.recognize.base import Recognizer, RecognizerResult
@@ -289,8 +292,20 @@ def image_words(image_path: str) -> list[dict[str, Any]]:
     return words
 
 
+# A toolbar is one OCR line. Words inside one button sit about half a text
+# height apart ("Mark" to "Unread" was 10px at 21px height). The next button,
+# including its icon, starts farther away (19px on that same toolbar).
+_CONTROL_GAP_HEIGHT_RATIO = 0.6
+_LABEL_CROP_HALF_WIDTH = 400
+_LABEL_CROP_HALF_HEIGHT = 80
+
+
 def label_from_words(words: list[dict[str, Any]], x: int, y: int) -> str | None:
-    """Join the OCR line whose box contains an image pixel, or None."""
+    """Return the words of the control whose box contains an image pixel.
+
+    Words on the same OCR line are separate controls when a gap separates
+    them. A point with no control returns None.
+    """
     lines: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     for word in words:
         if not isinstance(word, dict):
@@ -315,8 +330,9 @@ def label_from_words(words: list[dict[str, Any]], x: int, y: int) -> str | None:
 
     hits: list[list[dict[str, Any]]] = []
     for group in lines.values():
-        if any(_word_contains(item, x, y) for item in group):
-            hits.append(group)
+        for cluster in _control_clusters(group):
+            if _cluster_contains(cluster, x, y):
+                hits.append(cluster)
     if not hits:
         return None
     chosen = min(hits, key=_line_area)
@@ -325,27 +341,98 @@ def label_from_words(words: list[dict[str, Any]], x: int, y: int) -> str | None:
 
 
 def label_in_frame(frame: Frame, x: int, y: int) -> str | None:
-    """Read the words at a logical screen point from a captured image.
+    """Read the control at a logical screen point from a captured image.
 
     The point is converted into that image's pixels. A missing image, an OCR
     failure, or a point with no words returns None.
     """
     if not frame.image_path:
         return None
-    try:
-        words = image_words(frame.image_path)
-    except (OcrError, OSError, RuntimeError):
-        return None
     scale = frame.scale_factor if frame.scale_factor > 0 else 1.0
     pixel_x = round((x - frame.origin_x) * scale)
     pixel_y = round((y - frame.origin_y) * scale)
+    try:
+        words = _image_words_near(frame.image_path, pixel_x, pixel_y)
+    except (OcrError, OSError, RuntimeError):
+        return None
     return label_from_words(words, pixel_x, pixel_y)
 
 
-def _word_contains(word: dict[str, Any], x: int, y: int) -> bool:
-    left = int(word["left"])
-    top = int(word["top"])
-    return left <= x <= left + int(word["width"]) and top <= y <= top + int(word["height"])
+def _image_words_near(image_path: str, pixel_x: int, pixel_y: int) -> list[dict[str, Any]]:
+    """OCR a window around the point and shift the boxes back to image pixels."""
+    crop = _crop_around(image_path, pixel_x, pixel_y)
+    if crop is None:
+        return image_words(image_path)
+    temp_path, origin_x, origin_y = crop
+    try:
+        words = image_words(temp_path)
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
+    shifted: list[dict[str, Any]] = []
+    for word in words:
+        item = dict(word)
+        try:
+            item["left"] = int(item["left"]) + origin_x
+            item["top"] = int(item["top"]) + origin_y
+        except (TypeError, ValueError, KeyError):
+            continue
+        shifted.append(item)
+    return shifted
+
+
+def _crop_around(image_path: str, pixel_x: int, pixel_y: int) -> tuple[str, int, int] | None:
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    try:
+        image = Image.open(image_path)
+    except (OSError, FileNotFoundError):
+        return None
+    width, height = image.size
+    left = max(0, pixel_x - _LABEL_CROP_HALF_WIDTH)
+    top = max(0, pixel_y - _LABEL_CROP_HALF_HEIGHT)
+    right = min(width, pixel_x + _LABEL_CROP_HALF_WIDTH)
+    bottom = min(height, pixel_y + _LABEL_CROP_HALF_HEIGHT)
+    if right <= left or bottom <= top:
+        return None
+    if left == 0 and top == 0 and right == width and bottom == height:
+        return None
+    crop = image.crop((left, top, right, bottom))
+    with ocr_scratch_dir():
+        handle, temp_path = tempfile.mkstemp(suffix=".png")
+    os.close(handle)
+    crop.save(temp_path)
+    return temp_path, left, top
+
+
+def _control_clusters(words: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    ordered = sorted(words, key=lambda item: (int(item["left"]), int(item["top"])))
+    if not ordered:
+        return []
+    clusters: list[list[dict[str, Any]]] = [[ordered[0]]]
+    for word in ordered[1:]:
+        if _same_control(clusters[-1][-1], word):
+            clusters[-1].append(word)
+        else:
+            clusters.append([word])
+    return clusters
+
+
+def _same_control(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    gap = int(right["left"]) - (int(left["left"]) + int(left["width"]))
+    if gap < 0:
+        return True
+    limit = _CONTROL_GAP_HEIGHT_RATIO * min(int(left["height"]), int(right["height"]))
+    return gap <= limit
+
+
+def _cluster_contains(words: list[dict[str, Any]], x: int, y: int) -> bool:
+    left = min(int(item["left"]) for item in words)
+    top = min(int(item["top"]) for item in words)
+    right = max(int(item["left"]) + int(item["width"]) for item in words)
+    bottom = max(int(item["top"]) + int(item["height"]) for item in words)
+    return left <= x <= right and top <= y <= bottom
 
 
 def _line_area(words: list[dict[str, Any]]) -> int:
