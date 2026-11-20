@@ -31,6 +31,9 @@ Guidelines:
 
 ## Unreleased
 
+### Docs
+- Cursor loads a project skill at `.cursor/skills/open-frame/SKILL.md`. It is a briefing for that agent, and it points at `docs/MCP_SERVER.md` and `docs/VISION.md`. Claude Desktop and any other client do not receive it.
+
 ### Changed
 - A live `click`, `key`, or `type` result includes `caret`, the role and the name or value of the focused element after the action. The field is null when that element cannot be read. A dry run omits `caret`.
 - MCP clients receive the safety rules in the server instructions and on the tools they govern: search a window capture and pass its `image_path` as `frame_path`, pass `dry_run=false` to send input, and stop when `click` returns `ambiguous_target`.
