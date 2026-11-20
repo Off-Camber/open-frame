@@ -31,6 +31,10 @@ Guidelines:
 
 ## Unreleased
 
+## v0.3.2 - 2026-11-20
+
+The package is still Beta. The MCP contract label stays `v0.3.0`.
+
 ### Docs
 - Cursor loads a project skill at `.cursor/skills/open-frame/SKILL.md`. It is a briefing for that agent, and it points at `docs/MCP_SERVER.md` and `docs/VISION.md`. Claude Desktop and any other client do not receive it.
 
