@@ -98,7 +98,10 @@ at the click point. The after screenshot is taken after that control has
 changed, and the label is read from that image. Words elsewhere on the same
 toolbar line are left out. When the button has become `Mark Read`, the field
 is `Mark Read`. The field is null when that image has no readable words at the
-point. A dry run does not include `clicked_label`. `not_found` is still the
+point. A dry run does not include `clicked_label`. A live click, `key`, or `type`
+also includes `caret`, the role and the name or value of the focused element
+after the action. `caret` is null when that element cannot be read. A dry run
+omits `caret`. `not_found` is still the
 error when the query matches nothing.
 
 A full-screen `find` searches the whole display, including the chat that asked
@@ -117,12 +120,16 @@ a live `click` can share that same path.
 ### `type`
 
 `text` must be non-empty. `interval` defaults to `0`. `dry_run` defaults to
-`true`; pass `false` to send keystrokes.
+`true`; pass `false` to send keystrokes. A live result includes `caret`, the
+role and the name or value of the focused element. `caret` is null when that
+element cannot be read. A dry run omits `caret`.
 
 ### `key`
 
 Pass exactly one of `key` or `combo`. `dry_run` defaults to `true`; pass
-`false` to send the key.
+`false` to send the key. A live result includes `caret`, the role and the name
+or value of the focused element. `caret` is null when that element cannot be
+read. A dry run omits `caret`.
 
 ### `scroll`
 

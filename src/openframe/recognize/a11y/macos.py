@@ -180,3 +180,103 @@ def _list_frontmost_elements() -> list[dict[str, Any]]:
     if not isinstance(parsed, list):
         raise TypeError("macOS accessibility recognizer returned non-list output.")
     return parsed
+
+
+_CARET_TEXT_LIMIT = 240
+
+_FOCUSED_ELEMENT_SCRIPT = """
+function safeCall(fn, fallback) {
+  try { return fn(); } catch (e) { return fallback; }
+}
+
+function textOf(value) {
+  if (typeof value !== "string") return "";
+  return value;
+}
+
+var se = Application("System Events");
+var procs = se.applicationProcesses.whose({ frontmost: true });
+if (procs.length === 0) {
+  JSON.stringify(null);
+} else {
+  var proc = procs[0];
+  var elem = safeCall(function () { return proc.focusedUIElement(); }, null);
+  if (!elem) {
+    elem = safeCall(function () {
+      return proc.attributes.byName("AXFocusedUIElement").value();
+    }, null);
+  }
+  if (!elem) {
+    JSON.stringify(null);
+  } else {
+    var role = textOf(safeCall(function () { return elem.role(); }, ""));
+    var name = textOf(safeCall(function () { return elem.name(); }, ""));
+    if (!name) {
+      name = textOf(safeCall(function () { return elem.description(); }, ""));
+    }
+    var value = textOf(safeCall(function () { return elem.value(); }, ""));
+    JSON.stringify({role: role, name: name, value: value});
+  }
+}
+""".strip()
+
+
+def focused_caret() -> dict[str, str | None] | None:
+    """Read the focused element's role and name or value, without moving the caret.
+
+    Returns None when the focused element cannot be read.
+    """
+    if not _is_macos():
+        return None
+    try:
+        payload = _read_focused_element()
+    except (RuntimeError, TypeError, ValueError, OSError):
+        return None
+    return caret_from_focus(payload)
+
+
+def caret_from_focus(payload: Any) -> dict[str, str | None] | None:
+    """Turn a focused-element payload into a caret, or None when it is empty."""
+    if not isinstance(payload, dict):
+        return None
+    role = _caret_text(payload.get("role"))
+    name = _caret_text(payload.get("name"))
+    value = _caret_text(payload.get("value"))
+    if role is None and name is None and value is None:
+        return None
+    return {"role": role, "name": name, "value": value}
+
+
+def _caret_text(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    if not text:
+        return None
+    if len(text) > _CARET_TEXT_LIMIT:
+        return text[:_CARET_TEXT_LIMIT]
+    return text
+
+
+def _read_focused_element() -> Any:
+    try:
+        completed = subprocess.run(
+            ["osascript", "-l", "JavaScript", "-e", _FOCUSED_ELEMENT_SCRIPT],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"macOS accessibility query timed out after {_SUBPROCESS_TIMEOUT_SEC:g}s."
+        ) from exc
+    if completed.returncode != 0:
+        message = (
+            completed.stderr.strip() or completed.stdout.strip() or "unknown accessibility error"
+        )
+        raise RuntimeError(f"macOS accessibility query failed: {message}")
+    try:
+        return json.loads(completed.stdout.strip() or "null")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("macOS accessibility recognizer returned invalid JSON.") from exc

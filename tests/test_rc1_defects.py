@@ -80,6 +80,7 @@ def test_capture_path_survives_dry_run_and_live_click(
     monkeypatch.setattr("openframe.integrations.mcp.adapter.screen", fake_screen)
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: None)
 
     captured = call_mcp_tool("capture", {"mode": "screen"})
     assert captured["ok"] is True
@@ -143,6 +144,7 @@ def test_caller_supplied_temp_frame_survives_both_clicks(
     )
     monkeypatch.setattr("openframe.integrations.mcp.adapter._build_locator", lambda: FakeLocator())
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: None)
 
     for dry_run in (True, False):
         result = call_mcp_tool(
