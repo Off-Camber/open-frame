@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from openframe import __version__
-from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION, call_mcp_tool
+from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION, MCP_TOOLS, call_mcp_tool
 
 CaptureMode = Literal["screen", "window", "region"]
 FindStrategy = Literal["first", "all"]
@@ -34,6 +34,14 @@ def _tool_args(**kwargs: Any) -> dict[str, Any]:
     return {key: value for key, value in kwargs.items() if value is not None}
 
 
+def _tool_description(name: str) -> str:
+    """Use the same description `open-frame mcp list-tools` prints."""
+    for tool in MCP_TOOLS:
+        if tool["name"] == name:
+            return str(tool["description"])
+    raise RuntimeError(f"No MCP description for {name}.")
+
+
 def create_mcp_server():  # type: ignore[no-untyped-def]
     """Build a FastMCP server with the Open Frame tools registered."""
     FastMCP = _require_fastmcp()
@@ -45,7 +53,12 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
             "Every tool result is an Open Frame envelope with keys "
             "ok, tool, run_id, data, error, and artifacts. "
             "Failures are in-band (ok=false + error.code), not protocol errors. "
-            "dry_run defaults to true. Pass dry_run=false to send a click, keystroke, scroll, or flow."
+            "Search a window capture. Pass that capture's image_path as frame_path "
+            "to find and click. A full-screen find also matches the chat that asked "
+            "for the text. "
+            "dry_run defaults to true on click, type, key, scroll, and run_flow. "
+            "Pass dry_run=false to send input. "
+            "When click returns ambiguous_target, stop. Do not guess with a selector."
         ),
     )
     # mcp 1.x FastMCP has no version argument. The handshake reads the low-level server.
@@ -55,7 +68,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="capture",
-        description="Capture screen, window, or region into a frame (envelope response).",
+        description=_tool_description("capture"),
     )
     def capture(
         mode: CaptureMode = "screen",
@@ -83,7 +96,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="find",
-        description="Find targets by query using a11y + OCR + optional template (envelope response).",
+        description=_tool_description("find"),
     )
     def find(
         query: str,
@@ -105,11 +118,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="click",
-        description=(
-            "Find and click a target by query (envelope response; supports dry_run). "
-            "A live click includes clicked_label, the control's words at the click "
-            "point, read from an after screenshot taken after that control changes."
-        ),
+        description=_tool_description("click"),
     )
     def click(
         query: str,
@@ -141,7 +150,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="type",
-        description="Type text at the current keyboard focus (envelope response).",
+        description=_tool_description("type"),
     )
     def type_text(
         text: str = "",
@@ -155,7 +164,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="key",
-        description="Press a key or key combo (provide key or combo; envelope response).",
+        description=_tool_description("key"),
     )
     def key(
         key: str | None = None,
@@ -169,7 +178,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="scroll",
-        description="Scroll the mouse wheel (positive=up, negative=down; envelope response).",
+        description=_tool_description("scroll"),
     )
     def scroll(
         clicks: int,
@@ -184,7 +193,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="run_flow",
-        description="Run a YAML flow file (envelope response; supports dry_run).",
+        description=_tool_description("run_flow"),
     )
     def run_flow(
         flow_path: str,
@@ -204,7 +213,7 @@ def create_mcp_server():  # type: ignore[no-untyped-def]
 
     @server.tool(
         name="get_run_artifacts",
-        description="List artifact files for a prior run id (envelope response).",
+        description=_tool_description("get_run_artifacts"),
     )
     def get_run_artifacts(run_id: str) -> dict[str, Any]:
         return call_mcp_tool("get_run_artifacts", {"run_id": run_id})

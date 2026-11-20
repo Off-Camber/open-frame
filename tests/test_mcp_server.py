@@ -15,8 +15,21 @@ from mcp.shared.memory import (
 )
 
 from openframe import __version__
-from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION
+from openframe.integrations.mcp.adapter import MCP_CONTRACT_VERSION, MCP_TOOLS
 from openframe.integrations.mcp.server import create_mcp_server
+
+SAFETY_RULES = (
+    (
+        "Search a window capture. Pass that capture's image_path as frame_path "
+        "to find and click. A full-screen find also matches the chat that asked "
+        "for the text."
+    ),
+    (
+        "dry_run defaults to true on click, type, key, scroll, and run_flow. "
+        "Pass dry_run=false to send input."
+    ),
+    "When click returns ambiguous_target, stop. Do not guess with a selector.",
+)
 
 EXPECTED_TOOLS = {
     "capture",
@@ -70,6 +83,33 @@ def test_create_mcp_server_lists_tools_with_schemas() -> None:
             assert "clicks" in scroll_schema["required"]
             assert scroll_schema["properties"]["clicks"]["type"] == "integer"
             assert MCP_CONTRACT_VERSION in (server.instructions or "")
+
+    _run(_check())
+
+
+def test_listed_tools_include_the_safety_rules() -> None:
+    server = create_mcp_server()
+    catalog = {str(tool["name"]): str(tool["description"]) for tool in MCP_TOOLS}
+
+    async def _check() -> None:
+        async with connect_session(server) as session:
+            listed = await session.list_tools()
+            by_name = {item.name: item.description or "" for item in listed.tools}
+            received = "\n".join([server.instructions or "", *by_name.values()])
+            for rule in SAFETY_RULES:
+                assert rule in received
+            assert by_name.keys() == catalog.keys()
+            for name, description in catalog.items():
+                assert by_name[name] == description
+            for name in ("find", "click"):
+                assert "image_path as frame_path" in by_name[name]
+                assert "chat that asked for the text" in by_name[name]
+            assert "clicked_label" in by_name["click"]
+            assert "ambiguous_target, stop" in by_name["click"]
+            assert "Do not guess with a selector" in by_name["click"]
+            for name in ("click", "type", "key", "scroll", "run_flow"):
+                assert "dry_run defaults to true" in by_name[name]
+                assert "dry_run=false" in by_name[name]
 
     _run(_check())
 
