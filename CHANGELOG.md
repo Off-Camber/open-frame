@@ -31,6 +31,9 @@ Guidelines:
 
 ## Unreleased
 
+### Changed
+- MCP clients receive the safety rules in the server instructions and on the tools they govern: search a window capture and pass its `image_path` as `frame_path`, pass `dry_run=false` to send input, and stop when `click` returns `ambiguous_target`.
+
 ## v0.3.1 - 2026-11-18
 
 The package is still Beta. The MCP contract label stays `v0.3.0`.

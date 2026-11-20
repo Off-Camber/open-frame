@@ -80,7 +80,11 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "find",
-        "description": "Find targets by query on a frame",
+        "description": (
+            "Find targets by query. Search a window capture. Pass that capture's "
+            "image_path as frame_path to find and click. A full-screen find also "
+            "matches the chat that asked for the text."
+        ),
         "required_args": ["query"],
         "optional_args": ["strategy", "frame_path", "template", "template_threshold"],
         "error_codes": [
@@ -98,10 +102,13 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "name": "click",
         "description": (
-            "Find and click a target by query. dry_run defaults to true; "
-            "pass dry_run=false to send the click. A live click includes "
-            "clicked_label, the control's words at the click point, read "
-            "from an after screenshot taken after that control changes."
+            "Find and click a target by query. Search a window capture. Pass that "
+            "capture's image_path as frame_path to find and click. A full-screen find "
+            "also matches the chat that asked for the text. dry_run defaults to true; "
+            "pass dry_run=false to send the click. When click returns ambiguous_target, "
+            "stop. Do not guess with a selector. A live click includes clicked_label, "
+            "the control's words at the click point, read from an after screenshot "
+            "taken after that control changes."
         ),
         "required_args": ["query"],
         "optional_args": [
