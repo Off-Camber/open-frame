@@ -466,6 +466,7 @@ def test_live_click_uses_sidecar_origin(tmp_path: Path, monkeypatch) -> None:
         "openframe.integrations.mcp.adapter.write_step_artifacts",
         lambda **_kwargs: Path("runs/r1/mcp-click"),
     )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: None)
     result = call_mcp_tool(
         "click", {"query": "Save", "frame_path": str(image), "dry_run": False, "run_id": "r1"}
     )
@@ -541,6 +542,7 @@ def _live_click_with_after_words(
     words: list,
     *,
     frames: list[Frame] | None = None,
+    caret: dict[str, str | None] | None = None,
 ) -> tuple[dict, dict[str, object]]:
     sequences = words if words and isinstance(words[0], list) else [words]
     if frames is None:
@@ -616,6 +618,7 @@ def _live_click_with_after_words(
         "openframe.integrations.mcp.adapter.write_step_artifacts", write_step_artifacts
     )
     monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: caret)
 
     def record_sleep(seconds: float) -> None:
         sleeps = info["sleeps"]
@@ -739,6 +742,10 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
     )
     monkeypatch.setattr("openframe.recognize.ocr.tesseract.image_words", image_words)
     monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter.focused_caret",
+        lambda: listed.__setitem__("count", listed["count"] + 1),
+    )
+    monkeypatch.setattr(
         "openframe.integrations.mcp.adapter.time.sleep",
         lambda _seconds: sleeps.__setitem__("count", sleeps["count"] + 1),
     )
@@ -748,8 +755,120 @@ def test_dry_run_click_does_not_report_a_new_label(monkeypatch) -> None:
     assert result["ok"] is True
     assert result["data"]["target"]["text"] == "Mark Unread"
     assert "clicked_label" not in result["data"]
+    assert "caret" not in result["data"]
     assert listed["count"] == 0
     assert sleeps["count"] == 0
+
+
+_TITLE_CARET = {"role": "AXTextField", "name": "CursorSharp shares", "value": None}
+
+
+def test_live_click_reports_the_focused_element_and_keeps_clicked_label(monkeypatch) -> None:
+    result, _info = _live_click_with_after_words(
+        monkeypatch, _toolbar_words("Read"), caret=_TITLE_CARET
+    )
+
+    assert result["ok"] is True
+    assert result["data"]["clicked_label"] == "Mark Read"
+    assert result["data"]["caret"] == _TITLE_CARET
+
+
+def test_live_type_and_key_report_the_focused_element(monkeypatch) -> None:
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            _ = text, interval
+
+        def press_key(self, key: str) -> None:
+            _ = key
+
+        def key_combo(self, *keys: str) -> None:
+            _ = keys
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: _TITLE_CARET)
+
+    typed = call_mcp_tool("type", {"text": "shares", "dry_run": False})
+    keyed = call_mcp_tool("key", {"key": "down", "dry_run": False})
+    combo = call_mcp_tool("key", {"combo": ["down"], "dry_run": False})
+
+    assert typed["ok"] is True
+    assert typed["data"]["caret"] == _TITLE_CARET
+    assert keyed["data"]["caret"] == _TITLE_CARET
+    assert combo["data"]["caret"] == _TITLE_CARET
+
+
+def test_dry_run_type_and_key_omit_caret(monkeypatch) -> None:
+    calls = {"count": 0}
+
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            _ = text, interval
+
+        def press_key(self, key: str) -> None:
+            _ = key
+
+    def focused_caret() -> dict[str, str | None]:
+        calls["count"] += 1
+        return _TITLE_CARET
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", focused_caret)
+
+    typed = call_mcp_tool("type", {"text": "shares", "dry_run": True})
+    keyed = call_mcp_tool("key", {"key": "down", "dry_run": True})
+
+    assert "caret" not in typed["data"]
+    assert "caret" not in keyed["data"]
+    assert calls["count"] == 0
+
+
+def test_unreadable_focus_sets_caret_null(monkeypatch) -> None:
+    class FakeActuator:
+        def __init__(self, *, dry_run: bool) -> None:
+            _ = dry_run
+
+        def type_text(self, text: str, interval: float = 0.0) -> None:
+            _ = text, interval
+
+    monkeypatch.setattr(
+        "openframe.integrations.mcp.adapter._require_desktop", lambda **_kwargs: None
+    )
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: None)
+
+    result = call_mcp_tool("type", {"text": "shares", "dry_run": False})
+
+    assert result["ok"] is True
+    assert result["data"]["caret"] is None
+
+
+def test_caret_from_focus_keeps_role_and_name_or_value() -> None:
+    from openframe.recognize.a11y.macos import caret_from_focus
+
+    assert caret_from_focus({"role": "AXTextField", "name": "", "value": "CursorSharp shares"}) == {
+        "role": "AXTextField",
+        "name": None,
+        "value": "CursorSharp shares",
+    }
+    assert caret_from_focus({"role": "AXTextArea", "name": "body", "value": None}) == {
+        "role": "AXTextArea",
+        "name": "body",
+        "value": None,
+    }
+    assert caret_from_focus(None) is None
+    assert caret_from_focus({"role": " ", "name": "", "value": ""}) is None
 
 
 def test_click_missing_target_stays_not_found(monkeypatch) -> None:
@@ -869,6 +988,7 @@ def test_explicit_dry_run_false_is_live(monkeypatch) -> None:
             _ = text, interval
 
     monkeypatch.setattr("openframe.integrations.mcp.adapter.Actuator", FakeActuator)
+    monkeypatch.setattr("openframe.integrations.mcp.adapter.focused_caret", lambda: None)
     result = call_mcp_tool("type", {"text": "hello", "dry_run": False})
     assert result["data"]["dry_run"] is False
     assert seen == [False]

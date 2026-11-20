@@ -24,6 +24,7 @@ from openframe.desktop_access import (
     screen_unavailable_message,
 )
 from openframe.flow import load_flow
+from openframe.recognize.a11y.macos import focused_caret
 from openframe.recognize.coords import select_target
 from openframe.recognize.defaults import build_default_locator, recognition_options_from_mapping
 from openframe.recognize.locator import Locator
@@ -48,6 +49,11 @@ MAX_RUN_FLOW_DETAIL_CHARS = 32_000
 # A live click keeps capturing until the control's words change, or this budget ends.
 _CLICK_LABEL_ATTEMPTS = 5
 _CLICK_LABEL_WAIT_SEC = 0.3
+_CARET_SENTENCE = (
+    "A live result includes caret, the role and the name or value of the focused "
+    "element after the action. caret is null when that element cannot be read. "
+    "A dry run omits caret."
+)
 _TOOLS_WITH_RUN_ID = frozenset({"click", "run_flow"})
 _mcp_call_lock = threading.Lock()
 _timeout_warnings_sent: set[str] = set()
@@ -108,7 +114,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "pass dry_run=false to send the click. When click returns ambiguous_target, "
             "stop. Do not guess with a selector. A live click includes clicked_label, "
             "the control's words at the click point, read from an after screenshot "
-            "taken after that control changes."
+            "taken after that control changes. " + _CARET_SENTENCE
         ),
         "required_args": ["query"],
         "optional_args": [
@@ -141,7 +147,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "type",
         "description": (
             "Type text at the current focus. dry_run defaults to true; "
-            "pass dry_run=false to send keystrokes."
+            "pass dry_run=false to send keystrokes. " + _CARET_SENTENCE
         ),
         "required_args": [],
         "optional_args": ["text", "interval", "dry_run"],
@@ -160,7 +166,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "name": "key",
         "description": (
             "Press one key or one combo. dry_run defaults to true; "
-            "pass dry_run=false to send the key."
+            "pass dry_run=false to send the key. " + _CARET_SENTENCE
         ),
         "required_args": [],
         "optional_args": ["key", "combo", "dry_run"],
@@ -645,6 +651,7 @@ def _tool_click(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[
     }
     if not dry_run:
         data["clicked_label"] = clicked_label
+        data["caret"] = focused_caret()
     recognizer_errors = getattr(locator, "recognizer_errors", None)
     if recognizer_errors:
         data["recognizer_errors"] = list(recognizer_errors)
@@ -661,7 +668,10 @@ def _tool_type(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[s
     _require_desktop(capture=False, interact=not dry_run)
     actuator = Actuator(dry_run=dry_run)
     actuator.type_text(text, interval=interval)
-    return {"text_length": len(text), "interval": interval, "dry_run": dry_run}, None, {}
+    data = {"text_length": len(text), "interval": interval, "dry_run": dry_run}
+    if not dry_run:
+        data["caret"] = focused_caret()
+    return data, None, {}
 
 
 def _tool_key(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
@@ -680,13 +690,19 @@ def _tool_key(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[st
         _require_desktop(capture=False, interact=not dry_run)
         actuator = Actuator(dry_run=dry_run)
         actuator.key_combo(*keys)
-        return {"combo": keys, "dry_run": dry_run}, None, {}
+        data = {"combo": keys, "dry_run": dry_run}
+        if not dry_run:
+            data["caret"] = focused_caret()
+        return data, None, {}
     if key is None:
         raise ValueError("key requires exactly one of key or combo.")
     _require_desktop(capture=False, interact=not dry_run)
     actuator = Actuator(dry_run=dry_run)
     actuator.press_key(key)
-    return {"key": key, "dry_run": dry_run}, None, {}
+    data = {"key": key, "dry_run": dry_run}
+    if not dry_run:
+        data["caret"] = focused_caret()
+    return data, None, {}
 
 
 def _tool_scroll(args: dict[str, Any]) -> tuple[dict[str, Any], str | None, dict[str, Any]]:
