@@ -4,7 +4,7 @@
 
 # Open Frame
 
-Open Frame is how an agent uses a Mac. It finds what is on screen, does the step, and checks the result. The model plans. Open Frame executes.
+Open Frame finds a target on a Mac, clicks or types, and checks the result. The agent decides the step.
 
 <p align="center">
   <a href="https://pypi.org/project/off-camber-open-frame/"><img src="https://img.shields.io/pypi/v/off-camber-open-frame" alt="PyPI" /></a>
@@ -37,7 +37,7 @@ Browser agents read a page's structure. They stop where there is no DOM: a mail 
 
 ## Status
 
-**Beta** (`v0.3.1`) — macOS-first. Available on PyPI as
+**Beta** (`v0.3.2`) — macOS-first. Available on PyPI as
 [`off-camber-open-frame`](https://pypi.org/project/off-camber-open-frame/).
 Evidence for this release comes from CI plus a local macOS live gate (including
 MCP stdio smoke); see [release gates](docs/RELEASE_GATES.md). Changelog:

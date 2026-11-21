@@ -31,6 +31,9 @@ Guidelines:
 
 ## Unreleased
 
+### Docs
+- The README says Open Frame finds a target on a Mac, clicks or types, and checks the result. The hero image draws its box around the Post payment button.
+
 ## v0.3.2 - 2026-11-20
 
 The package is still Beta. The MCP contract label stays `v0.3.0`.

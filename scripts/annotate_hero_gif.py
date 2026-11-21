@@ -39,6 +39,79 @@ def _measure(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) ->
     return box[2] - box[0], box[3] - box[1]
 
 
+_BUTTON_RGB = (6, 56, 43)
+
+
+def _is_button_pixel(red: int, green: int, blue: int) -> bool:
+    target_r, target_g, target_b = _BUTTON_RGB
+    return (
+        abs(red - target_r) <= 12
+        and abs(green - target_g) <= 12
+        and abs(blue - target_b) <= 12
+        and green > red + 20
+    )
+
+
+def _find_filled_button(image: Image.Image) -> tuple[int, int, int, int] | None:
+    """Return the demo's filled Post payment button, not the page around it."""
+    rgb = image.convert("RGB")
+    pixels = rgb.load()
+    width, height = rgb.size
+    seen = bytearray(width * height)
+    best: tuple[int, int, int, int] | None = None
+    best_area = 0
+    for y in range(height):
+        row = y * width
+        for x in range(width):
+            start = row + x
+            if seen[start]:
+                continue
+            red, green, blue = pixels[x, y]
+            if not _is_button_pixel(red, green, blue):
+                seen[start] = 1
+                continue
+            stack = [(x, y)]
+            seen[start] = 1
+            min_x = max_x = x
+            min_y = max_y = y
+            count = 0
+            while stack:
+                cx, cy = stack.pop()
+                count += 1
+                min_x = min(min_x, cx)
+                max_x = max(max_x, cx)
+                min_y = min(min_y, cy)
+                max_y = max(max_y, cy)
+                for nx, ny in ((cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1)):
+                    if nx < 0 or ny < 0 or nx >= width or ny >= height:
+                        continue
+                    index = ny * width + nx
+                    if seen[index]:
+                        continue
+                    nr, ng, nb = pixels[nx, ny]
+                    if not _is_button_pixel(nr, ng, nb):
+                        seen[index] = 1
+                        continue
+                    seen[index] = 1
+                    stack.append((nx, ny))
+            box_w = max_x - min_x + 1
+            box_h = max_y - min_y + 1
+            if not (90 <= box_w <= 280 and 28 <= box_h <= 90):
+                continue
+            if count < int(box_w * box_h * 0.45):
+                continue
+            if count > best_area:
+                pad = 4
+                best_area = count
+                best = (
+                    max(0, min_x - pad),
+                    max(0, min_y - pad),
+                    min(width - 1, max_x + pad),
+                    min(height - 1, max_y + pad),
+                )
+    return best
+
+
 def _find_button_box(image: Image.Image) -> tuple[int, int, int, int] | None:
     """Return approximate Post payment button bounds via OCR word boxes."""
     try:
@@ -195,10 +268,13 @@ def annotate_frames(frames: list[Image.Image]) -> list[Image.Image]:
         verify_at = int(len(frames) * 0.62)
     click_at = max(int(len(frames) * 0.28), verify_at - max(3, len(frames) // 12))
 
-    button_box = _find_button_box(frames[min(2, len(frames) - 1)].convert("RGB"))
+    button_box = None
+    for frame in frames[:8]:
+        button_box = _find_filled_button(frame.convert("RGB"))
+        if button_box is not None:
+            break
     if button_box is None:
-        w, h = frames[0].size
-        button_box = (int(w * 0.18), int(h * 0.62), int(w * 0.42), int(h * 0.72))
+        button_box = _find_button_box(frames[min(2, len(frames) - 1)].convert("RGB"))
 
     annotated: list[Image.Image] = []
     for idx, frame in enumerate(frames):
@@ -269,18 +345,37 @@ def save_gif(frames: list[Image.Image], duration_ms: int, out: Path) -> None:
         )
 
 
+def _load_scaled_frames(frames_dir: Path, width: int = 720) -> list[Image.Image]:
+    files = sorted(frames_dir.glob("*.png"))
+    frames: list[Image.Image] = []
+    for file in files:
+        image = Image.open(file).convert("RGB")
+        if image.width != width:
+            height = max(1, round(image.height * width / image.width))
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
+        frames.append(image)
+    return frames
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input_gif", type=Path)
+    parser.add_argument("input_gif", nargs="?", type=Path)
     parser.add_argument("output_gif", type=Path)
+    parser.add_argument("--frames", type=Path, help="PNG frames to scale, annotate, and encode")
+    parser.add_argument("--seconds", type=float, default=10)
     args = parser.parse_args()
 
-    # Prefer regenerating from a raw recording if the input was over-collapsed.
-    frames, duration = load_gif(args.input_gif)
-    if len(frames) < 8:
-        raise SystemExit(
-            f"input GIF only has {len(frames)} frames; re-run scripts/record_hero_demo.sh"
-        )
+    if args.frames is not None:
+        frames = _load_scaled_frames(args.frames)
+        duration = int(1000 * args.seconds / max(len(frames), 1))
+    else:
+        if args.input_gif is None:
+            raise SystemExit("pass an input GIF or --frames")
+        frames, duration = load_gif(args.input_gif)
+        if len(frames) < 8:
+            raise SystemExit(
+                f"input GIF only has {len(frames)} frames; re-run scripts/record_hero_demo.sh"
+            )
     annotated = annotate_frames(frames)
     save_gif(annotated, duration, args.output_gif)
     print(f"annotated {len(annotated)} frames -> {args.output_gif}")
