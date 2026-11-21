@@ -50,15 +50,16 @@ curl -sf "http://127.0.0.1:${PORT}/" >/dev/null
 osascript <<APPLESCRIPT >/dev/null
 tell application "Safari"
   activate
-  if (count of documents) is 0 then make new document
-  set URL of document 1 to "about:blank"
+  make new document
+  set URL of front document to "about:blank"
+  set bounds of front window to {80, 60, 980, 780}
 end tell
 APPLESCRIPT
 sleep 0.4
 osascript <<APPLESCRIPT >/dev/null
 tell application "Safari"
   activate
-  set URL of document 1 to "http://127.0.0.1:${PORT}/?hero=$(date +%s)"
+  set URL of front document to "http://127.0.0.1:${PORT}/?hero=$(date +%s)"
   set bounds of front window to {80, 60, 980, 780}
 end tell
 APPLESCRIPT
@@ -66,11 +67,13 @@ sleep 2.0
 
 mkdir -p "${FRAMES}"
 
-# Wall-clock grab (~12s). screencapture is slow, so don't target a fixed frame count.
+# Keep grabbing until the flow has finished and the success state has been on screen.
+# A fixed deadline was ending while the click was still running, so the saved
+# frames stayed on Pending even though the flow reported success.
+STOP="${WORK}/stop-grab"
 (
-  deadline=$((SECONDS + 12))
   i=0
-  while (( SECONDS < deadline )); do
+  while [[ ! -f "${STOP}" ]]; do
     printf -v name "%04d.png" "${i}"
     screencapture -x -R80,60,900,720 "${FRAMES}/${name}" || true
     i=$((i + 1))
@@ -89,6 +92,7 @@ RUN_STATUS=$?
 set -e
 
 sleep 3.5
+touch "${STOP}"
 wait "${GRAB_PID}" || true
 GRAB_PID=""
 
@@ -99,20 +103,6 @@ if [[ "${RUN_STATUS}" -ne 0 ]]; then
   exit "${RUN_STATUS}"
 fi
 
-FRAME_COUNT="$(cat "${WORK}/frame_count.txt")"
-# Aim for ~10s playback regardless of capture FPS.
-FPS="$("${PYTHON}" - <<PY
-count = int("${FRAME_COUNT}")
-print(max(4, min(12, round(count / 10))) )
-PY
-)"
-
-ffmpeg -y -framerate "${FPS}" -i "${FRAMES}/%04d.png" \
-  -vf "fps=${FPS},scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer:bayer_scale=2" \
-  "${WORK}/hero-raw.gif" >/dev/null 2>&1
-
-"${PYTHON}" "${ROOT}/scripts/annotate_hero_gif.py" "${WORK}/hero-raw.gif" "${OUT_GIF}"
-
 "${PYTHON}" - <<PY
 import json
 from pathlib import Path
@@ -121,14 +111,11 @@ import pytesseract
 
 payload = json.loads(Path(r"${WORK}/run.json").read_text())
 assert payload.get("success") is True, payload
-gif = Path(r"${OUT_GIF}")
 frames = sorted(Path(r"${FRAMES}").glob("*.png"))
 assert frames, "no frames captured"
 early = pytesseract.image_to_string(Image.open(frames[0]))
 late = pytesseract.image_to_string(Image.open(frames[-1]))
-print("hero gif:", gif)
-print("bytes:", gif.stat().st_size)
-print("capture_frames:", len(frames), "gif_fps:", "${FPS}")
+print("capture_frames:", len(frames))
 print("steps:", [s["step_id"] for s in payload.get("steps", [])])
 print("early_has_payment_posted", "payment posted" in early.lower())
 print("late_has_payment_posted", "payment posted" in late.lower())
@@ -138,3 +125,7 @@ if "payment posted" not in late.lower():
     raise SystemExit("recording never reached success state")
 print("arc_ok: pending -> posted")
 PY
+
+"${PYTHON}" "${ROOT}/scripts/annotate_hero_gif.py" --frames "${FRAMES}" --seconds 10 "${OUT_GIF}"
+echo "hero gif: ${OUT_GIF}"
+echo "bytes: $(stat -f %z "${OUT_GIF}")"
